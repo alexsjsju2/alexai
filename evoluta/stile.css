@@ -1,1 +1,7 @@
-
+body { transition: all 8s ease; }
+#sfondo { 
+  background: radial-gradient(circle at 30% 70%, #220033 0%, #000 80%);
+  animation: respiro 20s infinite;
+}
+#nome { filter: hue-rotate(0deg); animation: hue 60s infinite linear; }
+@keyframes hue { to { filter: hue-rotate(360deg); } }
