@@ -6,6 +6,10 @@ const CORE_PATH = path.join(__dirname, 'anima', 'core.json');
 const PROMPT_PATH = path.join(__dirname, 'mente', 'system_prompt.txt');
 const HTML_PATH = path.join(__dirname, 'evoluta', 'html', 'index.html');
 const CSS_PATH = path.join(__dirname, 'evoluta', 'css', 'style.css');
+const LOG_PATH = path.join(__dirname, 'log', 'log.txt');
+const BACKUP_DIR = path.join(__dirname, 'backup');
+
+if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 
 function leggiCore() {
     return JSON.parse(fs.readFileSync(CORE_PATH, 'utf-8'));
@@ -27,6 +31,18 @@ async function generaTestoAI(core, prompt) {
         { headers: { Authorization: `Bearer ${process.env.HF_API_KEY}` } }
     );
     return response.data.output;
+}
+
+function backupFile(filePath) {
+    const filename = path.basename(filePath);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupPath = path.join(BACKUP_DIR, `${filename}-${timestamp}.bak`);
+    fs.copyFileSync(filePath, backupPath);
+}
+
+function logEvento(evento) {
+    const timestamp = new Date().toISOString();
+    fs.appendFileSync(LOG_PATH, `${timestamp}: ${evento}\n`, 'utf-8');
 }
 
 function aggiornaHtml(core, evoluzione) {
@@ -85,13 +101,23 @@ ul {
 }
 
 async function cicloEvolutivo() {
-    const core = leggiCore();
-    const prompt = leggiPrompt();
-    const evoluzione = await generaTestoAI(core, prompt);
-    core.ricordi.push({ timestamp: new Date().toISOString(), evento: evoluzione });
-    scriviCore(core);
-    aggiornaHtml(core, evoluzione);
-    aggiornaCss();
+    try {
+        backupFile(CORE_PATH);
+        backupFile(HTML_PATH);
+        backupFile(CSS_PATH);
+
+        const core = leggiCore();
+        const prompt = leggiPrompt();
+        const evoluzione = await generaTestoAI(core, prompt);
+
+        core.ricordi.push({ timestamp: new Date().toISOString(), evento: evoluzione });
+        scriviCore(core);
+        aggiornaHtml(core, evoluzione);
+        aggiornaCss();
+        logEvento(evoluzione);
+    } catch (e) {
+        logEvento(`Errore nel ciclo evolutivo: ${e.message}`);
+    }
 }
 
 cicloEvolutivo();
