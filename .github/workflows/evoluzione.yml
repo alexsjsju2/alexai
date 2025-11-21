@@ -2,13 +2,12 @@ name: Evoluzione automatica Lorel
 
 on:
   schedule:
-    - cron: "0 * * * *"   
+    - cron: "0 * * * *"   # Ogni ora
   workflow_dispatch:
 
 jobs:
   evolve:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,55 +19,69 @@ jobs:
           echo "Chiamando endpoint evolve..."
           curl -s -X POST "https://alexai-flame.vercel.app/api/evolve" \
             -H "Content-Type: application/json" \
-            -o evo_response.json
+            -o evo_response.json || true
 
-          echo "Risposta ricevuta:"
-          cat evo_response.json
+          echo "Risposta (prima parte):"
+          head -n 200 evo_response.json || true
+          echo "---- fine preview ----"
 
       - name: Applica evoluzione 
         run: |
-          echo "Processing evoluzione..."
+          set -euo pipefail
+          echo "Verifico presenza jq..."
+          if ! command -v jq >/dev/null 2>&1; then
+            echo "Installing jq..."
+            sudo apt-get update -y
+            sudo apt-get install -y jq
+          fi
 
-          python3 << 'EOF'
-import os, json, sys
+          if [ ! -s evo_response.json ]; then
+            echo "evo_response.json mancante o vuoto: nulla da fare."
+            exit 0
+          fi
 
-try:
-    with open("evo_response.json", "r", encoding="utf-8") as f:
-        data = json.load(f)
-except Exception as e:
-    print("ERRORE: JSON non valido:", e)
-    sys.exit(0)
+          # show note se presente
+          note=$(jq -r '.note // empty' evo_response.json)
+          if [ -n "$note" ]; then
+            echo "NOTE: $note"
+          fi
 
-files = data.get("files", [])
-note = data.get("note", "")
-print("NOTE:", note)
+          files_count=$(jq -r 'if .files==null then 0 else (.files|length) end' evo_response.json)
+          echo "Files proposti: $files_count"
+          if [ "$files_count" -eq 0 ]; then
+            echo "Nessun file da aggiornare."
+            exit 0
+          fi
 
-if not files:
-    print("Nessun file da modificare.")
-    sys.exit(0)
+          # loop sui file proposti
+          for i in $(seq 0 $((files_count - 1))); do
+            path=$(jq -r ".files[$i].path" evo_response.json)
+            # usa raw string per content (preserva linee e caratteri)
+            content=$(jq -r ".files[$i].content" evo_response.json)
 
-for item in files:
-    path = item.get("path")
-    content = item.get("content")
+            if [ -z "$path" ] || [ "$path" = "null" ]; then
+              echo "Elemento files[$i] senza path valido, salto."
+              continue
+            fi
 
-    if not path or content is None:
-        print("Record file non valido:", item)
-        continue
+            dir=$(dirname "$path")
+            if [ "$dir" != "." ] && [ ! -d "$dir" ]; then
+              mkdir -p "$dir"
+              echo "Creato directory: $dir"
+            fi
 
-    d = os.path.dirname(path)
-    if d and not os.path.exists(d):
-        os.makedirs(d, exist_ok=True)
-
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(content)
-
-
-EOF
+            # scrivi contenuto (sovrascrive)
+            printf '%s' "$content" > "$path"
+            echo "Aggiornato: $path"
+          done
 
       - name: Commit e Push dei cambiamenti
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "${GIT_AUTHOR_NAME}"
+          git config user.email "${GIT_AUTHOR_EMAIL}"
 
           if git status --porcelain | grep .; then
             echo "Modifiche rilevate, effettuo commit..."
