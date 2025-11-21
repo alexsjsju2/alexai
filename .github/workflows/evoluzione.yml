@@ -17,7 +17,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install axios  # Invariato
+        run: npm install axios
 
       - name: Esegui evoluzione
         env:
@@ -25,7 +25,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node evolve.js
 
+      
       - name: Commit e push cambiamenti
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Evoluzione autonoma: [descrizione generata dall'AI]"
+          commit_message: "Evoluzione autonoma: riflessioni e cambiamenti sul mondo"
+          file_pattern: . 
+          skip_fetch: true
+          skip_checkout: true
+          add_options: '-- . ":(exclude)node_modules/" ":(exclude)package-lock.json"'
