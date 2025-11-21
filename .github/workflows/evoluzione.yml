@@ -1,7 +1,7 @@
 name: Ciclo Evolutivo
 on:
   schedule:
-    - cron: '0 */1 * * *'  
+    - cron: '0 */1 * * *'
   workflow_dispatch:
 
 jobs:
@@ -21,14 +21,14 @@ jobs:
 
       - name: Esegui evoluzione
         env:
-          HF_API_KEY: ${{ secrets.HF_API_KEY }} 
+          HF_API_KEY: ${{ secrets.HF_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node evolve.js
 
       - name: Commit e push cambiamenti
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Evoluzione autonoma: Lia Lumera si trasforma"
+          commit_message: "Evoluzione autonoma: Loren Axun si trasforma"
           file_pattern: |
             anima/
             evoluta/
