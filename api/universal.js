@@ -28,9 +28,13 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://www.alexsjsju.eu');  
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400');  
+
+  console.log(`Richiesta ricevuta: Method=${req.method}, Origin=${req.headers.origin}`);
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();  
+    console.log('Gestione preflight OPTIONS');
+    return res.status(200).end();
   }
 
   try {
@@ -61,7 +65,7 @@ module.exports = async (req, res) => {
           { inputs: prompt, parameters: { max_new_tokens: 150, temperature: 0.85, top_p: 0.9 } },
           { headers: { Authorization: `Bearer ${process.env.KEY_GPT2}` } }
         );
-        let risposta = hfRes.data[0].generated_text.trim().split('\n').slice(-1)[0]; 
+        let risposta = hfRes.data[0].generated_text.trim().split('\n').slice(-1)[0];  
 
         let memoriaSalvata = false;
         if (messaggio.length > 50 || /amore|triste|felice|sogno/i.test(risposta)) {
@@ -80,7 +84,7 @@ module.exports = async (req, res) => {
 
     res.status(405).json({ error: 'Metodo non allowed' });
   } catch (err) {
-    console.error(err);
+    console.error('Errore:', err);
     res.status(500).json({ error: 'Errore server: ' + err.message });
   }
 };
