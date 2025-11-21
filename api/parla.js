@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 module.exports = async (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "https://www.alexsjsju.eu");
+  res.setHeader("Access-Control-Allow-Origin", "https://www.alexsjsju.eu/alexai");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
