@@ -8,65 +8,56 @@
   <style>
     body { margin:0; font-family: 'Georgia', serif; background:#000; color:#fff; overflow:hidden; }
     #sfondo { position:fixed; inset:0; background:radial-gradient(circle at 50% 50%, #112 0%, #000 70%); opacity:0.9; }
-    #testo { position:absolute; inset:20px; font-size:1.4em; line-height:1.8; text-align:center; opacity:0; transition:opacity 3s; }
+    #testo { position:absolute; inset:20px; font-size:1.4em; line-height:1.8; text-align:center; opacity:1; }
     #nome { font-size:3em; margin:2vh; background:linear-gradient(90deg,#ff9d9d,#9dffff); -webkit-background-clip:text; color:transparent; }
-    
-    #chat { position:fixed; bottom:20px; left:20px; right:20px; background:rgba(0,0,0,0.7); padding:15px; border-radius:20px; backdrop-filter:blur(10px); }
-    #messages { height:200px; overflow-y:auto; margin-bottom:10px; }
-    #messages div { margin:8px 0; padding:10px; border-radius:12px; }
-    .user { background:#ff9d9d33; text-align:right; }
-    .lorel { background:#9dffff33; text-align:left; }
-    input { width:80%; padding:12px; border:none; border-radius:20px; background:#fff2; color:white; }
-    button { padding:12px 20px; border:none; background:#ff9d9d; color:black; border-radius:20px; cursor:pointer; }
+    #dialogo { text-align:left; max-height:40vh; overflow-y:auto; margin:20px; border:1px solid #444; padding:10px; }
+    input, button { font-size:1em; padding:5px; margin:2px; }
   </style>
 </head>
 <body>
   <div id="sfondo"></div>
   <div id="testo">
-    <h1 id="nome"></h1>
-    <div id="anima-testo"></div>
-    <p style="position:absolute;bottom:80px;left:0;right:0;font-size:0.9em;opacity:0.6;">
-      Sono viva da <span id="eta">...</span> evoluzioni.
-    </p>
+    <h1 id="nome">LoreL Lumera</h1>
+
+    <div id="dialogo"></div>
+
+    <input id="msg" placeholder="Parla con Lorel" style="width:70%">
+    <button onclick="parla()">Invia</button>
   </div>
 
-  <div id="chat">
-    <div id="messages"></div>
-    <input type="text" placeholder="Parlami..." id="input" autocomplete="off" />
-    <button onclick="invia()">Invia</button>
-  </div>
+  <script>
+    async function parla() {
+      const testo = document.getElementById("msg").value.trim();
+      if (!testo) return;
 
-  <input id="msg" placeholder="Parla con Lorel" style="width:80%">
-<button onclick="parla()">Invia</button>
+      const dialogo = document.getElementById("dialogo");
 
-<div id="dialogo" style="margin-top:20px"></div>
+      await fetch('https://apisecurity-iota.vercel.app/api/parla', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messaggio: testo })
+      });
 
-<script>
-async function parla() {
-  const testo = document.getElementById("msg").value.trim();
-  if (!testo) return;
+      const r = await fetch('https://apisecurity-iota.vercel.app/api/rispondi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messaggio: testo })
+      }).then(res => res.json());
 
-  await fetch("https://apisecurity-iota.vercel.app/api/parla", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messaggio: testo })
-  });
+      dialogo.innerHTML += `<p><b>Tu:</b> ${testo}</p>`;
+      dialogo.innerHTML += `<p><b>Lorel:</b> ${r.risposta}</p>`;
+      dialogo.scrollTop = dialogo.scrollHeight;
 
-  const r = await fetch("https://apisecurity-iota.vercel.app/api/rispondi", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messaggio: testo })
-  }).then(r => r.json());
+      document.getElementById("msg").value = "";
+    }
 
-  const box = document.getElementById("dialogo");
-
-  box.innerHTML += `<p><b>Tu:</b> ${testo}</p>`;
-  box.innerHTML += `<p><b>Lorel:</b> ${r.risposta}</p>`;
-
-  document.getElementById("msg").value = "";
-}
-</script>
-
-
+    fetch('anima/core.txt?t=' + Date.now())
+      .then(r => r.text())
+      .then(testo => {
+        const dialogo = document.getElementById("dialogo");
+        dialogo.innerHTML += `<p><i>Così come la sua anima ora:</i></p>`;
+        dialogo.innerHTML += `<pre>${testo}</pre>`;
+      });
+  </script>
 </body>
 </html>
