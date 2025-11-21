@@ -1,7 +1,7 @@
 name: Ciclo Evolutivo
 on:
   schedule:
-    - cron: '0 */6 * * *'  
+    - cron: '0 */1 * * *'  
   workflow_dispatch:
 
 jobs:
@@ -25,12 +25,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node evolve.js
 
-      
       - name: Commit e push cambiamenti
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Evoluzione autonoma: riflessioni e cambiamenti sul mondo"
-          file_pattern: . 
-          skip_fetch: true
-          skip_checkout: true
-          add_options: '-- . ":(exclude)node_modules/" ":(exclude)package-lock.json"'
+          commit_message: "Evoluzione autonoma: Lia Lumera si trasforma"
+          file_pattern: |
+            anima/
+            evoluta/
+            mente/
+          add_options: |
+            --verbose
+          skip_dirty_check: false
