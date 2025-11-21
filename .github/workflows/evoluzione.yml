@@ -1,8 +1,8 @@
 name: Ciclo Evolutivo
 on:
   schedule:
-    - cron: '0 */3 * * *'  
-  workflow_dispatch: 
+    - cron: '0 */6 * * *'  
+  workflow_dispatch:
 
 jobs:
   evolve:
@@ -11,19 +11,19 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Node.js (per script JS)
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install axios 
+        run: npm install axios  # Invariato
 
       - name: Esegui evoluzione
         env:
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}  
+          HF_API_KEY: ${{ secrets.HF_API_KEY }} 
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node evolve.js  
+        run: node evolve.js
 
       - name: Commit e push cambiamenti
         uses: stefanzweifel/git-auto-commit-action@v5
