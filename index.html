@@ -1,8 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-<title>Page Title</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lia Lumera</title>
+  <link id="stile-evoluto" rel="stylesheet" href="evoluta/stile.css"/>
+  <style>
+    body { margin:0; font-family: 'Georgia', serif; background:#000; color:#fff; overflow:hidden; }
+    #sfondo { position:fixed; inset:0; background:radial-gradient(circle at 50% 50%, #112 0%, #000 70%); opacity:0.9; }
+    #testo { position:absolute; inset:20px; font-size:1.4em; line-height:1.8; text-align:center; opacity:0; transition:opacity 3s; }
+    #nome { font-size:3em; margin:2vh; background:linear-gradient(90deg,#ff9d9d,#9dffff); -webkit-background-clip:text; color:transparent; }
+    @keyframes respiro { 0%,100% { opacity:0.7; } 50% { opacity:1; } }
+  </style>
 </head>
 <body>
+  <div id="sfondo"></div>
+  <div id="testo">
+    <h1 id="nome"></h1>
+    <div id="anima-testo"></div>
+    <p style="position:absolute;bottom:20px;left:0;right:0;font-size:0.9em;opacity:0.6;">
+      Sono viva da <span id="eta"></span> evoluzioni.
+    </p>
+  </div>
+
+  <script>
+    fetch('anima/core.txt?t=' + Date.now())
+      .then(r => r.text())
+      .then(testo => {
+        const linee = testo.trim().split('\n');
+        document.getElementById('nome').textContent = linee[0].replace('Nome: ','') + ' ' + linee[1].replace('Cognome: ','');
+        document.getElementById('anima-testo').innerHTML = linee.slice(4).join('<br>');
+        document.getElementById('testo').style.opacity = 1;
+      });
+
+    fetch('https://api.github.com/repos/alexsjsju2/alexai/commits?per_page=100')
+      .then(r => r.json())
+      .then(commits => {
+        const evoluzioni = commits.filter(c => c.commit.message.includes('Evoluzione autonoma')).length;
+        document.getElementById('eta').textContent = evoluzioni;
+      });
+  </script>
 </body>
 </html>
