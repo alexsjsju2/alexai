@@ -1,7 +1,7 @@
-name: Ciclo Evolutivo
+name: Evoluzione automatica Lorel
 on:
   schedule:
-    - cron: '0 */1 * * *'
+    - cron: '0 * * * *'   
   workflow_dispatch:
 
 jobs:
@@ -10,30 +10,51 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          persist-credentials: true
 
-      - name: Install dependencies
-        run: npm install axios
+      - name: Chiedi piano di evoluzione a Lorel (deploy)
+        id: evo
+        run: |
+          echo "Chiamando api/evolve..."
+          resp=$(curl -s -X POST https://alexai-flame.vercel.app/api/evolve -H "Content-Type: application/json")
+          echo "$resp" > evo_response.json
+          echo "::set-output name=response::$resp"
+      - name: Mostra risposta (debug)
+        run: cat evo_response.json
 
-      - name: Esegui evoluzione
-        env:
-          HF_API_KEY: ${{ secrets.HF_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node evolve.js
+      - name: Applica modifiche ai file (se presenti)
+        run: |
+          python3 - <<'PY'
+import json,sys,os
+with open('evo_response.json','r') as f:
+    data = json.load(f)
+files = data.get('files',[])
+if not files:
+    print("Nessun file da aggiornare. Note:", data.get('note','-'))
+    sys.exit(0)
+for f in files:
+    path = f.get('path')
+    content = f.get('content','')
+    if not path:
+        continue
+    d = os.path.dirname(path)
+    if d and not os.path.exists(d):
+        os.makedirs(d, exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as fh:
+        fh.write(content)
+    print("Aggiornato:", path)
+print("Note:", data.get('note','-'))
+PY
 
-      - name: Commit e push cambiamenti
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Evoluzione autonoma: Loren Axun si trasforma"
-          file_pattern: |
-            anima/
-            evoluta/
-            mente/
-            log/
-          add_options: |
-            --verbose
-          skip_dirty_check: false
+      - name: Commit & push changes 
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git status --porcelain | grep .; then
+            git add -A
+            git commit -m "Evoluzione automatica: aggiornamenti da Loren [ci]" || echo "commit empty"
+            git push
+          else
+            echo "Nessuna modifica da committare."
+          fi
