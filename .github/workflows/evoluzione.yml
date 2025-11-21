@@ -1,59 +1,79 @@
 name: Evoluzione automatica Lorel
+
 on:
   schedule:
-    - cron: '0 * * * *'   
+    - cron: "0 * * * *"   
   workflow_dispatch:
 
 jobs:
   evolve:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           persist-credentials: true
 
-      - name: Chiedi piano di evoluzione a Lorel (deploy)
-        id: evo
+      - name: Richiedi piano evolutivo a Lorel
         run: |
-          echo "Chiamando api/evolve..."
-          resp=$(curl -s -X POST https://alexai-flame.vercel.app/api/evolve -H "Content-Type: application/json")
-          echo "$resp" > evo_response.json
-          echo "::set-output name=response::$resp"
-      - name: Mostra risposta (debug)
-        run: cat evo_response.json
+          echo "Chiamando endpoint evolve..."
+          curl -s -X POST "https://alexai-flame.vercel.app/api/evolve" \
+            -H "Content-Type: application/json" \
+            -o evo_response.json
 
-      - name: Applica modifiche ai file (se presenti)
+          echo "Risposta ricevuta:"
+          cat evo_response.json
+
+      - name: Applica evoluzione 
         run: |
-          python3 - <<'PY'
-import json,sys,os
-with open('evo_response.json','r') as f:
-    data = json.load(f)
-files = data.get('files',[])
-if not files:
-    print("Nessun file da aggiornare. Note:", data.get('note','-'))
+          echo "Processing evoluzione..."
+
+          python3 << 'EOF'
+import os, json, sys
+
+try:
+    with open("evo_response.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+except Exception as e:
+    print("ERRORE: JSON non valido:", e)
     sys.exit(0)
-for f in files:
-    path = f.get('path')
-    content = f.get('content','')
-    if not path:
+
+files = data.get("files", [])
+note = data.get("note", "")
+print("NOTE:", note)
+
+if not files:
+    print("Nessun file da modificare.")
+    sys.exit(0)
+
+for item in files:
+    path = item.get("path")
+    content = item.get("content")
+
+    if not path or content is None:
+        print("Record file non valido:", item)
         continue
+
     d = os.path.dirname(path)
     if d and not os.path.exists(d):
         os.makedirs(d, exist_ok=True)
-    with open(path, 'w', encoding='utf-8') as fh:
-        fh.write(content)
-    print("Aggiornato:", path)
-print("Note:", data.get('note','-'))
-PY
 
-      - name: Commit & push changes 
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
+EOF
+
+      - name: Commit e Push dei cambiamenti
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
           if git status --porcelain | grep .; then
+            echo "Modifiche rilevate, effettuo commit..."
             git add -A
-            git commit -m "Evoluzione automatica: aggiornamenti da Loren [ci]" || echo "commit empty"
+            git commit -m "Evoluzione automatica di Loren"
             git push
           else
             echo "Nessuna modifica da committare."
