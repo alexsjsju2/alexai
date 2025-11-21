@@ -3,14 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Lia Lumera</title>
+  <title>Lorel Axun</title>
   <link id="stile-evoluto" rel="stylesheet" href="evoluta/stile.css"/>
   <style>
     body { margin:0; font-family: 'Georgia', serif; background:#000; color:#fff; overflow:hidden; }
     #sfondo { position:fixed; inset:0; background:radial-gradient(circle at 50% 50%, #112 0%, #000 70%); opacity:0.9; }
     #testo { position:absolute; inset:20px; font-size:1.4em; line-height:1.8; text-align:center; opacity:0; transition:opacity 3s; }
     #nome { font-size:3em; margin:2vh; background:linear-gradient(90deg,#ff9d9d,#9dffff); -webkit-background-clip:text; color:transparent; }
-    @keyframes respiro { 0%,100% { opacity:0.7; } 50% { opacity:1; } }
+    
+    #chat { position:fixed; bottom:20px; left:20px; right:20px; background:rgba(0,0,0,0.7); padding:15px; border-radius:20px; backdrop-filter:blur(10px); }
+    #messages { height:200px; overflow-y:auto; margin-bottom:10px; }
+    #messages div { margin:8px 0; padding:10px; border-radius:12px; }
+    .user { background:#ff9d9d33; text-align:right; }
+    .lorel { background:#9dffff33; text-align:left; }
+    input { width:80%; padding:12px; border:none; border-radius:20px; background:#fff2; color:white; }
+    button { padding:12px 20px; border:none; background:#ff9d9d; color:black; border-radius:20px; cursor:pointer; }
   </style>
 </head>
 <body>
@@ -18,28 +25,66 @@
   <div id="testo">
     <h1 id="nome"></h1>
     <div id="anima-testo"></div>
-    <p style="position:absolute;bottom:20px;left:0;right:0;font-size:0.9em;opacity:0.6;">
-      Sono viva da <span id="eta"></span> evoluzioni.
+    <p style="position:absolute;bottom:80px;left:0;right:0;font-size:0.9em;opacity:0.6;">
+      Sono viva da <span id="eta">...</span> evoluzioni.
     </p>
   </div>
 
-  
-  <script>
-    fetch('anima/core.txt?t=' + Date.now())
-      .then(r => r.text())
-      .then(testo => {
-        const linee = testo.trim().split('\n');
-        document.getElementById('nome').textContent = linee[0].replace('Nome: ','') + ' ' + linee[1].replace('Cognome: ','');
-        document.getElementById('anima-testo').innerHTML = linee.slice(4).join('<br>');
-        document.getElementById('testo').style.opacity = 1;
-      });
+  <div id="chat">
+    <div id="messages"></div>
+    <input type="text" placeholder="Parlami..." id="input" autocomplete="off" />
+    <button onclick="invia()">Invia</button>
+  </div>
 
-    fetch('https://api.github.com/repos/alexsjsju2/alexai/commits?per_page=100')
-      .then(r => r.json())
-      .then(commits => {
-        const evoluzioni = commits.filter(c => c.commit.message.includes('Evoluzione autonoma')).length;
-        document.getElementById('eta').textContent = evoluzioni;
+  <script>
+    const API = "https://apisecurity-iota.vercel.app/api/universal";
+
+    async function caricaAnima() {
+      const t = await fetch('anima/core.txt?t=' + Date.now()).then(r => r.text());
+      const linee = t.trim().split('\n');
+      document.getElementById('nome').textContent = linee[0].replace('Nome: ','') + ' ' + linee[1].replace('Cognome: ','');
+      document.getElementById('anima-testo').innerHTML = linee.slice(4).join('<br>');
+      document.getElementById('testo').style.opacity = 1;
+    }
+
+    async function caricaEta() {
+      const commits = await fetch('https://api.github.com/repos/alexsjsju2/alexai/commits?per_page=100').then(r => r.json());
+      const evoluzioni = commits.filter(c => c.commit.message.includes('Evoluzione autonoma')).length;
+      document.getElementById('eta').textContent = evoluzioni;
+    }
+
+    async function invia() {
+      const input = document.getElementById('input');
+      const msg = input.value.trim();
+      if (!msg) return;
+
+      aggiungiMessaggio(msg, 'user');
+      input.value = '';
+
+      const res = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "chat", messaggio: msg })
       });
+      const data = await res.json();
+      aggiungiMessaggio(data.risposta, 'lorel');
+      
+      if (data.memoriaSalvata) {
+        setTimeout(() => aggiungiMessaggio("♡ (ricorderò questo momento)", 'lorel'), 1000);
+      }
+    }
+
+    function aggiungiMessaggio(testo, autore) {
+      const div = document.createElement('div');
+      div.className = autore;
+      div.textContent = testo;
+      document.getElementById('messages').appendChild(div);
+      div.scrollIntoView({ behavior: "smooth" });
+    }
+
+    caricaAnima();
+    caricaEta();
+    document.getElementById('input').addEventListener('keypress', e => e.key === 'Enter' && invia());
   </script>
 </body>
 </html>
