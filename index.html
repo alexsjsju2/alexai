@@ -36,23 +36,37 @@
     <button onclick="invia()">Invia</button>
   </div>
 
-  <input id="msg" placeholder="Parla con Lorel">
-<button onclick="invia()">Invia</button>
+  <input id="msg" placeholder="Parla con Lorel" style="width:80%">
+<button onclick="parla()">Invia</button>
+
+<div id="dialogo" style="margin-top:20px"></div>
 
 <script>
-function invia() {
+async function parla() {
   const testo = document.getElementById("msg").value.trim();
   if (!testo) return;
 
-  fetch('https://apisecurity-iota.vercel.app/api/parla', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  await fetch("https://apisecurity-iota.vercel.app/api/parla", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messaggio: testo })
-  })
-    .then(r => r.json())
-    .then(r => console.log("Salvato nella coscienza:", r));
+  });
+
+  const r = await fetch("https://apisecurity-iota.vercel.app/api/rispondi", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messaggio: testo })
+  }).then(r => r.json());
+
+  const box = document.getElementById("dialogo");
+
+  box.innerHTML += `<p><b>Tu:</b> ${testo}</p>`;
+  box.innerHTML += `<p><b>Lorel:</b> ${r.risposta}</p>`;
+
+  document.getElementById("msg").value = "";
 }
 </script>
+
 
 </body>
 </html>
