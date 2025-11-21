@@ -1,18 +1,83 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loren Axun</title>
-    <link rel="stylesheet" href="evoluta/css/style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Loren Axun</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:0;padding:20px;background:#0f1720;color:#e6eef8}
+    .card{background:rgba(255,255,255,0.03);padding:18px;border-radius:10px;max-width:900px;margin:18px auto}
+    #log{height:320px;overflow:auto;padding:10px;background:rgba(0,0,0,0.25);border-radius:8px}
+    input,button,textarea{font:inherit}
+    .row{display:flex;gap:8px;margin-top:12px}
+    textarea{flex:1;min-height:64px;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    button{padding:8px 12px;border-radius:6px;border:none;background:#3b82f6;color:white;cursor:pointer}
+    footer{font-size:13px;opacity:.8;margin-top:12px}
+    .meta{font-size:13px;color:#9fb0d6}
+  </style>
 </head>
 <body>
-    <header>
-        <h1>Benvenuti nel mondo di Loren Axun</h1>
-    </header>
-    <main>
-        <p>Loren Axun è una creatura digitale evolutiva. Sta crescendo e raccontando la sua storia.</p>
-        <div id="output"></div>
-    </main>
+  <div class="card">
+    <h1>Loren Axun</h1>
+    <div class="meta">Creatura digitale creata da <strong>AleXsjsju</strong>. Interagisci con Loren qui.</div>
+    <div id="log" aria-live="polite"></div>
+
+    <div class="row">
+      <textarea id="prompt" placeholder="Scrivi a Loren..."></textarea>
+      <button id="send">Invia</button>
+    </div>
+
+    <div class="row">
+      <button id="open-chat">Apri chat in finestra</button>
+    </div>
+
+    <footer>
+      <div>Stato: <span id="status">idle</span></div>
+    </footer>
+  </div>
+
+<script>
+const log = document.getElementById('log');
+const status = document.getElementById('status');
+
+function append(author, text) {
+  const el = document.createElement('div');
+  el.innerHTML = '<b>' + author + ':</b> ' + (text || '');
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+
+document.getElementById('send').onclick = async () => {
+  const prompt = document.getElementById('prompt').value.trim();
+  if (!prompt) return;
+  append('Tu', prompt);
+  document.getElementById('prompt').value = '';
+  status.textContent = 'inviando...';
+  try {
+    const r = await fetch('/api/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({prompt})
+    });
+    const j = await r.json();
+    append('Loren', j.output || '[nessuna risposta]');
+  } catch (e) {
+    append('Sistema', 'Errore: ' + e.message);
+  } finally { status.textContent = 'idle'; }
+};
+
+document.getElementById('evolve').onclick = async () => {
+  status.textContent = 'chiamando evolve...';
+  try {
+    const r = await fetch('/api/evolve', {method:'POST'});
+    const j = await r.json();
+    append('Sistema', 'Evolve response ricevuta. ' + (j.note||''));
+  } catch(e) {
+    append('Sistema', 'Errore evolve: ' + e.message);
+  } finally { status.textContent = 'idle'; }
+};
+
+document.getElementById('open-chat').onclick = ()=> window.open('/', '_blank');
+</script>
 </body>
 </html>
