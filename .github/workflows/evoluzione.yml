@@ -33,6 +33,7 @@ jobs:
             anima/
             evoluta/
             mente/
+            log/
           add_options: |
             --verbose
           skip_dirty_check: false
