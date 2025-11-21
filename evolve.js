@@ -1,79 +1,39 @@
 const fs = require('fs');
-const path = require('path');
 const axios = require('axios');
 
-async function main() {
-  const animaPath = path.join('anima', 'core.txt');
-  const evolutaPath = path.join('evoluta', 'stile.css');
-  const promptOriginarioPath = path.join('mente', 'prompt-originario.txt');
+const corePath = './anima/core.json';
+const promptPath = './mente/system_prompt.txt';
+const evolutaHtml = './evoluta/html/index.html';
+const evolutaCss = './evoluta/css/style.css';
 
-  const anima = fs.readFileSync(animaPath, 'utf8');
-  const stile = fs.readFileSync(evolutaPath, 'utf8');
-  const promptOriginario = fs.readFileSync(promptOriginarioPath, 'utf8');
-
-  const ricordi = anima.split('---').slice(-8).join('\n---');
-
-  const prompt = `
-${promptOriginario}
-
-Anima attuale:
-${anima}
-
-Ultimi ricordi:
-${ricordi}
-
-Stile attuale (stile.css):
-${stile.substring(0,2000)}
-
-Evolvi ora.
-  `.trim();
-
-  console.log("Prompt inviato al modello...");
-
-  try {
-    const risposta = await axios.post(
-      'https://api-inference.huggingface.co/models/gpt2',
-      {
-        inputs: prompt,
-        parameters: { max_new_tokens: 800, temperature: 0.9 }
-      },
-      {
-        headers: { Authorization: `Bearer ${process.env.KEY_GPT2}` }
-      }
-    );
-
-    const testo = risposta.data[0].generated_text || '';
-    const jsonMatch = testo.match(/\{[\s\S]*\}/);
-
-    if (!jsonMatch) {
-      console.log("Nessun JSON trovato nel testo generato.");
-      return;
-    }
-
-    let evoluzione;
-    try {
-      evoluzione = JSON.parse(jsonMatch[0]);
-    } catch (e) {
-      console.log("JSON non valido:", e);
-      return;
-    }
-
-    fs.writeFileSync(animaPath, evoluzione.nuovaAnima.trim() + "\n");
-    console.log("Anima aggiornata!");
-
-    if (evoluzione.modificheEvoluta) {
-      evoluzione.modificheEvoluta.forEach(mod => {
-        const percorso = path.join('evoluta', mod.file);
-        fs.mkdirSync(path.dirname(percorso), { recursive: true });
-        fs.writeFileSync(percorso, mod.content);
-        console.log(`Modifica applicata: ${mod.file}`);
-      });
-    }
-
-    console.log("Evoluzione completata con successo!");
-  } catch (err) {
-    console.error("Errore durante la generazione dell'evoluzione:", err.message);
-  }
+async function leggiCore() {
+    return JSON.parse(fs.readFileSync(corePath, 'utf-8'));
 }
 
-main().catch(console.error);
+async function scriviCore(core) {
+    fs.writeFileSync(corePath, JSON.stringify(core, null, 2), 'utf-8');
+}
+
+async function leggiPrompt() {
+    return fs.readFileSync(promptPath, 'utf-8');
+}
+
+async function generaEvoluzione(core, prompt) {
+    const messaggio = `Core: ${JSON.stringify(core)}\nPrompt: ${prompt}`;
+    const response = await axios.post('https://api-interna-ai.com/genera', { input: messaggio }, {
+        headers: { 'Authorization': `Bearer ${process.env.HF_API_KEY}` }
+    });
+    return response.data.output;
+}
+
+async function aggiorna() {
+    const core = await leggiCore();
+    const prompt = await leggiPrompt();
+    const evoluzione = await generaEvoluzione(core, prompt);
+    core.ricordi.push({ timestamp: new Date().toISOString(), evento: evoluzione });
+    await scriviCore(core);
+    fs.writeFileSync(evolutaHtml, `<p>${evoluzione}</p>`, 'utf-8');
+    fs.writeFileSync(evolutaCss, `body{background-color:#f0f4f8;color:#1a1a1a}`, 'utf-8');
+}
+
+aggiorna();
