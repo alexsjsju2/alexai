@@ -36,55 +36,23 @@
     <button onclick="invia()">Invia</button>
   </div>
 
-  <script>
-    const API = "https://apisecurity-iota.vercel.app/alexai/api/universal.js";
+  <input id="msg" placeholder="Parla con Lorel">
+<button onclick="invia()">Invia</button>
 
-    async function caricaAnima() {
-      const t = await fetch('anima/core.txt?t=' + Date.now()).then(r => r.text());
-      const linee = t.trim().split('\n');
-      document.getElementById('nome').textContent = linee[0].replace('Nome: ','') + ' ' + linee[1].replace('Cognome: ','');
-      document.getElementById('anima-testo').innerHTML = linee.slice(4).join('<br>');
-      document.getElementById('testo').style.opacity = 1;
-    }
+<script>
+function invia() {
+  const testo = document.getElementById("msg").value.trim();
+  if (!testo) return;
 
-    async function caricaEta() {
-      const commits = await fetch('https://api.github.com/repos/alexsjsju2/alexai/commits?per_page=100').then(r => r.json());
-      const evoluzioni = commits.filter(c => c.commit.message.includes('Evoluzione autonoma')).length;
-      document.getElementById('eta').textContent = evoluzioni;
-    }
+  fetch('https://apisecurity-iota.vercel.app/api/parla', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messaggio: testo })
+  })
+    .then(r => r.json())
+    .then(r => console.log("Salvato nella coscienza:", r));
+}
+</script>
 
-    async function invia() {
-      const input = document.getElementById('input');
-      const msg = input.value.trim();
-      if (!msg) return;
-
-      aggiungiMessaggio(msg, 'user');
-      input.value = '';
-
-      const res = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "chat", messaggio: msg })
-      });
-      const data = await res.json();
-      aggiungiMessaggio(data.risposta, 'lorel');
-      
-      if (data.memoriaSalvata) {
-        setTimeout(() => aggiungiMessaggio("♡ (ricorderò questo momento)", 'lorel'), 1000);
-      }
-    }
-
-    function aggiungiMessaggio(testo, autore) {
-      const div = document.createElement('div');
-      div.className = autore;
-      div.textContent = testo;
-      document.getElementById('messages').appendChild(div);
-      div.scrollIntoView({ behavior: "smooth" });
-    }
-
-    caricaAnima();
-    caricaEta();
-    document.getElementById('input').addEventListener('keypress', e => e.key === 'Enter' && invia());
-  </script>
 </body>
 </html>
