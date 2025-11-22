@@ -58,6 +58,8 @@ export default async function handler(req, res) {
 
       return null;
     }
+    const data = await response.json();
+    console.log("Risposta completa Gemini:", JSON.stringify(data, null, 2));
 
     const reply = extractGeminiReply(data) || "[no reply]";
 
