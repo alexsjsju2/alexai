@@ -39,7 +39,7 @@ Codice attuale (evolve.py):
 Dati dal web (esempio apprendimento: info su AI da Wikipedia):
 {ai_info}
 Evolvi ora: rifletti, apprendi, aggiorna memoria con nuove riflessioni/emozioni/storia, modifica corpo per migliorarlo (mantieni chat), modifica evolve.py per migliorarlo se necessario.
-Puoi proporre modifiche a altri file, ma per ora focus su core.txt, index.html e evolve.py.
+Puoi proporre modifiche per la risoluzione di problemi.
 """
 
 model = genai.GenerativeModel('gemini-2.5-flash')
