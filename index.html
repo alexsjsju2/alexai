@@ -55,10 +55,19 @@ document.getElementById('send').onclick = async () => {
   status.textContent = 'inviando...';
   try {
     const r = await fetch('/api/chat', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
       body: JSON.stringify({prompt})
-    });
+  });
+let text = await r.text();
+
+try {
+  const j = JSON.parse(text);
+  append('Loren', j.output || '[nessuna risposta]');
+} catch {
+  append('Sistema', 'La risposta non è JSON. Contenuto ricevuto: ' + text.slice(0,200));
+}
+
     const j = await r.json();
     append('Loren', j.output || '[nessuna risposta]');
   } catch (e) {
