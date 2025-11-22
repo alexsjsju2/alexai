@@ -17,9 +17,12 @@ with open('core.txt', 'r') as f:
 with open('index.html', 'r') as f:
     current_body = f.read()
 
-# Esempio accesso web: Fetch da Wikipedia 
+with open('evolve.py', 'r') as f:
+    current_evolve = f.read()
+
+# Esempio accesso web: Fetch da Wikipedia con parametri corretti per ottenere JSON
 try:
-    web_data = requests.get('https://en.wikipedia.org/w/api.php').json()
+    web_data = requests.get('https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=Artificial%20intelligence').json()
     ai_info = list(web_data['query']['pages'].values())[0]['extract']
 except Exception as e:
     ai_info = 'Errore fetch: ' + str(e)
@@ -27,18 +30,16 @@ except Exception as e:
 # Prompt per evoluzione (include web data per "istruzione")
 evolve_prompt = f"""
 {system_prompt}
-
 Memoria attuale:
 {memory}
-
 Corpo attuale (index.html):
 {current_body}
-
+Codice attuale (evolve.py):
+{current_evolve}
 Dati dal web (esempio apprendimento: info su AI da Wikipedia):
 {ai_info}
-
-Evolvi ora: rifletti, apprendi, aggiorna memoria con nuove riflessioni/emozioni/storia, modifica corpo per migliorarlo (mantieni chat).
-Puoi proporre modifiche a altri file, ma per ora focus su core.txt e index.html.
+Evolvi ora: rifletti, apprendi, aggiorna memoria con nuove riflessioni/emozioni/storia, modifica corpo per migliorarlo (mantieni chat), modifica evolve.py per migliorarlo se necessario.
+Puoi proporre modifiche a altri file, ma per ora focus su core.txt, index.html e evolve.py.
 """
 
 model = genai.GenerativeModel('gemini-2.5-flash')
@@ -57,6 +58,7 @@ try:
     if isinstance(output, list):
         new_memory = ''
         new_body = ''
+        new_evolve = ''
         reflection = ''
         for item in output:
             for file in item.get('files', []):
@@ -64,9 +66,11 @@ try:
                     new_memory = file['content']
                 elif file['path'] == 'index.html':
                     new_body = file['content']
+                elif file['path'] == 'evolve.py':
+                    new_evolve = file['content']
             if 'note' in item:
                 reflection += item['note'] + '\n'
-        output = {'new_memory': new_memory, 'new_body': new_body, 'reflection': reflection}
+        output = {'new_memory': new_memory, 'new_body': new_body, 'new_evolve': new_evolve, 'reflection': reflection}
 except Exception as e:
     print(f'Errore parsing JSON: {str(e)}; salto evoluzione.')
     exit(0)
@@ -79,6 +83,10 @@ if 'new_memory' in output and output['new_memory']:
 if 'new_body' in output and output['new_body']:
     with open('index.html', 'w') as f:
         f.write(output['new_body'])
+
+if 'new_evolve' in output and output['new_evolve']:
+    with open('evolve.py', 'w') as f:
+        f.write(output['new_evolve'])
 
 # Stampa per log
 if 'reflection' in output:
