@@ -66,17 +66,6 @@ document.getElementById('send').onclick = async () => {
   } finally { status.textContent = 'idle'; }
 };
 
-document.getElementById('evolve').onclick = async () => {
-  status.textContent = 'chiamando evolve...';
-  try {
-    const r = await fetch('/api/evolve', {method:'POST'});
-    const j = await r.json();
-    append('Sistema', 'Evolve response ricevuta. ' + (j.note||''));
-  } catch(e) {
-    append('Sistema', 'Errore evolve: ' + e.message);
-  } finally { status.textContent = 'idle'; }
-};
-
 document.getElementById('open-chat').onclick = ()=> window.open('/', '_blank');
 </script>
 </body>
