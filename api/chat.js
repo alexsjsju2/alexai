@@ -2,7 +2,7 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "https://www.alexsjsju.eu");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  
+
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -17,7 +17,6 @@ export default async function handler(req, res) {
     if (!message) {
       return res.status(400).json({ error: "Missing message" });
     }
-
     const apiKey = process.env.API_KEY_AI_GEMINI;
     if (!apiKey) {
       return res.status(500).json({ error: "Missing API_KEY_AI_GEMINI" });
@@ -30,7 +29,10 @@ export default async function handler(req, res) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [
-            { role: "user", parts: [{ text: message }] }
+            {
+              role: "user",
+              parts: [{ text: message }]
+            }
           ]
         })
       }
@@ -38,27 +40,34 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-function extractGeminiReply(data) {
-  if (!data?.candidates?.length) return null;
+    console.log("GEMINI RAW:", JSON.stringify(data));
 
-  const c = data.candidates[0];
+    function extractGeminiReply(data) {
+      if (!data?.candidates?.length) return null;
 
-  if (c.content?.parts?.[0]?.text) {
-    return c.content.parts[0].text;
-  }
+      const c = data.candidates[0];
 
-  if (Array.isArray(c.content) && c.content[0]?.parts?.[0]?.text) {
-    return c.content[0].parts[0].text;
-  }
+      if (c.content?.parts?.[0]?.text) {
+        return c.content.parts[0].text;
+      }
 
-  return null;
-}
+      if (Array.isArray(c.content) &&
+          c.content[0]?.parts?.[0]?.text) {
+        return c.content[0].parts[0].text;
+      }
 
-const reply = extractGeminiReply(data) || "[no reply]";
+      return null;
+    }
 
-return res.status(200).json({ reply });
+    const reply = extractGeminiReply(data) || "[no reply]";
+
+    
+    return res.status(200).json({ reply });
 
   } catch (err) {
-    return res.status(500).json({ error: "Server error", detail: err.message });
+    return res.status(500).json({
+      error: "Server error",
+      detail: err.message
+    });
   }
 }
