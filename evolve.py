@@ -4,7 +4,7 @@ import requests
 import json
 
 # Configura Gemini API
-api_key = os.environ['HF_API_KEY']
+api_key = os.environ['GEMINI_API_KEY']
 genai.configure(api_key=api_key)
 
 # Leggi files attuali
