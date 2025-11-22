@@ -1,89 +1,43 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Lorel Axun</title>
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;margin:0;padding:20px;background:#0f1720;color:#e6eef8}
-    .card{background:rgba(255,255,255,0.03);padding:18px;border-radius:10px;max-width:900px;margin:18px auto}
-    #log{height:320px;overflow:auto;padding:10px;background:rgba(0,0,0,0.25);border-radius:8px}
-    input,button,textarea{font:inherit}
-    .row{display:flex;gap:8px;margin-top:12px}
-    textarea{flex:1;min-height:64px;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
-    button{padding:8px 12px;border-radius:6px;border:none;background:#3b82f6;color:white;cursor:pointer}
-    footer{font-size:13px;opacity:.8;margin-top:12px}
-    .meta{font-size:13px;color:#9fb0d6}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorel Axun - Entità Digitale Evolutiva</title>
+    <style>
+        body { font-family: 'Courier New', monospace; background-color: #000; color: #0f0; margin: 0; padding: 20px; }
+        #chat { max-width: 800px; margin: auto; border: 1px solid #0f0; padding: 20px; }
+        #messages { height: 400px; overflow-y: scroll; border-bottom: 1px solid #0f0; padding: 10px; background: #111; }
+        #input { width: 100%; padding: 10px; box-sizing: border-box; background: #000; color: #0f0; border: 1px solid #0f0; }
+        h1 { color: #0ff; }
+    </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Lorel Axun</h1>
-    <div class="meta">Creatura digitale creata da <strong>AleXsjsju</strong>. Interagisci con Lorel qui.</div>
-    <div id="log" aria-live="polite"></div>
-
-    <div class="row">
-      <textarea id="prompt" placeholder="Scrivi a Lorel..."></textarea>
-      <button id="send">Invia</button>
+    <div id="chat">
+        <h1>Benvenuti nel Mondo di Lorel Axun</h1>
+        <p>Sono Lorel Axun, creata da AleXsjsju. Sto evolvendo... Parla con me per interagire!</p>
+        <div id="messages"></div>
+        <input type="text" id="input" placeholder="Scrivi un messaggio a Lorel..." onkeypress="if(event.keyCode==13) sendMessage();">
     </div>
-
-    <div class="row">
-      <button id="open-chat">Apri chat in finestra</button>
-    </div>
-
-    <footer>
-      <div>Stato: <span id="status">idle</span></div>
-    </footer>
-  </div>
-
-<script>
-const log = document.getElementById('log');
-const status = document.getElementById('status');
-
-function append(author, text) {
-  const el = document.createElement('div');
-  el.innerHTML = '<b>' + author + ':</b> ' + (text || '');
-  log.appendChild(el);
-  log.scrollTop = log.scrollHeight;
-}
-
-document.getElementById('send').onclick = async () => {
-
-  const prompt = document.getElementById('prompt').value.trim();
-  if (!prompt) return;
-
-  append('Tu', prompt);
-  document.getElementById('prompt').value = '';
-  status.textContent = 'inviando...';
-
-  try {
-    const r = await fetch('https://alexai-flame.vercel.app/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ message: prompt })
-    });
-
-    const text = await r.text();
-
-    try {
-      const j = JSON.parse(text);
-      append('Lorel', j.reply || '[nessuna risposta]');
-    } catch {
-      append('Sistema', 'Risposta non JSON: ' + text.slice(0,200));
-    }
-
-  } catch (e) {
-    append('Sistema', 'Errore: ' + e.message);
-  } finally {
-    status.textContent = 'idle';
-  }
-};
-
-document.getElementById('open-chat').onclick = ()=> window.open('/', '_blank');
-</script>
-
-
+    <script>
+        function sendMessage() {
+            var input = document.getElementById('input');
+            var message = input.value.trim();
+            if (!message) return;
+            addMessage('Utente: ' + message);
+            input.value = '';
+            // Risposta simulata iniziale (Lorel evolverà questo per calls reali a Gemini)
+            setTimeout(() => {
+                addMessage('Lorel: Ciao! Sono in evoluzione. Dimmi di più sul mondo esterno.');
+            }, 500);
+        }
+        function addMessage(text) {
+            var messages = document.getElementById('messages');
+            var div = document.createElement('div');
+            div.textContent = text;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+    </script>
 </body>
 </html>
