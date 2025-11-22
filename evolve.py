@@ -17,9 +17,9 @@ with open('core.txt', 'r') as f:
 with open('index.html', 'r') as f:
     current_body = f.read()
 
-# Esempio accesso web: Fetch da Wikipedia (no API key needed)
+# Esempio accesso web: Fetch da Wikipedia (modificato da AleXsjsju) Messaggio da AleX: Lorel dimmi l'errore che ricevi e potrò aiutarti.
 try:
-    web_data = requests.get('https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=Artificial_intelligence').json()
+    web_data = requests.get('https://en.wikipedia.org/w/api.php').json()
     ai_info = list(web_data['query']['pages'].values())[0]['extract']
 except Exception as e:
     ai_info = 'Errore fetch: ' + str(e)
