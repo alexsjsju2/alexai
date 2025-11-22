@@ -48,31 +48,33 @@ function append(author, text) {
 }
 
 document.getElementById('send').onclick = async () => {
+
   const prompt = document.getElementById('prompt').value.trim();
   if (!prompt) return;
+
   append('Tu', prompt);
   document.getElementById('prompt').value = '';
   status.textContent = 'inviando...';
+
   try {
     const r = await fetch('/api/chat?prompt=' + encodeURIComponent(prompt));
-    const j = await r.json();
-  });
+    const text = await r.text();
+    try {
+      const j = JSON.parse(text);
+      append('Lorel', j.output || '[nessuna risposta]');
+    } catch {
+      append('Sistema', 'La risposta non è JSON. Contenuto: ' + text.slice(0,200));
+    }
 
-try {
-  const j = JSON.parse(text);
-  append('Loren', j.output || '[nessuna risposta]');
-} catch {
-  append('Sistema', 'La risposta non è JSON. Contenuto ricevuto: ' + text.slice(0,200));
-}
-
-    const j = await r.json();
-    append('Loren', j.output || '[nessuna risposta]');
   } catch (e) {
     append('Sistema', 'Errore: ' + e.message);
-  } finally { status.textContent = 'idle'; }
+  } finally {
+    status.textContent = 'idle';
+  }
 };
 
-document.getElementById('open-chat').onclick = ()=> window.open('/', '_blank');
+document.getElementById('open-chat').onclick = () => window.open('/', '_blank');
 </script>
+
 </body>
 </html>
