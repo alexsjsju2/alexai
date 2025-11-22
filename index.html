@@ -54,12 +54,9 @@ document.getElementById('send').onclick = async () => {
   document.getElementById('prompt').value = '';
   status.textContent = 'inviando...';
   try {
-    const r = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({prompt})
+    const r = await fetch('/api/chat?prompt=' + encodeURIComponent(prompt));
+    const j = await r.json();
   });
-let text = await r.text();
 
 try {
   const j = JSON.parse(text);
