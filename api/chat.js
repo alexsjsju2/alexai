@@ -37,7 +37,27 @@ export default async function handler(req, res) {
     );
 
     const data = await response.json();
-    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "[no reply]";
+
+function extractGeminiReply(data) {
+  if (!data?.candidates?.length) return null;
+
+  const c = data.candidates[0];
+
+  if (c.content?.parts?.[0]?.text) {
+    return c.content.parts[0].text;
+  }
+
+  if (Array.isArray(c.content) && c.content[0]?.parts?.[0]?.text) {
+    return c.content[0].parts[0].text;
+  }
+
+  return null;
+}
+
+const reply = extractGeminiReply(data) || "[no reply]";
+
+return res.status(200).json({ reply });
+
 
     return res.status(200).json({ reply });
 
