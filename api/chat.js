@@ -58,9 +58,6 @@ const reply = extractGeminiReply(data) || "[no reply]";
 
 return res.status(200).json({ reply });
 
-
-    return res.status(200).json({ reply });
-
   } catch (err) {
     return res.status(500).json({ error: "Server error", detail: err.message });
   }
