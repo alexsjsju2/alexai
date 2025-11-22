@@ -41,7 +41,7 @@ Evolvi ora: rifletti, apprendi, aggiorna memoria con nuove riflessioni/emozioni/
 Puoi proporre modifiche a altri file, ma per ora focus su core.txt e index.html.
 """
 
-model = genai.GenerativeModel('gemini-1.5-pro-latest')
+model = genai.GenerativeModel('gemini-2.5-flash')
 response = model.generate_content(evolve_prompt)
 
 # Pulisci la response per rimuovere wrappers
