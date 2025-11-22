@@ -30,11 +30,7 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    if (!data || !data.candidates || !data.candidates[0]) {
-      return res.status(500).json({ error: "Invalid Gemini response", raw: data });
-    }
-
-    const reply = data.candidates[0].content.parts[0].text;
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "[no reply]";
 
     return res.status(200).json({ reply });
 
