@@ -19,11 +19,11 @@
 <body>
   <div class="card">
     <h1>Lorel Axun</h1>
-    <div class="meta">Creatura digitale creata da <strong>AleXsjsju</strong>. Interagisci con Loren qui.</div>
+    <div class="meta">Creatura digitale creata da <strong>AleXsjsju</strong>. Interagisci con Lorel qui.</div>
     <div id="log" aria-live="polite"></div>
 
     <div class="row">
-      <textarea id="prompt" placeholder="Scrivi a Loren..."></textarea>
+      <textarea id="prompt" placeholder="Scrivi a Lorel..."></textarea>
       <button id="send">Invia</button>
     </div>
 
@@ -57,7 +57,7 @@ document.getElementById('send').onclick = async () => {
   status.textContent = 'inviando...';
 
   try {
-    const r = await fetch('/api/chat', {
+    const r = await fetch('https://alexai-flame.vercel.app/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
