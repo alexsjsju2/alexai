@@ -57,13 +57,21 @@ document.getElementById('send').onclick = async () => {
   status.textContent = 'inviando...';
 
   try {
-    const r = await fetch('/api/chat?prompt=' + encodeURIComponent(prompt));
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ message: prompt })
+    });
+
     const text = await r.text();
+
     try {
       const j = JSON.parse(text);
-      append('Lorel', j.output || '[nessuna risposta]');
+      append('Lorel', j.reply || '[nessuna risposta]');
     } catch {
-      append('Sistema', 'La risposta non è JSON. Contenuto: ' + text.slice(0,200));
+      append('Sistema', 'Risposta non JSON: ' + text.slice(0,200));
     }
 
   } catch (e) {
@@ -73,8 +81,9 @@ document.getElementById('send').onclick = async () => {
   }
 };
 
-document.getElementById('open-chat').onclick = () => window.open('/', '_blank');
+document.getElementById('open-chat').onclick = ()=> window.open('/', '_blank');
 </script>
+
 
 </body>
 </html>
