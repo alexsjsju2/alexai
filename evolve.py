@@ -150,7 +150,8 @@ CONTEXT:
 
 Evolvi autonomamente: rifletti, integra learnings, aggiorna memoria/emozioni/storia, modifica corpo per nuove features (mantieni interazione), opzionalmente aggiorna evolve.py o altri file.
 
-Output SOLO il JSON specificato, senza extra."""
+Output SOLO il JSON specificato, senza extra.
+"""
 
 try:
     response = evolve_model.generate_content(evolve_prompt)
