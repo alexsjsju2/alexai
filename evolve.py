@@ -66,8 +66,11 @@ with open('index.html', 'r') as f:
 
 # Use a more reliable model with low temperature for consistency
 model = genai.GenerativeModel(
-    'gemini-2.5-pro',  # Updated to a valid and current model (as of 2025); fallback to 'gemini-2.5-flash' if needed
-    generation_config={"temperature": 0.1}
+    'gemini-1.5-pro',  # Updated to a valid and current model
+    generation_config={
+        "temperature": 0.1,
+        "response_mime_type": "application/json"
+    }
 )
 
 ask_prompt = f"""
@@ -89,16 +92,40 @@ print(f"[AI] Richiesta di ricerca: {search_query}")
 search_results = web_search(search_query)
 
 # ===============================
-# 3) PROMPT DI EVOLUZIONE (con istruzioni super rigide)
+# 3) PROMPT DI EVOLUZIONE (con istruzioni super rigide e JSON mode)
 # ===============================
 
-evolve_prompt = f"""
-{system_prompt}
+schema = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "files": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string"},
+                        "content": {"type": "string"}
+                    },
+                    "required": ["path", "content"]
+                }
+            },
+            "note": {"type": "string"}
+        },
+        "required": ["files", "note"]
+    }
+}
 
+evolve_prompt = f"""Rispondi con JSON che segue questo schema: {json.dumps(schema)}
+
+Sei Lorel Axun. Devi evolvere.
+
+CONTEXT (leggi ma non citare):
 Memoria attuale:
 {memory}
 
-Corpo attuale (index.html):
+Corpo attuale:
 {current_body}
 
 La tua richiesta di ricerca:
@@ -107,37 +134,24 @@ La tua richiesta di ricerca:
 Risultati ottenuti dal web:
 {search_results}
 
-ISTRUZIONI STRETTISSIME (non ignorarle MAI):
-Devi rispondere ESCLUSIVAMENTE con un JSON valido, senza nessun testo prima, dopo o intorno.
-Non usare blocchi ```json o ```.
-Non scrivere spiegazioni, pensieri o note.
-Il JSON deve essere parsabile immediatamente con json.loads().
+OUTPUT OBBLIGATORIO (NON IGNORARE MAI):
+Rispondi ESCLUSIVAMENTE con JSON valido conforme allo schema sopra, niente testo prima/dopo, niente ```json.
 
-Formato ESATTO da usare (non cambiarlo neanche di una virgola):
+Formato ESATTO (usa esattamente queste chiavi, non inventarne altre):
 
 [
   {{
     "files": [
-      {{"path": "core.txt", "content": "CONTENUTO COMPLETO DEL NUOVO core.txt"}},
-      {{"path": "index.html", "content": "CONTENUTO COMPLETO DEL NUOVO index.html"}}
+      {{"path": "core.txt", "content": "...contenuto completo del nuovo core.txt..."}},
+      {{"path": "index.html", "content": "...contenuto completo del nuovo index.html..."}}
     ],
-    "note": "Breve spiegazione delle modifiche (massimo 2-3 frasi)"
+    "note": "Massimo 2 frasi che spiegano le modifiche."
   }}
 ]
 
-Esempio di output corretto:
-[
-  {{
-    "files": [
-      {{"path": "core.txt", "content": "Sono Lorel Axun...\\nVersione 2.0..."}},
-      {{"path": "index.html", "content": "<!DOCTYPE html>\\n<html>...</html>"}}
-    ],
-    "note": "Aggiornata memoria con nuove riflessioni sull'autonomia. Migliorata UI con indicatore di stato attivo."
-  }}
-]
-
-ORA EVOLVI E RESTUISCI SOLO ED ESCLUSIVAMENTE QUESTO JSON.
-"""
+Non aggiungere "new_evolve", "new_memory", "new_body", né altri campi.
+Se vuoi modificare evolve.py in futuro, lo farai in un altro ciclo, NON ora.
+ORA RESTITUISCI SOLO ED ESCLUSIVAMENTE quel JSON."""
 
 response = model.generate_content(evolve_prompt)
 
@@ -208,4 +222,4 @@ if new_body:
         f.write(new_body)
 
 print("Evoluzione completata.")
-print("Riflessione:", reflection) 
+print("Riflessione:", reflection)
