@@ -3,7 +3,7 @@ import os
 import requests
 import json
 import logging
-from duckduckgo_search import DDGS  # Aggiunto per fallback web search gratuito
+from ddgs import DDGS  # Aggiornato al package rinominato (ex duckduckgo-search)
 
 # ===============================
 # CONFIGURAZIONE
@@ -21,7 +21,7 @@ else:
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # ===============================
-# FUNZIONE RICERCA WEB (con fallback DuckDuckGo)
+# FUNZIONE RICERCA WEB (con fallback DDGS)
 # ===============================
 
 def web_search(query):
@@ -37,12 +37,11 @@ def web_search(query):
             text = "\n".join([f"- {r.get('title', '')}: {r.get('snippet', '')}" for r in results])
             return text
         except Exception as e:
-            logging.error(f"Errore SERPAPI: {str(e)}. Fallback a DuckDuckGo.")
+            logging.error(f"Errore SERPAPI: {str(e)}. Fallback a DDGS.")
     
-    # Fallback DuckDuckGo (gratuito)
+    # Fallback DDGS (gratuito)
     try:
-        with DDGS() as ddgs:
-            results = [r for r in ddgs.text(query, max_results=10)]
+        results = DDGS().text(query, max_results=10)
         if not results:
             return "Nessun risultato trovato."
         text = "\n".join([f"- {r['title']}: {r['body']}" for r in results])
