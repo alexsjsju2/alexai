@@ -25,6 +25,7 @@ jobs:
       - name: Esegui evoluzione
         env:
           GEMINI_API_KEY: ${{ secrets.HF_API_KEY }}
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }} 
         run: python evolve.py
 
       - name: Commit e push cambiamenti
