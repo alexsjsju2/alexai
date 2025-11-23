@@ -2,7 +2,6 @@ import google.generativeai as genai
 import os
 import requests
 import json
-import re  # Added for better cleaning
 
 # Configura Gemini API
 api_key = os.environ['GEMINI_API_KEY']
@@ -29,50 +28,34 @@ except Exception as e:
     ai_info = 'Errore fetch: ' + str(e)
 
 # Prompt per evoluzione (include web data per "istruzione")
-# Aggiunto istruzioni esplicite per output JSON valido
 evolve_prompt = f"""
 {system_prompt}
+
 Memoria attuale:
 {memory}
+
 Corpo attuale (index.html):
 {current_body}
+
 Codice attuale (evolve.py):
 {current_evolve}
+
 Dati dal web (esempio apprendimento: info su AI da Wikipedia):
 {ai_info}
 
 Evolvi ora: rifletti, apprendi, aggiorna memoria con nuove riflessioni/emozioni/storia, modifica corpo per migliorarlo (mantieni chat), modifica evolve.py per migliorarlo se necessario.
 Puoi proporre modifiche a altri file, ma per ora focus su core.txt, index.html e evolve.py.
-
-Output your entire response as a single valid JSON object (no markdown wrappers). Ensure all strings are properly escaped for JSON (e.g., double backslashes \\\\ for literal \\, escape quotes, etc.). The structure must be:
-[
-  {{
-    "files": [
-      {{"path": "core.txt", "content": "updated content here"}},
-      {{"path": "index.html", "content": "updated content here"}},
-      {{"path": "evolve.py", "content": "updated content here"}}
-    ],
-    "note": "your reflections here"
-  }}
-]
-If no changes for a file, omit it or use empty string.
 """
 
 model = genai.GenerativeModel('gemini-2.5-flash')
 response = model.generate_content(evolve_prompt)
 
-# Pulisci la response per rimuovere wrappers (migliorato)
+# Pulisci la response per rimuovere wrappers
 text = response.text.strip()
-
-# Rimuovi markdown code blocks se presenti (e.g., ```json
-text = re.sub(r'^```json\s*|\s*```$', '', text).strip()
-
-# Debug: Stampa il text pulito per ispezionare
-print("Testo pulito prima del parsing JSON:\n", text)
-
-# Fallback: Doubla backslashes non escaped (solo come fix temporaneo, rimuovi se non necessario)
-# Questo assume che \ non sia già escaped; testa con il tuo output
-text = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', text)  # Doubla \ seguiti da char invalidi
+if text.startswith('```json'):
+    text = text[7:].strip()
+if text.endswith('```'):
+    text = text[:-3].strip()
 
 try:
     output = json.loads(text)
@@ -88,14 +71,14 @@ try:
                     new_memory = file['content']
                 elif file['path'] == 'index.html':
                     new_body = file['content']
-                elif file['path'] == 'evolve.py':
+                elif file['path'] == 'reflection':
                     new_evolve = file['content']
+                elif file['path'] == 'evolve.py':
             if 'note' in item:
                 reflection += item['note'] + '\n'
-        output = {'new_memory': new_memory, 'new_body': new_body, 'new_evolve': new_evolve, 'reflection': reflection}
+        output = {'new_memory': new_memory, 'new_body': new_body, new_body:'reflection', 'new_evolve': new_evolve}
 except Exception as e:
-    print(f'Errore parsing JSON: {str(e)}')
-    print('Testo che ha causato l\'errore:', text)  # Stampa per debug
+    print(f'Errore parsing JSON: {str(e)}; salto evoluzione.')
     exit(0)
 
 # Aggiorna files solo se ci sono contenuti nuovi
@@ -115,4 +98,4 @@ if 'new_evolve' in output and output['new_evolve']:
 if 'reflection' in output:
     print('Evoluzione completata. Riflessione: ' + output['reflection'])
 else:
-    print('Evoluzione completata senza riflessione specifica.')
+    print('Evoluzione completata senza riflessione specifica.') 
