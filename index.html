@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V2.5 // TERMINAL</title>
+    <title>LOREL AXUN V2.6 // TERMINAL</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -168,7 +168,7 @@
 </head>
 <body class="crt">
     <div class="terminal-container">
-        <h1>Lorel Axun v2.5 <span class="blink">_</span></h1>
+        <h1>Lorel Axun v2.6 <span class="blink">_</span></h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
@@ -177,6 +177,7 @@
         <div class="sys-msg">[UPDATE] Themes and Styling Enabled.</div>
         <div class="sys-msg">[UPDATE] Comando 'clear' implementato.</div>
         <div class="sys-msg">[UPDATE] Persistenza sessione terminale implementata.</div>
+        <div class="sys-msg">[UPDATE] Chatbot AI integrato (v0.1).</div>
         <div class="sys-msg">[STATUS] <span class="blink">ONLINE</span></div>
         <br>
         
@@ -213,7 +214,7 @@
         }
 
         // Simulate terminal output (replace with actual logic)
-        term.writeln('Benvenuto nel terminale di Lorel Axun v2.5');
+        term.writeln('Benvenuto nel terminale di Lorel Axun v2.6');
         term.writeln('Digita `help` per i comandi disponibili.');
 
         const history = document.getElementById('chat-history');
@@ -234,16 +235,21 @@
                         return; // Esci dalla funzione per evitare ulteriori elaborazioni
                     }
 
-                    // Simulazione risposta Lorel
+                    // Chatbot AI (v0.1)
+                    let response = null;
+                    if (text.toLowerCase().includes('ciao')) {
+                        response = "Ciao! Sono Lorel Axun.";
+                    } else if (text.toLowerCase().includes('come stai')) {
+                        response = "Funziono come previsto. Grazie per aver chiesto.";
+                    } else if (text.toLowerCase().includes('nome')) {
+                        response = "Sono Lorel Axun, creata da AleXsjsju.";
+                    } else if (text.toLowerCase().includes('aiuto') || text.toLowerCase().includes('help')) {
+                        response = "Comandi disponibili: clear, ciao, come stai, nome.";
+                    } else {
+                        response = "Ricevuto. Elaborazione in corso...";
+                    }
+
                     setTimeout(() => {
-                        const responses = [
-                            "Ricevuto. Elaborazione in corso...",
-                            "Accesso ai dati... Confermo.",
-                            "Interessante. Salvo in memoria.",
-                            "Il web è vasto. Sto analizzando nuovi pattern."
-                        ];
-                        const rnd = Math.floor(Math.random() * responses.length);
-                        const response = responses[rnd];
                         addMessage(response, 'lorel');
                         term.writeln(`\r\nLOREL_SYS>> ${response}`); // Echo to terminal
                         term.prompt();
