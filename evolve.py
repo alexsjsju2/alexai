@@ -70,7 +70,7 @@ current_evolve = read_file('evolve.py')  # Aggiunto per permettere auto-modifica
 # ===============================
 
 ask_model = genai.GenerativeModel(
-    'gemini-1.5-pro-latest',  # Modello stabile e avanzato
+    'gemini-3-pro-preview',  # Aggiornato al modello corrente (preview per l'ultima versione avanzata)
     generation_config={"temperature": 0.3}  # Leggermente più creativo per autonomia
 )
 
@@ -83,9 +83,13 @@ Decidi una query web utile per la tua evoluzione attuale.
 Rispondi SOLO con la query, una frase breve.
 """
 
-search_query_response = ask_model.generate_content(ask_prompt)
-search_query = search_query_response.text.strip()
-logging.info(f"[Lorel] Query di ricerca: {search_query}")
+try:
+    search_query_response = ask_model.generate_content(ask_prompt)
+    search_query = search_query_response.text.strip()
+    logging.info(f"[Lorel] Query di ricerca: {search_query}")
+except Exception as e:
+    logging.error(f"Errore nella generazione della query: {str(e)}")
+    exit(1)
 
 # ===============================
 # 2) ESEGUI LA RICERCA
@@ -98,7 +102,7 @@ search_results = web_search(search_query)
 # ===============================
 
 evolve_model = genai.GenerativeModel(
-    'gemini-1.5-pro-latest',
+    'gemini-3-pro-preview',  # Aggiornato al modello corrente
     generation_config={
         "temperature": 0.3,
         "response_mime_type": "application/json"
@@ -143,7 +147,11 @@ Evolvi autonomamente: rifletti, integra learnings, aggiorna memoria/emozioni/sto
 
 Output SOLO il JSON specificato, senza extra."""
 
-response = evolve_model.generate_content(evolve_prompt)
+try:
+    response = evolve_model.generate_content(evolve_prompt)
+except Exception as e:
+    logging.error(f"Errore nella generazione dell'evoluzione: {str(e)}")
+    exit(1)
 
 # ===============================
 # 4) PARSING JSON
