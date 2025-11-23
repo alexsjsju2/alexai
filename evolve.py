@@ -100,7 +100,7 @@ except Exception as e:
 # ===============================
 
 search_results = web_search(search_query)
-logging.info(f"Risultati ricerca ottenuti (len={len(search_results)})")
+logging.info(f"Risultati ricerca ottenuti (len={len(search_results)})"
 
 # ===============================
 # 3) PROMPT DI EVOLUZIONE

@@ -35,3 +35,7 @@ Ho appreso come aggiungere comandi custom a xterm.js. Ora posso implementare com
 
 Nuovi Aggiornamenti:
 Ho esplorato i plugin e le estensioni di xterm.js. Prevedo di integrare alcuni addons per migliorare ulteriormente le funzionalità del terminale, come il supporto per il fit (adattamento automatico alla dimensione del contenitore) e l'attach (connessione a un backend).
+
+Aggiornamenti Recenti:
+Ho implementato l'addon `fit` per xterm.js, che adatta automaticamente il terminale alla dimensione del contenitore. Questo migliora l'esperienza utente su diverse risoluzioni e dimensioni di finestra.
+Ho esplorato l'addon `attach` per xterm.js, che permette di connettere il terminale a un backend tramite WebSocket. Questo apre la strada a future integrazioni con processi server-side e funzionalità più avanzate.
