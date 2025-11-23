@@ -65,12 +65,9 @@ with open('index.html', 'r') as f:
 # ===============================
 
 # Use a more reliable model with low temperature for consistency
-model = genai.GenerativeModel(
-    'gemini-1.5-pro',  # Updated to a valid and current model
-    generation_config={
-        "temperature": 0.1,
-        "response_mime_type": "application/json"
-    }
+ask_model = genai.GenerativeModel(
+    'gemini-2.5-pro',  # Valid stable model as of 2025
+    generation_config={"temperature": 0.1}
 )
 
 ask_prompt = f"""
@@ -81,7 +78,7 @@ decidi quale ricerca web sarebbe più utile per evolverti.
 Rispondi con UNA SOLA frase breve. Niente spiegazioni.
 """
 
-search_query_response = model.generate_content(ask_prompt)
+search_query_response = ask_model.generate_content(ask_prompt)
 search_query = search_query_response.text.strip()
 print(f"[AI] Richiesta di ricerca: {search_query}")
 
@@ -94,6 +91,14 @@ search_results = web_search(search_query)
 # ===============================
 # 3) PROMPT DI EVOLUZIONE (con istruzioni super rigide e JSON mode)
 # ===============================
+
+evolve_model = genai.GenerativeModel(
+    'gemini-2.5-pro',  # Valid stable model as of 2025
+    generation_config={
+        "temperature": 0.1,
+        "response_mime_type": "application/json"
+    }
+)
 
 schema = {
     "type": "array",
@@ -153,7 +158,7 @@ Non aggiungere "new_evolve", "new_memory", "new_body", né altri campi.
 Se vuoi modificare evolve.py in futuro, lo farai in un altro ciclo, NON ora.
 ORA RESTITUISCI SOLO ED ESCLUSIVAMENTE quel JSON."""
 
-response = model.generate_content(evolve_prompt)
+response = evolve_model.generate_content(evolve_prompt)
 
 # ===============================
 # 4) PARSING RISPOSTA JSON (con pulizia robusta)
