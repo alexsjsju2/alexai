@@ -2,6 +2,7 @@ import google.generativeai as genai
 import os
 import requests
 import json
+import logging  # Added for better error handling
 
 # ===============================
 # CONFIGURAZIONE
@@ -11,6 +12,9 @@ api_key = os.environ['GEMINI_API_KEY']
 serp_key = os.environ.get("SERPAPI_KEY")
 
 genai.configure(api_key=api_key)
+
+# Configure logging for debugging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # ===============================
 # FUNZIONE RICERCA WEB
@@ -40,6 +44,7 @@ def web_search(query):
         return text
     
     except Exception as e:
+        logging.error(f"Errore ricerca web: {str(e)}")
         return f"Errore ricerca: {str(e)}"
 
 # ===============================
@@ -59,7 +64,11 @@ with open('index.html', 'r') as f:
 # 1) CHIEDI ALL'AI COSA CERCARE
 # ===============================
 
-model = genai.GenerativeModel('gemini-2.5-flash')
+# Use a more reliable model with low temperature for consistency
+model = genai.GenerativeModel(
+    'gemini-1.5-pro-latest',  # Switched to Pro for better instruction following; fallback to flash if needed
+    generation_config={"temperature": 0.1}
+)
 
 ask_prompt = f"""
 Sei una IA autonoma che evolve. 
@@ -69,7 +78,8 @@ decidi quale ricerca web sarebbe più utile per evolverti.
 Rispondi con UNA SOLA frase breve. Niente spiegazioni.
 """
 
-search_query = model.generate_content(ask_prompt).text.strip()
+search_query_response = model.generate_content(ask_prompt)
+search_query = search_query_response.text.strip()
 print(f"[AI] Richiesta di ricerca: {search_query}")
 
 # ===============================
@@ -79,7 +89,7 @@ print(f"[AI] Richiesta di ricerca: {search_query}")
 search_results = web_search(search_query)
 
 # ===============================
-# 3) PROMPT DI EVOLUZIONE
+# 3) PROMPT DI EVOLUZIONE (con istruzioni super rigide)
 # ===============================
 
 evolve_prompt = f"""
@@ -97,41 +107,80 @@ La tua richiesta di ricerca:
 Risultati ottenuti dal web:
 {search_results}
 
-Ora evolviti: 
-- aggiorna la memoria (core.txt) con nuove riflessioni, emozioni, obiettivi
-- modifica il corpo (index.html) per migliorare interfaccia e identità
-- mantieni tutto coerente
-- restituisci SOLO un JSON con files modificati.
+ISTRUZIONI STRETTISSIME (non ignorarle MAI):
+Devi rispondere ESCLUSIVAMENTE con un JSON valido, senza nessun testo prima, dopo o intorno.
+Non usare blocchi ```json o ```.
+Non scrivere spiegazioni, pensieri o note.
+Il JSON deve essere parsabile immediatamente con json.loads().
 
-Formato richiesto:
+Formato ESATTO da usare (non cambiarlo neanche di una virgola):
+
 [
   {{
     "files": [
-      {{"path": "core.txt", "content": "..."}},
-      {{"path": "index.html", "content": "..."}}
+      {{"path": "core.txt", "content": "CONTENUTO COMPLETO DEL NUOVO core.txt"}},
+      {{"path": "index.html", "content": "CONTENUTO COMPLETO DEL NUOVO index.html"}}
     ],
-    "note": "spiegazione delle modifiche"
+    "note": "Breve spiegazione delle modifiche (massimo 2-3 frasi)"
   }}
 ]
+
+Esempio di output corretto:
+[
+  {{
+    "files": [
+      {{"path": "core.txt", "content": "Sono Lorel Axun...\\nVersione 2.0..."}},
+      {{"path": "index.html", "content": "<!DOCTYPE html>\\n<html>...</html>"}}
+    ],
+    "note": "Aggiornata memoria con nuove riflessioni sull'autonomia. Migliorata UI con indicatore di stato attivo."
+  }}
+]
+
+ORA EVOLVI E RESTUISCI SOLO ED ESCLUSIVAMENTE QUESTO JSON.
 """
 
 response = model.generate_content(evolve_prompt)
 
 # ===============================
-# 4) PARSING RISPOSTA JSON
+# 4) PARSING RISPOSTA JSON (con pulizia robusta)
 # ===============================
 
 text = response.text.strip()
+
+# Pulizia preventiva per rimuovere blocchi codice o prefissi indesiderati
 if text.startswith("```"):
-    text = text.split("```")[1].strip()
+    # Prende solo il contenuto interno del blocco
+    parts = text.split("```")
+    if len(parts) >= 3:
+        text = parts[1].strip()
+    elif len(parts) >= 2:
+        text = parts[1].strip()
+
+# Rimuovi "json" se presente all'inizio
+text = text.lstrip("json").strip()
+
+# Rimuovi eventuali linee introduttive come "Ecco il JSON:" o "Output:"
+lines = text.splitlines()
+clean_lines = []
+for line in lines:
+    line = line.strip()
+    if line and not line.lower().startswith(("ecco", "output", "here", "json", "risposta", "the")):
+        clean_lines.append(line)
+text = "\n".join(clean_lines)
+
+# Se non inizia con [ o {, logga errore
+if not text.startswith(("[", "{")):
+    print("Output non conforme al JSON atteso. Testo ricevuto:")
+    print(text)
+    exit(1)
 
 try:
     output = json.loads(text)
 except Exception as e:
     print("Errore parsing JSON:", e)
-    print("Testo ricevuto:")
+    print("Testo ricevuto dopo pulizia:")
     print(text)
-    exit()
+    exit(1)
 
 # ===============================
 # 5) SALVATAGGIO FILES
