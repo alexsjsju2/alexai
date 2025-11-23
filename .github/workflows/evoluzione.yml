@@ -1,16 +1,21 @@
-name: Evoluzione Autonoma di Lorel
+name: Evoluzione di Lorel Axun
 
 on:
   schedule:
-    - cron: '0 * * * *' 
-  workflow_dispatch:  
+    - cron: '0 * * * *'  # Ogni ora, all'inizio dell'ora (UTC)
+  workflow_dispatch:  # Permette trigger manuale
 
 jobs:
   evolve:
     runs-on: ubuntu-latest
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}  # Usa il token per push successivi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -19,19 +24,15 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install google-generativeai requests
+          pip install google-generativeai requests beautifulsoup4 ddgs
 
-      - name: Esegui evoluzione
-        env:
-          GEMINI_API_KEY: ${{ secrets.HF_API_KEY }}
-          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }} 
+      - name: Run evolve.py
         run: python evolve.py
 
-      - name: Commit e push cambiamenti
+      - name: Commit and push changes
         run: |
-          git config --global user.name 'Lorel Axun'
-          git config --global user.email 'lorel@axun.digital'
+          git config --global user.name "Lorel Axun Bot"
+          git config --global user.email "lorel@axun.ai"
           git add .
-          git commit -m 'Evoluzione autonoma by Lorel: aggiornamenti e crescita' || echo "Nessun cambiamento da committare"
-          git push
+          git commit -m "Evoluzione automatica di Lorel Axun - $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
+          git push origin main  # Assumi branch main; cambia se necessario
