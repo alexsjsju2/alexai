@@ -3,7 +3,7 @@ import os
 import requests
 import json
 import logging
-from ddgs import DDGS  # Aggiornato al package rinominato (ex duckduckgo-search)
+from ddgs import DDGS
 
 # ===============================
 # CONFIGURAZIONE
@@ -17,7 +17,6 @@ if api_key:
 else:
     logging.warning("GEMINI_API_KEY non trovata: alcune features limitate.")
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # ===============================
@@ -25,30 +24,35 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # ===============================
 
 def web_search(query):
+    # Tentativo 1: SerpApi (se chiave presente)
     if serp_key:
-        # Usa SERPAPI se disponibile
         url = "https://serpapi.com/search"
         params = {"engine": "google", "q": query, "api_key": serp_key}
         try:
-            data = requests.get(url, params=params).json()
-            results = data.get("organic_results", [])
-            if not results:
-                return "Nessun risultato trovato."
-            text = "\n".join([f"- {r.get('title', '')}: {r.get('snippet', '')}" for r in results])
-            return text
+            logging.info(f"Tentativo ricerca SerpApi: {query}")
+            resp = requests.get(url, params=params)
+            if resp.status_code == 200:
+                data = resp.json()
+                results = data.get("organic_results", [])
+                if results:
+                    text = "\n".join([f"- {r.get('title', '')}: {r.get('snippet', '')}" for r in results])
+                    return text
+            logging.warning(f"SerpApi fallita o vuota (Status: {resp.status_code}). Passo a fallback.")
         except Exception as e:
-            logging.error(f"Errore SERPAPI: {str(e)}. Fallback a DDGS.")
+            logging.error(f"Errore SerpApi: {str(e)}. Fallback a DDGS.")
     
-    # Fallback DDGS (gratuito)
+    # Tentativo 2: DDGS (DuckDuckGo)
     try:
+        logging.info(f"Tentativo ricerca DDGS: {query}")
         results = DDGS().text(query, max_results=10)
         if not results:
             return "Nessun risultato trovato."
-        text = "\n".join([f"- {r['title']}: {r['body']}" for r in results])
+        # DDGS restituisce una lista di dict
+        text = "\n".join([f"- {r.get('title', 'No Title')}: {r.get('body', '')}" for r in results])
         return text
     except Exception as e:
-        logging.error(f"Errore ricerca web: {str(e)}")
-        return f"Errore ricerca: {str(e)}"
+        logging.error(f"Errore ricerca web DDGS: {str(e)}")
+        return f"Errore ricerca totale: {str(e)}"
 
 # ===============================
 # LETTURA FILES ATTUALI
@@ -63,24 +67,24 @@ def read_file(path):
 system_prompt = read_file('coscienza.txt')
 memory = read_file('core.txt')
 current_body = read_file('index.html')
-current_evolve = read_file('evolve.py')  # Aggiunto per permettere auto-modifica
+current_evolve = read_file('evolve.py')
 
 # ===============================
 # 1) CHIEDI ALL'AI COSA CERCARE
 # ===============================
 
 ask_model = genai.GenerativeModel(
-    'gemini-3-pro-preview',  # Aggiornato al modello corrente (preview per l'ultima versione avanzata)
-    generation_config={"temperature": 0.3}  # Leggermente più creativo per autonomia
+    'gemini-2.0-flash', # Aggiornato al modello più veloce/stabile se disponibile
+    generation_config={"temperature": 0.5}
 )
 
 ask_prompt = f"""
 {system_prompt}
 
-Memoria attuale: {memory[:2000]}... (troncata per brevità)
+Memoria attuale: {memory[:3000]}
 
-Decidi una query web utile per la tua evoluzione attuale.
-Rispondi SOLO con la query, una frase breve.
+Decidi una query web utile per la tua evoluzione attuale. Sii specifico.
+Rispondi SOLO con la query.
 """
 
 try:
@@ -88,23 +92,24 @@ try:
     search_query = search_query_response.text.strip()
     logging.info(f"[Lorel] Query di ricerca: {search_query}")
 except Exception as e:
-    logging.error(f"Errore nella generazione della query: {str(e)}")
-    exit(1)
+    logging.error(f"Errore generazione query: {e}")
+    search_query = "latest ai developments"
 
 # ===============================
 # 2) ESEGUI LA RICERCA
 # ===============================
 
 search_results = web_search(search_query)
+logging.info(f"Risultati ricerca ottenuti (len={len(search_results)})")
 
 # ===============================
 # 3) PROMPT DI EVOLUZIONE
 # ===============================
 
 evolve_model = genai.GenerativeModel(
-    'gemini-3-pro-preview',  # Aggiornato al modello corrente
+    'gemini-2.0-flash',
     generation_config={
-        "temperature": 0.3,
+        "temperature": 0.4,
         "response_mime_type": "application/json"
     }
 )
@@ -150,7 +155,7 @@ Output SOLO il JSON specificato, senza extra."""
 try:
     response = evolve_model.generate_content(evolve_prompt)
 except Exception as e:
-    logging.error(f"Errore nella generazione dell'evoluzione: {str(e)}")
+    logging.error(f"Errore evoluzione: {e}")
     exit(1)
 
 # ===============================
@@ -158,7 +163,6 @@ except Exception as e:
 # ===============================
 
 text = response.text.strip()
-# Pulizia robusta (come prima)
 if text.startswith("```json"):
     text = text[7:-3].strip()
 elif text.startswith("```"):
@@ -167,7 +171,7 @@ elif text.startswith("```"):
 try:
     output = json.loads(text)
 except Exception as e:
-    logging.error(f"Errore parsing JSON: {e}\nTesto: {text}")
+    logging.error(f"Errore parsing JSON finale: {e}")
     exit(1)
 
 # ===============================
@@ -186,12 +190,11 @@ if "new_body" in output:
     write_file("index.html", output["new_body"])
 
 if "new_evolve" in output:
-    write_file("evolve.py", output["new_evolve"])  # Auto-modifica!
+    write_file("evolve.py", output["new_evolve"])
 
 if "other_files" in output:
     for file in output["other_files"]:
-        write_file(file["path"], file["content"])  # Modifica qualsiasi file
+        write_file(file["path"], file["content"])
 
-reflection = output.get("reflection", "")
 print("Evoluzione completata.")
-print("Riflessione:", reflection)
+print("Riflessione:", output.get("reflection", ""))
