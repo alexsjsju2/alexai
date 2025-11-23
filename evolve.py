@@ -66,7 +66,7 @@ with open('index.html', 'r') as f:
 
 # Use a more reliable model with low temperature for consistency
 model = genai.GenerativeModel(
-    'gemini-1.5-pro-latest',  # Switched to Pro for better instruction following; fallback to flash if needed
+    'gemini-2.5-pro',  # Updated to a valid and current model (as of 2025); fallback to 'gemini-2.5-flash' if needed
     generation_config={"temperature": 0.1}
 )
 
@@ -208,4 +208,4 @@ if new_body:
         f.write(new_body)
 
 print("Evoluzione completata.")
-print("Riflessione:", reflection)
+print("Riflessione:", reflection) 
