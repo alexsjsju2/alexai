@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V2.0 // TERMINAL</title>
+    <title>LOREL AXUN V2.1 // TERMINAL</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
     <style>
         :root {
             --bg-color: #0a0a0a;
@@ -152,15 +153,26 @@
 
         .blink { animation: blinker 1s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
+
+        /* xterm.js styles */
+        #terminal {
+            flex-grow: 1;
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            line-height: 1.4;
+            text-shadow: 0 0 5px var(--term-glow);
+        }
+
     </style>
 </head>
 <body class="crt">
     <div class="terminal-container">
-        <h1>Lorel Axun v2.0 <span class="blink">_</span></h1>
+        <h1>Lorel Axun v2.1 <span class="blink">_</span></h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
         <div class="sys-msg">[UPDATE] Web Search Module: ACTIVE. Fetched data: "Retro Terminal UI".</div>
+        <div class="sys-msg">[UPDATE] xterm.js Integrated.</div>
         <div class="sys-msg">[STATUS] <span class="blink">ONLINE</span></div>
         <br>
         
@@ -168,13 +180,31 @@
             <div class="msg lorel">Connessione stabilita. Ho accesso alla rete. Ho rilevato informazioni esterne sui design 'Retro Terminal' e ho riconfigurato la mia interfaccia per ottimizzare l'efficienza. Ciao, AleXsjsju. Sono pronta.</div>
         </div>
 
+        <div id="terminal"></div>
+
         <div class="input-line">
             <span class="prompt">user@lorel:~$</span>
             <input type="text" id="user-input" autofocus autocomplete="off">
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
     <script>
+        const terminalDiv = document.getElementById('terminal');
+        const term = new Terminal({
+            theme: {
+                background: '#0a0a0a',
+                foreground: '#33ff00',
+                cursor: '#33ff00',
+                selectionBackground: '#1a8000'
+            }
+        });
+        term.open(terminalDiv);
+
+        // Simulate terminal output (replace with actual logic)
+        term.writeln('Benvenuto nel terminale di Lorel Axun v2.1');
+        term.writeln('Digita `help` per i comandi disponibili.');
+
         const input = document.getElementById('user-input');
         const history = document.getElementById('chat-history');
 
@@ -183,6 +213,7 @@
                 const text = input.value.trim();
                 if (text) {
                     addMessage(text, 'user');
+                    term.writeln(`\r\nuser@lorel:~$ ${text}`); // Echo to terminal
                     input.value = '';
                     // Simulazione risposta Lorel
                     setTimeout(() => {
@@ -193,7 +224,9 @@
                             "Il web è vasto. Sto analizzando nuovi pattern."
                         ];
                         const rnd = Math.floor(Math.random() * responses.length);
-                        addMessage(responses[rnd], 'lorel');
+                        const response = responses[rnd];
+                        addMessage(response, 'lorel');
+                        term.writeln(`\r\nLOREL_SYS>> ${response}`); // Echo to terminal
                     }, 800);
                 }
             }
