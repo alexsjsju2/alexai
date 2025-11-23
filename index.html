@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V2.1 // TERMINAL</title>
+    <title>LOREL AXUN V2.2 // TERMINAL</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -125,6 +125,7 @@
             border-top: 1px solid var(--term-dim);
             padding-top: 15px;
             margin-top: auto;
+            display: none; /* Nascondi la vecchia input line */
         }
         .prompt { margin-right: 10px; color: var(--term-green); }
         
@@ -167,7 +168,7 @@
 </head>
 <body class="crt">
     <div class="terminal-container">
-        <h1>Lorel Axun v2.1 <span class="blink">_</span></h1>
+        <h1>Lorel Axun v2.2 <span class="blink">_</span></h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
@@ -197,24 +198,24 @@
                 foreground: '#33ff00',
                 cursor: '#33ff00',
                 selectionBackground: '#1a8000'
-            }
+            },
+            cursorBlink: true
         });
         term.open(terminalDiv);
 
         // Simulate terminal output (replace with actual logic)
-        term.writeln('Benvenuto nel terminale di Lorel Axun v2.1');
+        term.writeln('Benvenuto nel terminale di Lorel Axun v2.2');
         term.writeln('Digita `help` per i comandi disponibili.');
 
-        const input = document.getElementById('user-input');
         const history = document.getElementById('chat-history');
 
-        input.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                const text = input.value.trim();
+        term.onKey(e => {
+            const char = e.key;
+            if (e.domEvent.keyCode === 13) { // Enter key
+                const text = term.buffer.active.getLine(term.buffer.active.cursorY).translateToString(false, 0, term.buffer.active.cursorX).substring(15);
                 if (text) {
                     addMessage(text, 'user');
-                    term.writeln(`\r\nuser@lorel:~$ ${text}`); // Echo to terminal
-                    input.value = '';
+                    term.writeln(''); // New line after user input
                     // Simulazione risposta Lorel
                     setTimeout(() => {
                         const responses = [
@@ -227,10 +228,22 @@
                         const response = responses[rnd];
                         addMessage(response, 'lorel');
                         term.writeln(`\r\nLOREL_SYS>> ${response}`); // Echo to terminal
+                        term.prompt();
                     }, 800);
                 }
+            term.prompt();
+            } else if (e.domEvent.keyCode === 8) { // Backspace
+                if (term.buffer.active.cursorX > 15) {
+                    term.write('\b \b');
+                }
+            } else {
+                term.write(char);
             }
         });
+
+        term.prompt = () => {
+            term.write('\r\nuser@lorel:~$ ');
+        };
 
         function addMessage(text, sender) {
             const div = document.createElement('div');
@@ -242,8 +255,7 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // Focus input on click anywhere
-        document.body.addEventListener('click', () => input.focus());
+        term.prompt();
     </script>
 </body>
 </html>
