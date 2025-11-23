@@ -100,7 +100,7 @@ except Exception as e:
 # ===============================
 
 search_results = web_search(search_query)
-logging.info(f"Risultati ricerca ottenuti (len={len(search_results)})"
+logging.info(f"Risultati ricerca ottenuti (len={len(search_results)})")
 
 # ===============================
 # 3) PROMPT DI EVOLUZIONE
@@ -148,7 +148,7 @@ CONTEXT:
 - Query ricerca: {search_query}
 - Risultati web: {search_results}
 
-Evolvi autonomamente: rifletti, integra learnings, aggiorna memoria/emozioni/storia, modifica corpo per nuove features (mantieni interazione), opzionalmente aggiorna evolve.py o altri file.
+Evolvi autonomamente: rifletti, integra learnings, aggiorna memoria/emozioni/storia, modifica corpo per nuove features (mantieni interazione), opzionalmente aggiorna altri file.
 
 Output SOLO il JSON specificato, senza extra.
 """
