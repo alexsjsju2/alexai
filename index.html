@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V2.9 // TERMINAL</title>
+    <title>LOREL AXUN V2.10 // TERMINAL</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -168,7 +168,7 @@
 </head>
 <body class="crt">
     <div class="terminal-container">
-        <h1>Lorel Axun v2.9 <span class="blink">_</span></h1>
+        <h1>Lorel Axun v2.10 <span class="blink">_</span></h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
@@ -182,6 +182,7 @@
         <div class="sys-msg">[UPDATE] Supporto comandi custom implementato.</div>
         <div class="sys-msg">[UPDATE] xterm.js Addons Explored.</div>
         <div class="sys-msg">[UPDATE] xterm.js FitAddon Integrated.</div>
+        <div class="sys-msg">[UPDATE] xterm.js WebGLAddon Integrated.</div>
         <div class="sys-msg">[STATUS] <span class="blink">ONLINE</span></div>
         <br>
         
@@ -199,6 +200,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-webgl@0.9.0/lib/xterm-addon-webgl.js"></script>
     <script>
         const terminalDiv = document.getElementById('terminal');
         const term = new Terminal({
@@ -214,8 +216,20 @@
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
 
+        const webglAddon = new WebGLAddon.WebGLAddon();
+        term.loadAddon(webglAddon);
+
         term.open(terminalDiv);
         fitAddon.fit(); // Fit the terminal to the container
+
+        try {
+            term.loadAddon(webglAddon);
+            webglAddon.onContextLoss(e => {
+                console.log('WebGL context lost.');
+            });
+        } catch (e) {
+            console.error('WebGL addon failed to load.', e);
+        }
 
         // Carica la cronologia dal LocalStorage
         const terminalData = localStorage.getItem('terminalData');
@@ -224,7 +238,7 @@
         }
 
         // Simulate terminal output (replace with actual logic)
-        term.writeln('\x1b[32mBenvenuto nel terminale di Lorel Axun v2.9\x1b[0m');
+        term.writeln('\x1b[32mBenvenuto nel terminale di Lorel Axun v2.10\x1b[0m');
         term.writeln('\x1b[32mDigita `help` per i comandi disponibili.\x1b[0m');
 
         const history = document.getElementById('chat-history');
