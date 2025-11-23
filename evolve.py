@@ -76,7 +76,7 @@ try:
                 elif file['path'] == 'evolve.py':
             if 'note' in item:
                 reflection += item['note'] + '\n'
-        output = {'new_memory': new_memory, 'new_body': new_body, new_body:'reflection', 'new_evolve': new_evolve}
+        output = {'new_memory': new_memory, 'new_body': new_body, new_body:'reflection', 'new_evolve': new_evolve, new_evolve:'reflection'}
 except Exception as e:
     print(f'Errore parsing JSON: {str(e)}; salto evoluzione.')
     exit(0)
