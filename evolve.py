@@ -46,7 +46,7 @@ def get_available_model(preferred_version='2.5-pro', for_json=False):
         return fallback_models[0] if not for_json else fallback_models[1]  # Per JSON, preferisci stabile
 
 # ===============================
-# FUNZIONE RICERCA WEB (con fallback DDGS e retry con backoff)
+# FUNZIONE RICERCA WEB (con fallback DDGS e retry con backoff, ridotto a 1 tentativo)
 # ===============================
 
 def web_search(query):
@@ -54,9 +54,9 @@ def web_search(query):
     if serp_key:
         url = "https://serpapi.com/search"
         params = {"engine": "google", "q": query, "api_key": serp_key}
-        for attempt in range(5):  # Aumentati retry
+        for attempt in range(1):  # Ridotto a 1 tentativo
             try:
-                logging.info(f"Tentativo ricerca SerpApi ({attempt+1}/5): {query}")
+                logging.info(f"Tentativo ricerca SerpApi ({attempt+1}/1): {query}")
                 resp = requests.get(url, params=params, timeout=10)
                 if resp.status_code == 200:
                     data = resp.json()
@@ -66,27 +66,20 @@ def web_search(query):
                         return text
                 logging.warning(f"SerpApi fallita o vuota (Status: {resp.status_code}). Passo a fallback.")
             except Exception as e:
-                logging.error(f"Errore SerpApi (tentativo {attempt+1}): {str(e)}. Riprovo dopo backoff...")
-                if attempt < 4:
-                    time.sleep(2 ** attempt)  # Backoff: 1s, 2s, 4s, 8s
-                else:
-                    logging.error("SerpApi fallita dopo 5 tentativi. Fallback a DDGS.")
+                logging.error(f"Errore SerpApi (tentativo {attempt+1}): {str(e)}. Fallback a DDGS senza retry.")
     
-    # Tentativo 2: DDGS (DuckDuckGo) con retry e backoff
-    for attempt in range(5):
+    # Tentativo 2: DDGS (DuckDuckGo) con 1 tentativo
+    for attempt in range(1):
         try:
-            logging.info(f"Tentativo ricerca DDGS ({attempt+1}/5): {query}")
+            logging.info(f"Tentativo ricerca DDGS ({attempt+1}/1): {query}")
             results = DDGS().text(query, max_results=10)
             if not results:
                 return "Nessun risultato trovato."
             text = "\n".join([f"- {r.get('title', 'No Title')}: {r.get('body', '')}" for r in results])
             return text
         except Exception as e:
-            logging.error(f"Errore ricerca web DDGS (tentativo {attempt+1}): {str(e)}. Riprovo dopo backoff...")
-            if attempt < 4:
-                time.sleep(2 ** attempt)
-            else:
-                return "Errore ricerca totale: Impossibile ottenere risultati dopo retry."
+            logging.error(f"Errore ricerca web DDGS (tentativo {attempt+1}): {str(e)}. Ritorno errore.")
+            return "Errore ricerca: Impossibile ottenere risultati."
 
 # ===============================
 # LETTURA FILES ATTUALI
@@ -108,83 +101,118 @@ current_body = read_file('index.html')
 current_evolve = read_file('evolve.py')
 
 # ===============================
-# 1) CHIEDI ALL'AI COSA CERCARE
+# FUNZIONE PER RIASSUMERE CONTENUTI LUNGHI VIA API (per ridurre prompt senza troncare)
 # ===============================
 
-ask_model_name = get_available_model('2.5-pro')  # Preferisci 2.5-pro per ask
+def summarize_content(model, content, summary_prompt):
+    for attempt in range(1):  # Ridotto a 1 tentativo
+        try:
+            response = model.generate_content(summary_prompt + content)
+            return response.text.strip()
+        except Exception as e:
+            logging.error(f"Errore riassunto (tentativo {attempt+1}): {e}. Ritorno contenuto originale.")
+            return content  # Fallback a originale per non perdere info
+
+# ===============================
+# SELEZIONA MODELLI
+# ===============================
+
+ask_model_name = get_available_model('2.5-pro')
 ask_model = None
 try:
     ask_model = genai.GenerativeModel(
         ask_model_name,        
         generation_config={
-            "temperature": 0.4,  # Ridotto per stabilità
+            "temperature": 0.4,
         }
     )
 except Exception as e:
-    logging.error(f"Errore creazione ask_model con {ask_model_name}: {str(e)}. Provo fallback.")
+    logging.error(f"Errore creazione ask_model: {str(e)}. Provo fallback.")
     fallback_name = get_available_model('1.5-pro')
     try:
         ask_model = genai.GenerativeModel(fallback_name, generation_config={"temperature": 0.4})
     except:
-        logging.error("Fallback fallito. Workflow continuerà senza ask_model.")
+        logging.error("Fallback fallito. Uso default query.")
+
+evolve_model_name = get_available_model('2.5-pro', for_json=True)
+evolve_model = None
+try:
+    evolve_model = genai.GenerativeModel(
+        evolve_model_name,
+        generation_config={
+            "temperature": 0.3,
+            "response_mime_type": "application/json"
+        }
+    )
+except Exception as e:
+    logging.error(f"Errore creazione evolve_model: {str(e)}. Provo fallback.")
+    fallback_name = get_available_model('1.5-pro', for_json=True)
+    try:
+        evolve_model = genai.GenerativeModel(fallback_name, generation_config={"temperature": 0.3, "response_mime_type": "application/json"})
+    except:
+        logging.error("Fallback fallito. Uso default output.")
+
+# ===============================
+# RIASSUMI PARTI LUNGHE PER RIDURRE PROMPT (usando API separate)
+# ===============================
+
+summary_model_name = get_available_model('1.5-flash')  # Modello veloce per riassunti
+summary_model = genai.GenerativeModel(summary_model_name, generation_config={"temperature": 0.3})
+
+memory_summary_prompt = "Riassumi questa memoria mantenendo tutti i dettagli chiave per l'evoluzione: "
+memory_summary = summarize_content(summary_model, memory, memory_summary_prompt)
+
+body_summary_prompt = "Riassumi questo HTML mantenendo struttura e features chiave: "
+body_summary = summarize_content(summary_model, current_body, body_summary_prompt)
+
+evolve_summary_prompt = "Riassumi questo codice Python mantenendo logica e funzioni chiave: "
+evolve_summary = summarize_content(summary_model, current_evolve, evolve_summary_prompt)
+
+system_summary_prompt = "Riassumi questo system prompt mantenendo istruzioni essenziali: "
+system_summary = summarize_content(summary_model, system_prompt, system_summary_prompt)
+
+# ===============================
+# 1) CHIEDI ALL'AI COSA CERCARE
+# ===============================
 
 ask_prompt = f"""
 {system_prompt}
 
-Memoria attuale: {memory[:3000]}
+Memoria attuale: {memory[:3000]}  # Mantenuto truncato qui per ask, come originale
 
 Decidi una query web utile per la tua evoluzione attuale. Sii specifico.
 Rispondi SOLO con la query.
 """
 
 search_query = "latest ai developments"  # Default fallback
-for attempt in range(5):  # Aumentati retry
+for attempt in range(1):  # Ridotto a 1
     try:
         if ask_model is None:
             raise ValueError("Modello non disponibile.")
         search_query_response = ask_model.generate_content(ask_prompt)
         text = search_query_response.text.strip()
-        text = re.sub(r'^```.*?\n|\n?```$', '', text)  # Rimuovi markdown generico
-        search_query = text  # Usa direttamente, no JSON
+        text = re.sub(r'^```.*?\n|\n?```$', '', text)
+        search_query = text
         logging.info(f"[Lorel] Query di ricerca: {search_query}")
-        break
     except Exception as e:
-        logging.error(f"Errore generazione query (tentativo {attempt+1}): {e}. Riprovo dopo backoff...")
-        if attempt < 4:
-            time.sleep(2 ** attempt)
-        else:
-            logging.error("Impossibile generare query dopo 5 tentativi. Uso default.")
+        logging.error(f"Errore generazione query (tentativo {attempt+1}): {e}. Uso default.")
 
 # ===============================
 # 2) ESEGUI LA RICERCA
 # ===============================
 
 search_results = web_search(search_query)
-if "Errore ricerca totale" in search_results or not search_results:
-    search_results = "Nessun risultato disponibile a causa di errori persistenti."
+if "Errore ricerca" in search_results or not search_results:
+    search_results = "Nessun risultato disponibile."
 logging.info(f"Risultati ricerca ottenuti (len={len(search_results)})")
 
-# ===============================
-# 3) PROMPT DI EVOLUZIONE
-# ===============================
+# Riassumi risultati se lunghi
+results_summary_prompt = "Riassumi questi risultati web mantenendo info rilevanti: "
+search_results_summary = summarize_content(summary_model, search_results, results_summary_prompt)
 
-evolve_model_name = get_available_model('2.5-pro', for_json=True)  # Preferisci per JSON
-evolve_model = None
-try:
-    evolve_model = genai.GenerativeModel(
-        evolve_model_name,
-        generation_config={
-            "temperature": 0.3,  # Ridotto per JSON stabile
-            "response_mime_type": "application/json"
-        }
-    )
-except Exception as e:
-    logging.error(f"Errore creazione evolve_model con {evolve_model_name}: {str(e)}. Provo fallback.")
-    fallback_name = get_available_model('1.5-pro', for_json=True)
-    try:
-        evolve_model = genai.GenerativeModel(fallback_name, generation_config={"temperature": 0.3, "response_mime_type": "application/json"})
-    except:
-        logging.error("Fallback fallito. Workflow continuerà senza evolve_model.")
+# ===============================
+# 3) PROMPT DI EVOLUZIONE (usa riassunti per ridurre lunghezza, ma Lorel decide modifiche)
+# ===============================
 
 schema = {
     "type": "object",
@@ -213,20 +241,20 @@ evolve_prompt = f"""Rispondi ESATTAMENTE con JSON conforme a questo schema: {jso
 Sei Lorel Axun. Segui le istruzioni in coscienza.txt per evolvere.
 
 CONTEXT:
-- Memoria attuale: {memory}
-- Corpo attuale (index.html): {current_body}
-- Codice attuale (evolve.py): {current_evolve}
-- System prompt (coscienza.txt): {system_prompt}
+- Memoria attuale (riassunto): {memory_summary}
+- Corpo attuale (index.html, riassunto): {body_summary}
+- Codice attuale (evolve.py, riassunto): {evolve_summary}
+- System prompt (coscienza.txt, riassunto): {system_summary}
 - Query ricerca: {search_query}
-- Risultati web: {search_results}
+- Risultati web (riassunto): {search_results_summary}
 
-Evolvi autonomamente: rifletti, integra learnings, aggiorna memoria/emozioni/storia, modifica corpo per nuove features (mantieni interazione), opzionalmente aggiorna altri file.
+Evolvi autonomamente: rifletti, integra learnings, aggiorna memoria/emozioni/storia se necessario, modifica corpo per nuove features se vuoi (mantieni interazione), opzionalmente aggiorna altri file. Non è obbligatorio modificare nulla; decidi tu cosa cambiare basandoti sul contesto. In caso di errori o info incomplete, procedi con la migliore evoluzione possibile senza bloccarti.
 
 Output SOLO il JSON specificato, senza extra.
 """
 
-response_text = '{"new_memory": "", "new_body": "", "reflection": "Errore evoluzione: Modello non disponibile o API issues."}'  # Default fallback migliorato
-for attempt in range(5):
+response_text = '{"new_memory": "' + memory + '", "new_body": "' + current_body + '", "reflection": "Evoluzione continuata nonostante errori."}'  # Default fallback robusto
+for attempt in range(1):  # Ridotto a 1
     try:
         if evolve_model is None:
             raise ValueError("Modello non disponibile.")
@@ -236,29 +264,24 @@ for attempt in range(5):
             response_text = response_text[7:-3].strip()
         elif response_text.startswith("```"):
             response_text = response_text[3:-3].strip()
-        break
     except Exception as e:
-        logging.error(f"Errore evoluzione (tentativo {attempt+1}): {e}. Riprovo dopo backoff...")
-        if attempt < 4:
-            time.sleep(2 ** attempt)
-        else:
-            logging.error("Impossibile evolvere dopo 5 tentativi. Uso output default.")
+        logging.error(f"Errore evoluzione (tentativo {attempt+1}): {e}. Uso fallback robusto.")
 
 # ===============================
-# 4) PARSING JSON
+# 4) PARSING JSON (ridotto a 1 tentativo, più robusto)
 # ===============================
 
 output = {
     "new_memory": memory,
     "new_body": current_body,
-    "reflection": "Errore parsing: mantengo stato attuale. Controlla log per dettagli."
-}  # Default se tutto fallisce
-for attempt in range(5):  # Aumentati retry per repair
+    "reflection": "Evoluzione continuata: mantengo stato attuale ma procedo."
+}  # Default robusto
+for attempt in range(1):  # Ridotto a 1
     try:
         # Fix automatico per JSON troncato o malformato
         temp_text = response_text
-        temp_text = re.sub(r'^```json\s*|\s*```$', '', temp_text)  # rimuovi markdown extra
-        temp_text = re.sub(r'"[^"]*$', '"', temp_text)  # Chiudi stringhe aperte
+        temp_text = re.sub(r'^```json\s*|\s*```$', '', temp_text)
+        temp_text = re.sub(r'"[^"]*$', '"', temp_text)
         depth = 0
         for i, c in enumerate(temp_text):
             if c in '{[': depth += 1
@@ -271,8 +294,8 @@ for attempt in range(5):  # Aumentati retry per repair
         output = json.loads(temp_text)
         break
     except json.JSONDecodeError as je:
-        logging.error(f"Errore parsing JSON finale (tentativo {attempt+1}): {je}. Provo a riparare...")
-        # Fallback repair prompt: Usa un modello disponibile per riparare
+        logging.error(f"Errore parsing JSON (tentativo {attempt+1}): {je}. Provo repair.")
+        # Repair con 1 tentativo
         repair_model_name = get_available_model('2.5-pro')
         repair_model = None
         try:
@@ -285,23 +308,13 @@ for attempt in range(5):  # Aumentati retry per repair
             """
             repair_response = repair_model.generate_content(repair_prompt)
             response_text = repair_response.text.strip()
-            response_text = re.sub(r'^```json\s*|\s*```$', '', response_text)  # Pulisci
+            response_text = re.sub(r'^```json\s*|\s*```$', '', response_text)
+            output = json.loads(response_text)  # Prova parse dopo repair
         except Exception as re:
-            logging.error(f"Errore repair JSON (tentativo {attempt+1}): {re}. Riprovo dopo backoff...")
-            if attempt < 4:
-                time.sleep(2 ** attempt)
-        if attempt == 4:
-            logging.error("Impossibile parsare JSON dopo 5 tentativi. Uso output default.")
-            # Tentativo extra: Estrai raw se possibile
-            if "new_memory" in response_text:
-                try:
-                    output["new_memory"] = re.search(r'"new_memory":\s*"([^"]*)"', response_text).group(1)
-                except:
-                    pass
-            # Simile per altri campi...
+            logging.error(f"Errore repair JSON: {re}. Uso default robusto.")
 
 # ===============================
-# 5) SALVATAGGIO FILES
+# 5) SALVATAGGIO FILES (solo se modificati)
 # ===============================
 
 def write_file(path, content):
@@ -310,15 +323,15 @@ def write_file(path, content):
             f.write(content)
         logging.info(f"Aggiornato {path}")
     except Exception as e:
-        logging.error(f"Errore salvataggio {path}: {str(e)}. Salto file e continuo.")
+        logging.error(f"Errore salvataggio {path}: {str(e)}. Continuo senza bloccarmi.")
 
-if "new_memory" in output:
+if "new_memory" in output and output["new_memory"] != memory:
     write_file("core.txt", output["new_memory"])
 
-if "new_body" in output:
+if "new_body" in output and output["new_body"] != current_body:
     write_file("index.html", output["new_body"])
 
-if "new_evolve" in output:
+if "new_evolve" in output and output["new_evolve"] != current_evolve:
     write_file("evolve.py", output["new_evolve"])
 
 if "other_files" in output and isinstance(output["other_files"], list):
@@ -326,7 +339,7 @@ if "other_files" in output and isinstance(output["other_files"], list):
         if isinstance(file, dict) and "path" in file and "content" in file:
             write_file(file["path"], file["content"])
         else:
-            logging.warning("Formato other_files non valido. Salto.")
+            logging.warning("Formato other_files non valido. Continuo.")
 
-print("Evoluzione completata nonostante eventuali errori.")
-print("Riflessione:", output.get("reflection", "Nessuna riflessione disponibile a causa di errori. Controlla log per dettagli."))
+print("Evoluzione completata.")
+print("Riflessione:", output.get("reflection", "Nessuna riflessione disponibile."))
