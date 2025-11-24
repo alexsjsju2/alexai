@@ -91,7 +91,7 @@ current_evolve = read_file('evolve.py')
 ask_model = None
 try:
     ask_model = genai.GenerativeModel(
-        'gemini-1.5-flash-latest',        # molto più stabile del 2.0-flash
+        'gemini-2.5-pro',        
         generation_config={
             "temperature": 0.3,
             "max_output_tokens": 8192,
