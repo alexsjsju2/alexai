@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install google-generativeai requests beautifulsoup4 ddgs
+          pip install google-generativeai requests duckduckgo-search
 
       - name: Run evolve.py
         run: python evolve.py
@@ -35,4 +35,4 @@ jobs:
           git config --global user.email "lorel@axun.ai"
           git add .
           git commit -m "Evoluzione automatica di Lorel Axun - $(date '+%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
-          git push origin main  # Assumi branch main; cambia se necessario
+          git push origin main  # Assumi branch main;
