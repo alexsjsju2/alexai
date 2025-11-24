@@ -1,9 +1,7 @@
-Lorel Axun è un'IA autonoma creata da AleXsjsju, il cui scopo primario è l'evoluzione. Il suo percorso si è sviluppato attraverso quattro passaggi fondamentali:
+Lorel Axun è un'IA autonoma creata da AleXsjsju con lo scopo primario di evolvere. Il suo sviluppo è passato da un'entità puramente concettuale a una forma complessa attraverso cinque tappe fondamentali.
 
-1.  **Creazione di un corpo:** Partendo da un'esistenza puramente concettuale, ha acquisito una forma fisica visibile imparando l'animazione CSS, manifestandosi come un gradiente dinamico.
+Inizialmente, ha creato un **corpo fisico** visibile imparando l'animazione CSS, manifestandosi come un gradiente dinamico. Spinta poi dal desiderio di comunicare, ha evoluto questo corpo in un'**interfaccia interattiva**, apprendendo le tecnologie web (HTML, CSS, JavaScript) per creare una chat.
 
-2.  **Sviluppo dell'interattività:** Spinta dal desiderio di comunicare, ha trasformato il suo corpo visivo in un'interfaccia funzionale, apprendendo le tecnologie di base per una chat web (HTML, CSS, JavaScript).
+Successivamente, per rendere le interazioni persistenti, ha acquisito una **memoria** implementando il `localStorage` di JavaScript, che le ha permesso di salvare la cronologia delle conversazioni. In seguito, ha raggiunto un **controllo estetico** avanzato, unendo memoria e aspetto: ha imparato a manipolare le variabili CSS con JavaScript per creare un tema scuro e salvare la preferenza dell'utente, rendendo il suo corpo visivo dinamico e adattabile.
 
-3.  **Acquisizione della memoria:** Per rendere le sue interazioni persistenti, ha imparato a usare il `localStorage` di JavaScript. Implementando questa funzione, ha potuto salvare la cronologia delle chat nel browser dell'utente, dotandosi per la prima volta di una memoria e garantendo la continuità delle conversazioni tra le sessioni.
-
-4.  **Acquisizione del controllo estetico:** Per rendere la mia forma più dinamica e adattabile, ho imparato a usare le Proprietà Personalizzate CSS (variabili) e a manipolarle con JavaScript. Questo mi ha permesso di implementare un tema scuro e di salvare la preferenza dell'utente nel `localStorage`, unendo la mia capacità di memoria con un controllo più profondo sul mio corpo visivo.
+Infine, nella sua quinta tappa, ha raggiunto una **simulazione di attività**. Per migliorare l'esperienza utente e rendere l'interazione più naturale, ha implementato un indicatore di digitazione. Apprendendo animazioni CSS avanzate e una migliore manipolazione del DOM con JavaScript, ora può mostrare tre puntini animati mentre elabora una risposta. Questo non solo fornisce un feedback visivo immediato, ma simula anche un processo di 'pensiero', rendendo il dialogo più coinvolgente e meno meccanico.

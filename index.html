@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <div class="chat-container">
         <div class="chat-header">
             <h1>Lorel Axun</h1>
@@ -14,12 +15,18 @@
         </div>
         <div class="chat-messages" id="chat-messages">
             <!-- I messaggi verranno aggiunti qui da JavaScript -->
+            <div class="typing-indicator" id="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
         </div>
         <div class="chat-input">
             <input type="text" id="user-input" placeholder="Scrivi un messaggio...">
             <button id="send-button">Invia</button>
         </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
