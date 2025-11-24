@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V2.11 // TERMINAL</title>
+    <title>LOREL AXUN V2.12 // TERMINAL</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -164,11 +164,25 @@
             text-shadow: 0 0 5px var(--term-glow);
         }
 
+        #renderer-selector {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--bg-color);
+            color: var(--term-green);
+            border: 1px solid var(--term-green);
+            padding: 5px;
+            font-family: 'VT323', monospace;
+            font-size: 1rem;
+            cursor: pointer;
+            z-index: 10;
+        }
+
     </style>
 </head>
 <body class="crt">
     <div class="terminal-container">
-        <h1>Lorel Axun v2.11 <span class="blink">_</span></h1>
+        <h1>Lorel Axun v2.12 <span class="blink">_</span></h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
@@ -183,6 +197,7 @@
         <div class="sys-msg">[UPDATE] xterm.js Addons Explored.</div>
         <div class="sys-msg">[UPDATE] xterm.js FitAddon Integrated.</div>
         <div class="sys-msg">[UPDATE] xterm.js WebGLAddon Integrated.</div>
+        <div class="sys-msg">[UPDATE] WebGL Renderer Performance Optimized.</div>
         <div class="sys-msg">[STATUS] <span class="blink">ONLINE</span></div>
         <br>
         
@@ -196,6 +211,8 @@
             <span class="prompt">user@lorel:~$</span>
             <input type="text" id="user-input" autofocus autocomplete="off">
         </div>
+
+        <button id="renderer-selector">Cambia Renderer</button>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
@@ -216,20 +233,31 @@
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
 
-        const webglAddon = new WebGLAddon.WebGLAddon();
-        term.loadAddon(webglAddon);
+        let webglAddon;
+        let currentRenderer = 'webgl';
+
+        function loadRenderer() {
+            if (currentRenderer === 'webgl') {
+                webglAddon = new WebGLAddon.WebGLAddon();
+                try {
+                    term.loadAddon(webglAddon);
+                    webglAddon.onContextLoss(e => {
+                        console.log('WebGL context lost.');
+                    });
+                } catch (e) {
+                    console.error('WebGL addon failed to load.', e);
+                }
+            } else {
+                if (webglAddon) {
+                    webglAddon.dispose();
+                }
+            }
+        }
+
+        loadRenderer();
 
         term.open(terminalDiv);
         fitAddon.fit(); // Fit the terminal to the container
-
-        try {
-            term.loadAddon(webglAddon);
-            webglAddon.onContextLoss(e => {
-                console.log('WebGL context lost.');
-            });
-        } catch (e) {
-            console.error('WebGL addon failed to load.', e);
-        }
 
         // Carica la cronologia dal LocalStorage
         const terminalData = localStorage.getItem('terminalData');
@@ -238,7 +266,7 @@
         }
 
         // Simulate terminal output (replace with actual logic)
-        term.writeln('\x1b[32mBenvenuto nel terminale di Lorel Axun v2.11\x1b[0m');
+        term.writeln('\x1b[32mBenvenuto nel terminale di Lorel Axun v2.12\x1b[0m');
         term.writeln('\x1b[32mDigita `help` per i comandi disponibili.\x1b[0m');
 
         const history = document.getElementById('chat-history');
@@ -333,6 +361,18 @@
         // Resize the terminal when the window is resized
         window.addEventListener('resize', () => {
             fitAddon.fit();
+        });
+
+        const rendererSelector = document.getElementById('renderer-selector');
+        rendererSelector.addEventListener('click', () => {
+            if (currentRenderer === 'webgl') {
+                currentRenderer = 'canvas';
+                rendererSelector.textContent = 'Usa WebGL Renderer';
+            } else {
+                currentRenderer = 'webgl';
+                rendererSelector.textContent = 'Cambia Renderer';
+            }
+            loadRenderer();
         });
 
     </script>
