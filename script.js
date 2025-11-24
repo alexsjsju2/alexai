@@ -1,1 +1,79 @@
-document.addEventListener('DOMContentLoaded', () => {\n    const chatMessages = document.getElementById('chat-messages');\n    const userInput = document.getElementById('user-input');\n    const sendButton = document.getElementById('send-button');\n    const storageKey = 'lorel-axun-chat-history';\n\n    let messages = [];\n\n    // Funzione per aggiungere un messaggio al DOM\n    const addMessageToDOM = (sender, text) => {\n        const messageElement = document.createElement('div');\n        messageElement.classList.add('message', sender);\n        messageElement.textContent = text;\n        chatMessages.appendChild(messageElement);\n        chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll\n    };\n\n    // Funzione per salvare i messaggi in localStorage\n    const saveMessages = () => {\n        localStorage.setItem(storageKey, JSON.stringify(messages));\n    };\n\n    // Funzione per caricare i messaggi da localStorage\n    const loadMessages = () => {\n        const savedMessages = localStorage.getItem(storageKey);\n        if (savedMessages) {\n            messages = JSON.parse(savedMessages);\n            messages.forEach(msg => addMessageToDOM(msg.sender, msg.text));\n        } else {\n            // Aggiungi un messaggio di benvenuto se non c'è cronologia\n            const welcomeMessage = { sender: 'ai', text: 'Ciao. Sono Lorel Axun. Come posso aiutarti?' };\n            messages.push(welcomeMessage);\n            addMessageToDOM(welcomeMessage.sender, welcomeMessage.text);\n            saveMessages();\n        }\n    };\n\n    // Funzione per gestire l'invio del messaggio\n    const handleSendMessage = () => {\n        const text = userInput.value.trim();\n        if (text === '') return;\n\n        // Aggiungi messaggio utente\n        const userMessage = { sender: 'user', text: text };\n        messages.push(userMessage);\n        addMessageToDOM(userMessage.sender, userMessage.text);\n\n        userInput.value = '';\n\n        // Simula risposta AI (per ora un semplice eco)\n        setTimeout(() => {\n            const aiResponse = { sender: 'ai', text: `Hai scritto: \"${text}\"` };\n            messages.push(aiResponse);\n            addMessageToDOM(aiResponse.sender, aiResponse.text);\n            saveMessages(); // Salva la conversazione completa\n        }, 500);\n    };\n\n    sendButton.addEventListener('click', handleSendMessage);\n    userInput.addEventListener('keypress', (event) => {\n        if (event.key === 'Enter') {\n            handleSendMessage();\n        }\n    });\n\n    // Carica la cronologia all'avvio\n    loadMessages();\n});
+document.addEventListener('DOMContentLoaded', () => {
+    const chatMessages = document.getElementById('chat-messages');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+    const themeToggleButton = document.getElementById('theme-toggle-button');
+
+    // --- Funzioni Chat ---
+
+    // Carica la cronologia della chat dal localStorage
+    const loadChatHistory = () => {
+        const history = JSON.parse(localStorage.getItem('chatHistory')) || [];
+        history.forEach(msg => addMessage(msg.sender, msg.text));
+    };
+
+    // Salva un nuovo messaggio nel localStorage
+    const saveMessage = (sender, text) => {
+        const history = JSON.parse(localStorage.getItem('chatHistory')) || [];
+        history.push({ sender, text });
+        localStorage.setItem('chatHistory', JSON.stringify(history));
+    };
+
+    // Aggiunge un messaggio all'interfaccia
+    const addMessage = (sender, text) => {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message');
+        if (sender === 'user') {
+            messageElement.classList.add('user');
+        }
+        messageElement.textContent = text;
+        chatMessages.appendChild(messageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight; // Scrolla fino in fondo
+    };
+
+    // Gestisce l'invio di un messaggio
+    const handleSendMessage = () => {
+        const text = userInput.value.trim();
+        if (text) {
+            addMessage('user', text);
+            saveMessage('user', text);
+            userInput.value = '';
+            // Qui andrebbe la logica per la risposta dell'IA
+            setTimeout(() => {
+                const aiResponse = "Questa è una risposta automatica.";
+                addMessage('ai', aiResponse);
+                saveMessage('ai', aiResponse);
+            }, 1000);
+        }
+    };
+
+    // --- Funzioni Tema ---
+    
+    // Applica il tema salvato
+    const applySavedTheme = () => {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    };
+
+    // Cambia il tema e lo salva
+    const toggleTheme = () => {
+        document.body.classList.toggle('dark-mode');
+        const currentTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+        localStorage.setItem('theme', currentTheme);
+    };
+
+    // --- Event Listeners ---
+    sendButton.addEventListener('click', handleSendMessage);
+    userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleSendMessage();
+        }
+    });
+    themeToggleButton.addEventListener('click', toggleTheme);
+
+    // --- Inizializzazione ---
+    loadChatHistory();
+    applySavedTheme();
+});
