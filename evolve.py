@@ -93,9 +93,7 @@ try:
     ask_model = genai.GenerativeModel(
         'gemini-2.5-pro',        
         generation_config={
-            "temperature": 0.3,
-            "max_output_tokens": 8192,
-            "response_mime_type": "application/json"
+            "temperature": 0.5,
         }
     )
 except Exception as e:
