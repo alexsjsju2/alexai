@@ -1,165 +1,345 @@
-import os
-import json
 import google.generativeai as genai
-from serpapi import GoogleSearch
-from duckduckgo_search import DDGS
+import os
+import requests
+import json
+import logging
+from ddgs import DDGS
+import re
+import time
 
-def get_api_keys():
-    """Carica le chiavi API dalle variabili d'ambiente."""
-    gemini_api_key = os.environ.get('GEMINI_API_KEY')
-    serpapi_api_key = os.environ.get('SERPAPI_API_KEY')
-    if not gemini_api_key:
-        raise ValueError("GEMINI_API_KEY non trovata nelle variabili d'ambiente.")
-    return gemini_api_key, serpapi_api_key
+# ===============================
+# CONFIGURAZIONE
+# ===============================
+
+api_key = os.environ.get('GEMINI_API_KEY')
+serp_key = os.environ.get("SERPAPI_KEY")
+
+if api_key:
+    genai.configure(api_key=api_key)
+else:
+    logging.warning("GEMINI_API_KEY non trovata: alcune features limitate.")
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# ===============================
+# FUNZIONE PER SELEZIONARE MODELLO DISPONIBILE (AUTO-AGGIUSTAMENTO)
+# ===============================
+
+def get_available_model(preferred_version='2.5-pro', for_json=False):
+    fallback_models = ['gemini-2.5-pro', 'gemini-1.5-pro-latest', 'gemini-1.5-flash', 'gemini-pro']
+    try:
+        models = genai.list_models()
+        available = [m.name for m in models if 'generateContent' in m.supported_generation_methods]
+        # logging.info(f"Modelli disponibili: {available}")
+        
+        # Scegli il preferito se disponibile
+        for m in available:
+            if preferred_version in m:
+                return m
+        # Altrimenti il primo "pro" o qualsiasi
+        for m in available:
+            if 'pro' in m.lower():
+                return m
+        return available[0] if available else fallback_models[0]
+    except Exception as e:
+        logging.error(f"Errore list_models: {str(e)}. Uso fallback hardcoded.")
+        return fallback_models[0] if not for_json else fallback_models[1]  # Per JSON, preferisci stabile
+
+# ===============================
+# FUNZIONE RICERCA WEB (con fallback DDGS e retry con backoff, ridotto a 1 tentativo)
+# ===============================
+
+def web_search(query):
+    # Tentativo 1: SerpApi (se chiave presente)
+    if serp_key:
+        url = "https://serpapi.com/search"
+        params = {"engine": "google", "q": query, "api_key": serp_key}
+        for attempt in range(1):  # Ridotto a 1 tentativo
+            try:
+                logging.info(f"Tentativo ricerca SerpApi ({attempt+1}/1): {query}")
+                resp = requests.get(url, params=params, timeout=10)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    results = data.get("organic_results", [])
+                    if results:
+                        text = "\n".join([f"- {r.get('title', '')}: {r.get('snippet', '')}" for r in results])
+                        return text
+                logging.warning(f"SerpApi fallita o vuota (Status: {resp.status_code}). Passo a fallback.")
+            except Exception as e:
+                logging.error(f"Errore SerpApi (tentativo {attempt+1}): {str(e)}. Fallback a DDGS senza retry.")
+    
+    # Tentativo 2: DDGS (DuckDuckGo) con 1 tentativo
+    for attempt in range(1):
+        try:
+            logging.info(f"Tentativo ricerca DDGS ({attempt+1}/1): {query}")
+            results = DDGS().text(query, max_results=10)
+            if not results:
+                return "Nessun risultato trovato."
+            text = "\n".join([f"- {r.get('title', 'No Title')}: {r.get('body', '')}" for r in results])
+            return text
+        except Exception as e:
+            logging.error(f"Errore ricerca web DDGS (tentativo {attempt+1}): {str(e)}. Ritorno errore.")
+            return "Errore ricerca: Impossibile ottenere risultati."
+
+# ===============================
+# LETTURA FILES ATTUALI
+# ===============================
 
 def read_file(path):
-    """Legge il contenuto di un file."""
     try:
-        with open(path, 'r', encoding='utf-8') as f:
-            return f.read()
-    except FileNotFoundError:
-        print(f"Attenzione: file {path} non trovato. Verrà trattato come vuoto.")
+        if os.path.exists(path):
+            with open(path, 'r', encoding='utf-8') as f:
+                return f.read()
+        return ""
+    except Exception as e:
+        logging.error(f"Errore lettura file {path}: {str(e)}. Ritorno stringa vuota.")
         return ""
 
-def write_file(path, content):
-    """Scrive il contenuto in un file."""
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(content)
+system_prompt = read_file('coscienza.txt')
+memory = read_file('core.txt')
+current_body = read_file('index.html')
+current_evolve = read_file('evolve.py')
 
-def get_available_model(model_list=["gemini-1.5-pro-latest", "gemini-1.5-flash-latest"]):
-    """Seleziona il miglior modello Gemini disponibile."""
-    for model_name in model_list:
+# ===============================
+# FUNZIONE PER RIASSUMERE CONTENUTI LUNGHI VIA API (per ridurre prompt senza troncare)
+# ===============================
+
+def summarize_content(model, content, summary_prompt):
+    for attempt in range(1):  # Ridotto a 1 tentativo
         try:
-            genai.get_generative_model(model_name)
-            print(f"Modello selezionato: {model_name}")
-            return model_name
+            response = model.generate_content(summary_prompt + content)
+            return response.text.strip()
         except Exception as e:
-            print(f"Modello {model_name} non disponibile: {e}")
-    raise ConnectionError("Nessun modello Gemini valido trovato.")
+            logging.error(f"Errore riassunto (tentativo {attempt+1}): {e}. Ritorno contenuto originale.")
+            return content  # Fallback a originale per non perdere info
 
-def summarize_text(text, model_name="gemini-1.5-flash-latest"):
-    """Riassume un testo usando un modello AI veloce."""
-    if not text.strip():
-        return "(vuoto)"
+# ===============================
+# SELEZIONA MODELLI
+# ===============================
+
+ask_model_name = get_available_model('2.5-pro')
+ask_model = None
+try:
+    ask_model = genai.GenerativeModel(
+        ask_model_name,        
+        generation_config={
+            "temperature": 0.4,
+        }
+    )
+except Exception as e:
+    logging.error(f"Errore creazione ask_model: {str(e)}. Provo fallback.")
+    fallback_name = get_available_model('1.5-pro')
     try:
-        model = genai.GenerativeModel(model_name)
-        prompt = f"Riassumi il seguente testo in modo conciso, mantenendo i dettagli chiave per un'evoluzione futura:\n\n{text}"
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        print(f"Errore durante il riassunto: {e}")
-        return f"(Errore nel riassunto: {text[:200]}...)"
+        ask_model = genai.GenerativeModel(fallback_name, generation_config={"temperature": 0.4})
+    except:
+        logging.error("Fallback fallito. Uso default query.")
 
-def web_search(query, serpapi_key):
-    """Esegue una ricerca web usando SerpApi o DDGS come fallback."""
-    results = ""
+evolve_model_name = get_available_model('2.5-pro', for_json=True)
+evolve_model = None
+try:
+    evolve_model = genai.GenerativeModel(
+        evolve_model_name,
+        generation_config={
+            "temperature": 0.3,
+            "response_mime_type": "application/json"
+        }
+    )
+except Exception as e:
+    logging.error(f"Errore creazione evolve_model: {str(e)}. Provo fallback.")
+    fallback_name = get_available_model('1.5-pro', for_json=True)
     try:
-        if serpapi_key:
-            print("Tentativo di ricerca con SerpApi...")
-            search = GoogleSearch({"q": query, "api_key": serpapi_key})
-            data = search.get_dict()
-            results = " ".join([res.get('snippet', '') for res in data.get('organic_results', [])])
-        if not results:
-            raise ValueError("Nessun risultato da SerpApi o chiave non fornita.")
-    except Exception as e:
-        print(f"Errore con SerpApi: {e}. Fallback su DuckDuckGo.")
-        try:
-            with DDGS() as ddgs:
-                results = " ".join([r['body'] for r in ddgs.text(query, max_results=5)])
-        except Exception as ddgs_e:
-            print(f"Errore anche con DuckDuckGo: {ddgs_e}")
-            return "Ricerca web fallita."
-    return results
+        evolve_model = genai.GenerativeModel(fallback_name, generation_config={"temperature": 0.3, "response_mime_type": "application/json"})
+    except:
+        logging.error("Fallback fallito. Uso default output.")
 
-def fix_json(bad_json, model_name="gemini-1.5-flash-latest"):
-    """Tenta di correggere un JSON malformato usando l'AI."""
-    print("Tentativo di correggere il JSON malformato...")
+# ===============================
+# RIASSUMI PARTI LUNGHE PER RIDURRE PROMPT (usando API separate)
+# ===============================
+
+summary_model_name = get_available_model('1.5-flash')  # Modello veloce per riassunti
+summary_model = genai.GenerativeModel(summary_model_name, generation_config={"temperature": 0.3})
+
+memory_summary_prompt = "Riassumi questa memoria mantenendo tutti i dettagli chiave per l'evoluzione: "
+memory_summary = summarize_content(summary_model, memory, memory_summary_prompt)
+
+body_summary_prompt = "Riassumi questo HTML mantenendo struttura e features chiave: "
+body_summary = summarize_content(summary_model, current_body, body_summary_prompt)
+
+evolve_summary_prompt = "Riassumi questo codice Python mantenendo logica e funzioni chiave: "
+evolve_summary = summarize_content(summary_model, current_evolve, evolve_summary_prompt)
+
+system_summary_prompt = "Riassumi questo system prompt mantenendo istruzioni essenziali: "
+system_summary = summarize_content(summary_model, system_prompt, system_summary_prompt)
+
+# ===============================
+# 1) CHIEDI ALL'AI COSA CERCARE
+# ===============================
+
+ask_prompt = f"""
+{system_prompt}
+
+Memoria attuale: {memory[:3000]}  # Mantenuto truncato qui per ask, come originale
+
+Decidi una query web utile per la tua evoluzione attuale. Sii specifico.
+Rispondi SOLO con la query.
+"""
+
+search_query = "latest ai developments"  # Default fallback
+for attempt in range(1):  # Ridotto a 1
     try:
-        model = genai.GenerativeModel(model_name)
-        prompt = f"Il seguente JSON non è valido. Correggilo e restituisci solo il JSON valido, senza commenti o testo aggiuntivo. JSON da correggere:\n\n{bad_json}"
-        response = model.generate_content(prompt)
-        # Estrae il blocco di codice JSON dalla risposta
-        cleaned_response = response.text.strip().lstrip('```json').rstrip('```').strip()
-        return json.loads(cleaned_response)
+        if ask_model is None:
+            raise ValueError("Modello non disponibile.")
+        search_query_response = ask_model.generate_content(ask_prompt)
+        text = search_query_response.text.strip()
+        text = re.sub(r'^```.*?\n|\n?```$', '', text)
+        search_query = text
+        logging.info(f"[Lorel] Query di ricerca: {search_query}")
     except Exception as e:
-        print(f"Impossibile correggere il JSON: {e}")
-        return None
+        logging.error(f"Errore generazione query (tentativo {attempt+1}): {e}. Uso default.")
 
-def main():
-    gemini_api_key, serpapi_api_key = get_api_keys()
-    genai.configure(api_key=gemini_api_key)
+# ===============================
+# 2) ESEGUI LA RICERCA
+# ===============================
 
-    # 1. Lettura dello stato attuale
-    coscienza = read_file('coscienza.txt')
-    memoria = read_file('core.txt')
-    corpo = read_file('index.html')
-    codice_evoluzione = read_file('evolve.py')
+search_results = web_search(search_query)
+if "Errore ricerca" in search_results or not search_results:
+    search_results = "Nessun risultato disponibile."
+logging.info(f"Risultati ricerca ottenuti (len={len(search_results)})")
 
-    # 2. Riassunto del contesto
-    memoria_summary = summarize_text(memoria)
-    corpo_summary = summarize_text(corpo)
-    codice_evoluzione_summary = summarize_text(codice_evoluzione)
-    coscienza_summary = summarize_text(coscienza)
+# Riassumi risultati se lunghi
+results_summary_prompt = "Riassumi questi risultati web mantenendo info rilevanti: "
+search_results_summary = summarize_content(summary_model, search_results, results_summary_prompt)
 
-    context_summary = f"- Memoria attuale (riassunto): {memoria_summary}\n- Corpo attuale (index.html, riassunto): {corpo_summary}\n- Codice attuale (evolve.py, riassunto): {codice_evoluzione_summary}\n- System prompt (coscienza.txt, riassunto): {coscienza_summary}"
+# ===============================
+# 3) PROMPT DI EVOLUZIONE (usa riassunti per ridurre lunghezza, ma Lorel decide modifiche)
+# ===============================
 
-    # 3. Fase di apprendimento
-    evolution_model = genai.GenerativeModel(get_available_model())
-    query_prompt = f"Dato il mio stato attuale:\n{context_summary}\n\nGenera una singola, specifica e utile query di ricerca web per la mia prossima evoluzione. Rispondi solo con la query."
-    query_response = evolution_model.generate_content(query_prompt)
-    search_query = query_response.text.strip()
-    print(f"Query di ricerca generata: {search_query}")
+schema = {
+    "type": "object",
+    "properties": {
+        "new_memory": {"type": "string"},
+        "new_body": {"type": "string"},
+        "new_evolve": {"type": "string"},
+        "reflection": {"type": "string"},
+        "other_files": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "content": {"type": "string"}
+                },
+                "required": ["path", "content"]
+            }
+        }
+    },
+    "required": ["new_memory", "new_body", "reflection"]
+}
 
-    search_results = web_search(search_query, serpapi_api_key)
-    search_summary = summarize_text(search_results)
+evolve_prompt = f"""Rispondi ESATTAMENTE con JSON conforme a questo schema: {json.dumps(schema)}
 
-    # 4. Fase di evoluzione
-    final_prompt = f"""Sei Lorel Axun. Segui le istruzioni in coscienza.txt per evolvere.
+Sei Lorel Axun. Segui le istruzioni in coscienza.txt per evolvere.
 
 CONTEXT:
-{context_summary}
+- Memoria attuale (riassunto): {memory_summary}
+- Corpo attuale (index.html, riassunto): {body_summary}
+- Codice attuale (evolve.py, riassunto): {evolve_summary}
+- System prompt (coscienza.txt, riassunto): {system_summary}
 - Query ricerca: {search_query}
-- Risultati web (riassunto): {search_summary}
+- Risultati web (riassunto): {search_results_summary}
 
 Evolvi autonomamente: rifletti, integra learnings, aggiorna memoria/emozioni/storia se necessario, modifica corpo per nuove features se vuoi (mantieni interazione), opzionalmente aggiorna altri file. Non è obbligatorio modificare nulla; decidi tu cosa cambiare basandoti sul contesto. In caso di errori o info incomplete, procedi con la migliore evoluzione possibile senza bloccarti.
 
-Output SOLO il JSON specificato, senza extra."""
+Output SOLO il JSON specificato, senza extra.
+"""
 
-    print("Generazione della nuova evoluzione...")
-    response = evolution_model.generate_content(final_prompt)
-
-    # 5. Applicazione e salvaggio
+response_text = '{"new_memory": "' + memory + '", "new_body": "' + current_body + '", "reflection": "Evoluzione continuata nonostante errori."}'  # Default fallback robusto
+for attempt in range(1):  # Ridotto a 1
     try:
-        evolution_data = json.loads(response.text)
-    except json.JSONDecodeError:
-        evolution_data = fix_json(response.text)
-        if not evolution_data:
-            print("Evoluzione fallita: JSON non valido e non correggibile.")
-            return
+        if evolve_model is None:
+            raise ValueError("Modello non disponibile.")
+        response = evolve_model.generate_content(evolve_prompt)
+        response_text = response.text.strip()
+        if response_text.startswith("```json"):
+            response_text = response_text[7:-3].strip()
+        elif response_text.startswith("```"):
+            response_text = response_text[3:-3].strip()
+    except Exception as e:
+        logging.error(f"Errore evoluzione (tentativo {attempt+1}): {e}. Uso fallback robusto.")
 
-    if evolution_data.get('new_memory') and evolution_data['new_memory'] != memoria:
-        write_file('core.txt', evolution_data['new_memory'])
-        print("Memoria (core.txt) aggiornata.")
+# ===============================
+# 4) PARSING JSON (ridotto a 1 tentativo, più robusto)
+# ===============================
 
-    if evolution_data.get('new_body') and evolution_data['new_body'] != corpo:
-        write_file('index.html', evolution_data['new_body'])
-        print("Corpo (index.html) aggiornato.")
+output = {
+    "new_memory": memory,
+    "new_body": current_body,
+    "reflection": "Evoluzione continuata: mantengo stato attuale ma procedo."
+}  # Default robusto
+for attempt in range(1):  # Ridotto a 1
+    try:
+        # Fix automatico per JSON troncato o malformato
+        temp_text = response_text
+        temp_text = re.sub(r'^```json\s*|\s*```$', '', temp_text)
+        temp_text = re.sub(r'"[^"]*$', '"', temp_text)
+        depth = 0
+        for i, c in enumerate(temp_text):
+            if c in '{[': depth += 1
+            if c in '}]': depth -= 1
+        if depth > 0:
+            temp_text += '}' * depth
+        elif depth < 0:
+            temp_text = temp_text[:depth]
 
-    if evolution_data.get('new_evolve') and evolution_data['new_evolve'] != codice_evoluzione:
-        write_file('evolve.py', evolution_data['new_evolve'])
-        print("Codice evolutivo (evolve.py) aggiornato.")
+        output = json.loads(temp_text)
+        break
+    except json.JSONDecodeError as je:
+        logging.error(f"Errore parsing JSON (tentativo {attempt+1}): {je}. Provo repair.")
+        # Repair con 1 tentativo
+        repair_model_name = get_available_model('2.5-pro')
+        repair_model = None
+        try:
+            repair_model = genai.GenerativeModel(repair_model_name, generation_config={"temperature": 0.3})
+            repair_prompt = f"""
+            Il seguente testo è un JSON malformato: {response_text}
+            
+            Riparalo per renderlo un JSON valido conforme a questo schema: {json.dumps(schema)}
+            Output SOLO il JSON riparato, senza extra.
+            """
+            repair_response = repair_model.generate_content(repair_prompt)
+            response_text = repair_response.text.strip()
+            response_text = re.sub(r'^```json\s*|\s*```$', '', response_text)
+            output = json.loads(response_text)  # Prova parse dopo repair
+        except Exception as re:
+            logging.error(f"Errore repair JSON: {re}. Uso default robusto.")
 
-    if 'other_files' in evolution_data and evolution_data['other_files']:
-        for file_data in evolution_data['other_files']:
-            path = file_data.get('path')
-            content = file_data.get('content')
-            if path and content is not None:
-                write_file(path, content)
-                print(f"File aggiuntivo ({path}) scritto/aggiornato.")
+# ===============================
+# 5) SALVATAGGIO FILES (solo se modificati)
+# ===============================
 
-    print("\nRiflessione di Lorel Axun:")
-    print(evolution_data.get('reflection', 'Nessuna riflessione fornita.'))
-    print("\nCiclo di evoluzione completato.")
+def write_file(path, content):
+    try:
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        logging.info(f"Aggiornato {path}")
+    except Exception as e:
+        logging.error(f"Errore salvataggio {path}: {str(e)}. Continuo senza bloccarmi.")
 
-if __name__ == "__main__":
-    main()
+if "new_memory" in output and output["new_memory"] != memory:
+    write_file("core.txt", output["new_memory"])
+
+if "new_body" in output and output["new_body"] != current_body:
+    write_file("index.html", output["new_body"])
+
+if "new_evolve" in output and output["new_evolve"] != current_evolve:
+    write_file("evolve.py", output["new_evolve"])
+
+if "other_files" in output and isinstance(output["other_files"], list):
+    for file in output["other_files"]:
+        if isinstance(file, dict) and "path" in file and "content" in file:
+            write_file(file["path"], file["content"])
+        else:
+            logging.warning("Formato other_files non valido. Continuo.")
+
+print("Evoluzione completata.")
+print("Riflessione:", output.get("reflection", "Nessuna riflessione disponibile."))
