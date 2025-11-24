@@ -1,4 +1,3 @@
-```python
 import google.generativeai as genai
 import os
 import requests
@@ -340,4 +339,3 @@ if "other_files" in output and isinstance(output["other_files"], list):
 
 print("Evoluzione completata.")
 print("Riflessione:", output.get("reflection", "Nessuna riflessione disponibile."))
-```
