@@ -74,7 +74,7 @@ current_evolve = read_file('evolve.py')
 # ===============================
 
 ask_model = genai.GenerativeModel(
-    'gemini-2.0-flash', # Aggiornato al modello più veloce/stabile se disponibile
+    'gemini-3.0-pro-preview', # Aggiornato al modello più veloce/stabile se disponibile
     generation_config={"temperature": 0.5}
 )
 
