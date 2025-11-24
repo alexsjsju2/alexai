@@ -30,7 +30,7 @@ def get_available_model(preferred_version='2.5-pro', for_json=False):
     try:
         models = genai.list_models()
         available = [m.name for m in models if 'generateContent' in m.supported_generation_methods]
-        logging.info(f"Modelli disponibili: {available}")
+        # logging.info(f"Modelli disponibili: {available}")
         
         # Scegli il preferito se disponibile
         for m in available:
