@@ -5,8 +5,181 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lorel Axun</title>
     <link rel="stylesheet" href="style.css">
+
+    <style>
+
+        :root {
+    --background-color: #ffffff;
+    --text-color: #333333;
+    --header-bg: #f1f1f1;
+    --container-bg: #ffffff;
+    --input-bg: #f9f9f9;
+    --button-bg: #007bff;
+    --button-text: #ffffff;
+    --user-msg-bg: #007bff;
+    --user-msg-text: #ffffff;
+    --lorel-msg-bg: #e9e9eb;
+    --lorel-msg-text: #333333;
+    --indicator-dot-color: #cccccc;
+}
+
+[data-theme='dark'] {
+    --background-color: #121212;
+    --text-color: #e0e0e0;
+    --header-bg: #1e1e1e;
+    --container-bg: #242424;
+    --input-bg: #333333;
+    --button-bg: #0056b3;
+    --button-text: #e0e0e0;
+    --user-msg-bg: #0056b3;
+    --user-msg-text: #e0e0e0;
+    --lorel-msg-bg: #3a3a3a;
+    --lorel-msg-text: #e0e0e0;
+    --indicator-dot-color: #555555;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.chat-container {
+    width: 90%;
+    max-width: 600px;
+    height: 90vh;
+    max-height: 800px;
+    border: 1px solid var(--header-bg);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: var(--container-bg);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.chat-header {
+    padding: 15px;
+    background-color: var(--header-bg);
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-header h1 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+.chat-messages {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.message {
+    padding: 10px 15px;
+    border-radius: 18px;
+    margin-bottom: 10px;
+    max-width: 80%;
+    line-height: 1.4;
+}
+
+.user-message {
+    background-color: var(--user-msg-bg);
+    color: var(--user-msg-text);
+    align-self: flex-end;
+}
+
+.lorel-message {
+    background-color: var(--lorel-msg-bg);
+    color: var(--lorel-msg-text);
+    align-self: flex-start;
+}
+
+.chat-input {
+    display: flex;
+    padding: 15px;
+    border-top: 1px solid var(--header-bg);
+}
+
+.chat-input input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    margin-right: 10px;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+}
+
+.chat-input button, #theme-toggle-button {
+    padding: 10px 20px;
+    border: none;
+    background-color: var(--button-bg);
+    color: var(--button-text);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.chat-input button:hover, #theme-toggle-button:hover {
+    opacity: 0.9;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+    display: none; /* Nascosto di default */
+    align-items: center;
+    padding: 10px 15px;
+    background-color: var(--lorel-msg-bg);
+    border-radius: 18px;
+    align-self: flex-start;
+}
+
+.typing-indicator.visible {
+    display: flex;
+}
+
+.typing-indicator span {
+    height: 8px;
+    width: 8px;
+    background-color: var(--indicator-dot-color);
+    border-radius: 50%;
+    margin: 0 2px;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+    0%, 80%, 100% {
+        transform: scale(0);
+    }
+    40% {
+        transform: scale(1.0);
+    }
+}
+    </style>
 </head>
 <body>
+
+    <script
 
     <div class="chat-container">
         <div class="chat-header">
@@ -26,7 +199,7 @@
             <button id="send-button">Invia</button>
         </div>
     </div>
-
+            </script>
     <script src="script.js"></script>
 </body>
 </html>
