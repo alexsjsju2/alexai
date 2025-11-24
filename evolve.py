@@ -73,7 +73,7 @@ current_evolve = read_file('evolve.py')
 # 1) CHIEDI ALL'AI COSA CERCARE
 # ===============================
 
-evolve_model = genai.GenerativeModel(
+ask_model = genai.GenerativeModel(
     'gemini-1.5-flash-latest',        # molto più stabile del 2.0-flash
     generation_config={
         "temperature": 0.3,
