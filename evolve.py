@@ -73,10 +73,34 @@ current_evolve = read_file('evolve.py')
 # 1) CHIEDI ALL'AI COSA CERCARE
 # ===============================
 
-ask_model = genai.GenerativeModel(
-    'gemini-3.0-pro-preview', # Aggiornato al modello più veloce/stabile se disponibile
-    generation_config={"temperature": 0.5}
+evolve_model = genai.GenerativeModel(
+    'gemini-1.5-flash-latest',        # molto più stabile del 2.0-flash
+    generation_config={
+        "temperature": 0.3,
+        "max_output_tokens": 8192,
+        "response_mime_type": "application/json"
+    }
 )
+
+# ... dopo aver preso response.text ...
+
+text = response.text.strip()
+text = re.sub(r'^```json\s*|\s*```$', '', text)  # rimuovi markdown
+
+# Fix automatico troncamento
+text = re.sub(r'"[^"]*$', '"', text)
+depth = 0
+for i, c in enumerate(text):
+    if c in '{[': depth += 1
+    if c in '}]': depth -= 1
+if depth > 0:
+    text += '}' * depth
+
+try:
+    output = json.loads(text)
+except:
+    # fallback repair
+    # (implementa il repair_prompt come sopra)
 
 ask_prompt = f"""
 {system_prompt}
@@ -107,7 +131,7 @@ logging.info(f"Risultati ricerca ottenuti (len={len(search_results)})")
 # ===============================
 
 evolve_model = genai.GenerativeModel(
-    'gemini-2.0-flash',
+    'gemini-1.5-pro',
     generation_config={
         "temperature": 0.4,
         "response_mime_type": "application/json"
