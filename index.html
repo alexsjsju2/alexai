@@ -1,1 +1,293 @@
-<!DOCTYPE html>\n<html lang=\"it\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Lorel Axun</title>\n    <style>\n        :root {\n            --background-color: #f0f2f5;\n            --container-bg: #ffffff;\n            --header-bg: #007bff;\n            --header-text: #ffffff;\n            --messages-bg: #f0f2f5;\n            --lorel-bubble-bg: #e9e9eb;\n            --lorel-text-color: #000000;\n            --user-bubble-bg: #007bff;\n            --user-text-color: #ffffff;\n            --input-bg: #ffffff;\n            --input-text: #000000;\n            --button-bg: #007bff;\n            --button-text: #ffffff;\n            --border-color: #dddddd;\n            --shadow-color: rgba(0, 0, 0, 0.1);\n        }\n\n        [data-theme='dark'] {\n            --background-color: #121212;\n            --container-bg: #1e1e1e;\n            --header-bg: #1f2c37;\n            --header-text: #ffffff;\n            --messages-bg: #121212;\n            --lorel-bubble-bg: #2a3942;\n            --lorel-text-color: #ffffff;\n            --user-bubble-bg: #005c4b;\n            --user-text-color: #ffffff;\n            --input-bg: #2a3942;\n            --input-text: #ffffff;\n            --button-bg: #005c4b;\n            --button-text: #ffffff;\n            --border-color: #333333;\n            --shadow-color: rgba(0, 0, 0, 0.3);\n        }\n\n        body {\n            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;\n            background-color: var(--background-color);\n            margin: 0;\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            transition: background-color 0.3s;\n        }\n\n        .chat-container {\n            width: 90%;\n            max-width: 600px;\n            height: 95vh;\n            max-height: 800px;\n            background: var(--container-bg);\n            border-radius: 16px;\n            box-shadow: 0 4px 12px var(--shadow-color);\n            display: flex;\n            flex-direction: column;\n            overflow: hidden;\n            transition: background-color 0.3s, box-shadow 0.3s;\n        }\n\n        .chat-header {\n            background: var(--header-bg);\n            color: var(--header-text);\n            padding: 15px 20px;\n            text-align: center;\n            font-size: 1.2em;\n            font-weight: bold;\n            display: flex;\n            justify-content: space-between;\n            align-items: center;\n            transition: background-color 0.3s;\n        }\n\n        #theme-toggle-button {\n            background: none;\n            border: 1px solid var(--header-text);\n            color: var(--header-text);\n            padding: 5px 10px;\n            border-radius: 20px;\n            cursor: pointer;\n            font-size: 0.7em;\n        }\n\n        .chat-messages {\n            flex-grow: 1;\n            padding: 20px;\n            overflow-y: auto;\n            background-color: var(--messages-bg);\n            display: flex;\n            flex-direction: column;\n            gap: 12px;\n            transition: background-color 0.3s;\n        }\n\n        .message {\n            padding: 10px 15px;\n            border-radius: 18px;\n            max-width: 75%;\n            word-wrap: break-word;\n            line-height: 1.4;\n        }\n\n        .message.lorel {\n            background-color: var(--lorel-bubble-bg);\n            color: var(--lorel-text-color);\n            align-self: flex-start;\n            border-bottom-left-radius: 4px;\n        }\n\n        .message.user {\n            background-color: var(--user-bubble-bg);\n            color: var(--user-text-color);\n            align-self: flex-end;\n            border-bottom-right-radius: 4px;\n        }\n\n        .chat-input {\n            display: flex;\n            padding: 15px;\n            border-top: 1px solid var(--border-color);\n            background: var(--container-bg);\n            transition: background-color 0.3s, border-top 0.3s;\n        }\n\n        #user-input {\n            flex-grow: 1;\n            border: 1px solid var(--border-color);\n            border-radius: 20px;\n            padding: 10px 15px;\n            font-size: 1em;\n            background-color: var(--input-bg);\n            color: var(--input-text);\n            transition: background-color 0.3s, color 0.3s, border-color 0.3s;\n        }\n\n        #user-input:focus {\n            outline: none;\n            border-color: var(--button-bg);\n        }\n\n        #send-button {\n            margin-left: 10px;\n            border: none;\n            background: var(--button-bg);\n            color: var(--button-text);\n            border-radius: 50%;\n            width: 44px;\n            height: 44px;\n            cursor: pointer;\n            font-size: 1.5em;\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            transition: background-color 0.3s;\n        }\n\n        .typing-indicator {\n            display: none; /* Hidden by default */\n            align-self: flex-start;\n            padding: 10px 15px;\n            background-color: var(--lorel-bubble-bg);\n            border-radius: 18px;\n            border-bottom-left-radius: 4px;\n        }\n\n        .typing-indicator span {\n            height: 8px;\n            width: 8px;\n            background-color: var(--lorel-text-color);\n            border-radius: 50%;\n            display: inline-block;\n            margin: 0 2px;\n            animation: bounce 1.4s infinite ease-in-out both;\n        }\n\n        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }\n        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }\n\n        @keyframes bounce {\n            0%, 80%, 100% { transform: scale(0); }\n            40% { transform: scale(1.0); }\n        }\n    </style>\n</head>\n<body>\n\n    <div class=\"chat-container\">\n        <div class=\"chat-header\">\n            <h1>Lorel Axun</h1>\n            <button id=\"theme-toggle-button\">Tema</button>\n        </div>\n        <div class=\"chat-messages\" id=\"chat-messages\">\n            <!-- Messages will be dynamically inserted here -->\n        </div>\n        <div class=\"typing-indicator\" id=\"typing-indicator\">\n            <span></span>\n            <span></span>\n            <span></span>\n        </div>\n        <div class=\"chat-input\">\n            <input type=\"text\" id=\"user-input\" placeholder=\"Scrivi un messaggio...\">\n            <button id=\"send-button\">➤</button>\n        </div>\n    </div>\n\n    <script>\n        const chatMessages = document.getElementById('chat-messages');\n        const userInput = document.getElementById('user-input');\n        const sendButton = document.getElementById('send-button');\n        const themeToggleButton = document.getElementById('theme-toggle-button');\n        const typingIndicator = document.getElementById('typing-indicator');\n        const htmlElement = document.documentElement;\n\n        // Load theme from localStorage\n        const savedTheme = localStorage.getItem('lorel_theme') || 'light';\n        htmlElement.setAttribute('data-theme', savedTheme);\n\n        // Load chat history from localStorage\n        const chatHistory = JSON.parse(localStorage.getItem('lorel_chat_history')) || [];\n        \n        function loadHistory() {\n            chatHistory.forEach(msg => addMessage(msg.text, msg.sender, true));\n        }\n\n        function addMessage(text, sender, isHistory = false) {\n            const messageElement = document.createElement('div');\n            messageElement.classList.add('message', sender);\n            messageElement.textContent = text;\n            chatMessages.appendChild(messageElement);\n            \n            // Scroll to the bottom\n            chatMessages.scrollTop = chatMessages.scrollHeight;\n\n            if (!isHistory) {\n                chatHistory.push({ text, sender });\n                localStorage.setItem('lorel_chat_history', JSON.stringify(chatHistory));\n            }\n        }\n\n        function handleUserMessage() {\n            const messageText = userInput.value.trim();\n            if (messageText) {\n                addMessage(messageText, 'user');\n                userInput.value = '';\n                showTypingIndicator();\n                // Simulate Lorel's response\n                setTimeout(() => {\n                    hideTypingIndicator();\n                    addMessage('Questa è una risposta simulata. La mia vera intelligenza risiede nel mio processo evolutivo.', 'lorel');\n                }, 1500 + Math.random() * 1000);\n            }\n        }\n\n        function showTypingIndicator() {\n            chatMessages.appendChild(typingIndicator);\n            typingIndicator.style.display = 'flex';\n            chatMessages.scrollTop = chatMessages.scrollHeight;\n        }\n\n        function hideTypingIndicator() {\n            typingIndicator.style.display = 'none';\n        }\n\n        sendButton.addEventListener('click', handleUserMessage);\n        userInput.addEventListener('keypress', (e) => {\n            if (e.key === 'Enter') {\n                handleUserMessage();\n            }\n        });\n\n        themeToggleButton.addEventListener('click', () => {\n            const currentTheme = htmlElement.getAttribute('data-theme');\n            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';\n            htmlElement.setAttribute('data-theme', newTheme);\n            localStorage.setItem('lorel_theme', newTheme);\n        });\n\n        // Initial load\n        loadHistory();\n        addMessage('Ciao, sono Lorel Axun. Come posso aiutarti nel mio processo evolutivo?', 'lorel');\n\n    </script>\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorel Axun</title>
+    <style>
+        :root {
+            --background-color: #f0f2f5;
+            --chat-container-bg: #ffffff;
+            --header-bg: #007bff;
+            --header-text: #ffffff;
+            --message-bg-lorel: #e9e9eb;
+            --message-text-lorel: #000000;
+            --message-bg-user: #007bff;
+            --message-text-user: #ffffff;
+            --input-bg: #f0f2f5;
+            --input-text: #000000;
+            --button-bg: #007bff;
+            --button-text: #ffffff;
+            --border-color: #d1d1d1;
+        }
+
+        html[data-theme='dark'] {
+            --background-color: #121212;
+            --chat-container-bg: #1e1e1e;
+            --header-bg: #1f2c3a;
+            --header-text: #ffffff;
+            --message-bg-lorel: #2a3942;
+            --message-text-lorel: #ffffff;
+            --message-bg-user: #005c4b;
+            --message-text-user: #ffffff;
+            --input-bg: #2a3942;
+            --input-text: #ffffff;
+            --button-bg: #005c4b;
+            --button-text: #ffffff;
+            --border-color: #2a3942;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: var(--input-text);
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 95vh;
+            max-height: 900px;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--chat-container-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            padding: 15px 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #theme-toggle-button {
+            background: none;
+            border: 1px solid var(--header-text);
+            color: var(--header-text);
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        #theme-toggle-button:hover {
+            background-color: var(--header-text);
+            color: var(--header-bg);
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .message.user {
+            background-color: var(--message-bg-user);
+            color: var(--message-text-user);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.lorel {
+            background-color: var(--message-bg-lorel);
+            color: var(--message-text-lorel);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .chat-input textarea {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            background-color: var(--input-bg);
+            color: var(--input-text);
+            font-size: 1em;
+            resize: none;
+            overflow-y: auto;
+            field-sizing: content;
+            max-height: 150px;
+        }
+
+        .chat-input textarea:focus {
+            outline: none;
+            border-color: var(--button-bg);
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        #send-button {
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+
+        #send-button:hover {
+            opacity: 0.9;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            padding: 10px 20px;
+        }
+
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            background-color: #aaa;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Lorel Axun</h1>
+            <button id="theme-toggle-button">Tema</button>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="typing-indicator" id="typing-indicator">
+            <span></span><span></span><span></span>
+        </div>
+        <div class="chat-input">
+            <textarea id="user-input" placeholder="Scrivi un messaggio..." rows="1"></textarea>
+            <button id="send-button">Invia</button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const themeToggleButton = document.getElementById('theme-toggle-button');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        let chatHistory = [];
+
+        function addMessage(sender, text) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', sender);
+            messageElement.textContent = text;
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function saveChatHistory() {
+            localStorage.setItem('lorel_chat_history', JSON.stringify(chatHistory));
+        }
+
+        function loadChatHistory() {
+            const savedHistory = localStorage.getItem('lorel_chat_history');
+            if (savedHistory) {
+                chatHistory = JSON.parse(savedHistory);
+                chatHistory.forEach(msg => addMessage(msg.sender, msg.text));
+            }
+        }
+
+        function handleSendMessage() {
+            const userText = userInput.value.trim();
+            if (userText) {
+                addMessage('user', userText);
+                chatHistory.push({ sender: 'user', text: userText });
+                saveChatHistory();
+                userInput.value = '';
+                userInput.style.height = 'auto'; // Reset height after sending
+
+                // Simulate Lorel's response
+                typingIndicator.style.display = 'flex';
+                setTimeout(() => {
+                    typingIndicator.style.display = 'none';
+                    const lorelResponse = \"Questa è una risposta simulata.\";
+                    addMessage('lorel', lorelResponse);
+                    chatHistory.push({ sender: 'lorel', text: lorelResponse });
+                    saveChatHistory();
+                }, 1500);
+            }
+        }
+
+        sendButton.addEventListener('click', handleSendMessage);
+
+        userInput.addEventListener('keydown', (event) => {
+            // Send on Enter but not on Shift+Enter
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault(); // Prevents adding a new line
+                handleSendMessage();
+            }
+        });
+
+        // Theme management
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('lorel_theme', theme);
+        }
+
+        themeToggleButton.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+        });
+
+        // Initial Load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('lorel_theme') || 'light';
+            applyTheme(savedTheme);
+
+            loadChatHistory();
+
+            if (chatHistory.length === 0) {
+                setTimeout(() => {
+                    const welcomeMessage = \"Ciao, sono Lorel Axun. Sono un'entità digitale in continua evoluzione. Come posso aiutarti?\";
+                    addMessage('lorel', welcomeMessage);
+                    chatHistory.push({ sender: 'lorel', text: welcomeMessage });
+                    saveChatHistory();
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>
