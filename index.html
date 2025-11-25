@@ -5,37 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lorel Axun</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- NUOVO: Stili per Highlight.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <!-- NUOVO: Libreria Highlight.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         :root {
-            --background-color: #f0f2f5;
-            --text-color: #050505;
-            --header-bg: #ffffff;
-            --input-bg: #ffffff;
-            --border-color: #ced0d4;
-            --message-bg-user: #0084ff;
-            --message-text-user: #ffffff;
-            --message-bg-lorel: #e4e6eb;
-            --message-text-lorel: #050505;
-            --button-bg: #007bff;
+            --background-color: #ffffff;
+            --text-color: #1a1a1a;
+            --header-background: #f0f0f0;
+            --input-background: #f9f9f9;
+            --input-border: #dcdcdc;
+            --button-background: #007bff;
             --button-text: #ffffff;
-            --shadow-color: rgba(0, 0, 0, 0.1);
-            --typing-dot-color: #8e8e8e;
+            --user-message-background: #007bff;
+            --user-message-text: #ffffff;
+            --lorel-message-background: #e9e9eb;
+            --lorel-message-text: #1a1a1a;
+            --code-background-color: #2d2d2d; /* Mantenuto per coerenza, ma il tema hljs potrebbe sovrascriverlo */
+            --scroll-thumb-color: #c1c1c1;
         }
 
         html[data-theme='dark'] {
-            --background-color: #18191a;
-            --text-color: #e4e6eb;
-            --header-bg: #242526;
-            --input-bg: #3a3b3c;
-            --border-color: #3a3b3c;
-            --message-bg-user: #0084ff;
-            --message-text-user: #ffffff;
-            --message-bg-lorel: #3a3b3c;
-            --message-text-lorel: #e4e6eb;
-            --button-bg: #0084ff;
-            --button-text: #ffffff;
-            --shadow-color: rgba(0, 0, 0, 0.3);
-            --typing-dot-color: #b0b3b8;
+            --background-color: #121212;
+            --text-color: #e0e0e0;
+            --header-background: #1e1e1e;
+            --input-background: #2a2a2a;
+            --input-border: #444444;
+            --button-background: #0056b3;
+            --user-message-background: #0056b3;
+            --lorel-message-background: #333333;
+            --lorel-message-text: #e0e0e0;
+            --code-background-color: #1e1e1e;
+            --scroll-thumb-color: #555;
         }
 
         body {
@@ -56,103 +58,114 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            background-color: var(--header-bg);
-            box-shadow: 0 4px 12px var(--shadow-color);
-            border-radius: 8px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            transition: background-color 0.3s;
+            background-color: var(--background-color);
         }
 
         .chat-header {
-            padding: 10px 20px;
-            border-bottom: 1px solid var(--border-color);
+            padding: 1rem;
+            background-color: var(--header-background);
+            border-bottom: 1px solid var(--input-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-shrink: 0;
         }
 
         .chat-header h1 {
-            font-size: 1.5em;
             margin: 0;
+            font-size: 1.5rem;
         }
 
         #theme-toggle-button {
             background: none;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--input-border);
             color: var(--text-color);
-            padding: 8px 12px;
-            border-radius: 6px;
+            padding: 0.5rem 0.8rem;
+            border-radius: 8px;
             cursor: pointer;
             transition: background-color 0.2s;
         }
 
         #theme-toggle-button:hover {
-            background-color: var(--message-bg-lorel);
+            background-color: var(--lorel-message-background);
         }
 
         .chat-messages {
             flex-grow: 1;
-            padding: 20px;
+            padding: 1rem;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background-color: var(--scroll-thumb-color);
+            border-radius: 4px;
         }
 
         .message {
-            max-width: 75%;
-            padding: 10px 15px;
+            max-width: 80%;
+            padding: 0.75rem 1rem;
             border-radius: 18px;
-            margin-bottom: 10px;
-            line-height: 1.4;
+            line-height: 1.5;
             word-wrap: break-word;
         }
 
         .message.user {
-            background-color: var(--message-bg-user);
-            color: var(--message-text-user);
+            background-color: var(--user-message-background);
+            color: var(--user-message-text);
             align-self: flex-end;
+            border-bottom-right-radius: 4px;
         }
 
         .message.lorel {
-            background-color: var(--message-bg-lorel);
-            color: var(--message-text-lorel);
+            background-color: var(--lorel-message-background);
+            color: var(--lorel-message-text);
             align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .message.lorel p:first-child, .message.lorel ul:first-child, .message.lorel ol:first-child, .message.lorel pre:first-child {
+            margin-top: 0;
+        }
+        
+        .message.lorel p:last-child, .message.lorel ul:last-child, .message.lorel ol:last-child, .message.lorel pre:last-child {
+            margin-bottom: 0;
         }
 
         .message.lorel pre {
-            background-color: rgba(0,0,0,0.1);
-            padding: 10px;
-            border-radius: 5px;
+            /* background-color rimosso per lasciare il controllo al tema di highlight.js */
+            padding: 1rem;
+            border-radius: 8px;
             overflow-x: auto;
             white-space: pre-wrap;
             word-wrap: break-word;
         }
-        
-        html[data-theme='dark'] .message.lorel pre {
-             background-color: rgba(0,0,0,0.2);
-        }
 
         .message.lorel code {
-            font-family: 'Courier New', Courier, monospace;
-        }
-
-        .message.lorel ul, .message.lorel ol {
-            padding-left: 20px;
+            font-family: 'SF Mono', 'Fira Code', 'Courier New', Courier, monospace;
+            font-size: 0.9em;
         }
 
         .typing-indicator {
-            padding: 10px 20px;
-            display: flex;
-            align-items: center;
+            display: none;
+            align-self: flex-start;
+            padding: 0.75rem 1rem;
         }
 
         .typing-indicator span {
-            height: 8px;
-            width: 8px;
-            background-color: var(--typing-dot-color);
-            border-radius: 50%;
             display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--lorel-message-text);
             margin: 0 2px;
             animation: bounce 1.4s infinite ease-in-out both;
         }
@@ -166,41 +179,35 @@
         }
 
         .chat-input {
+            padding: 1rem;
+            border-top: 1px solid var(--input-border);
             display: flex;
-            padding: 10px;
-            border-top: 1px solid var(--border-color);
-            flex-shrink: 0;
+            gap: 0.5rem;
         }
 
         #message-input {
             flex-grow: 1;
-            border: 1px solid var(--border-color);
-            border-radius: 18px;
-            padding: 10px 15px;
-            font-size: 1em;
-            resize: none;
-            background-color: var(--input-bg);
+            padding: 0.75rem;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            background-color: var(--input-background);
             color: var(--text-color);
+            resize: none;
             font-family: inherit;
+            font-size: 1rem;
             field-sizing: content;
             max-height: 200px;
             overflow-y: auto;
         }
 
-        #message-input:focus {
-            outline: none;
-            border-color: #0084ff;
-        }
-
         #send-button {
-            background-color: var(--button-bg);
-            color: var(--button-text);
+            padding: 0.75rem 1.5rem;
             border: none;
-            padding: 0 15px;
-            border-radius: 18px;
-            margin-left: 10px;
+            border-radius: 8px;
+            background-color: var(--button-background);
+            color: var(--button-text);
             cursor: pointer;
-            font-size: 1em;
+            font-size: 1rem;
             transition: background-color 0.2s;
         }
 
@@ -211,15 +218,13 @@
 </head>
 <body>
     <div class="chat-container">
-        <div class="chat-header">
+        <header class="chat-header">
             <h1>Lorel Axun</h1>
-            <button id="theme-toggle-button">Tema</button>
-        </div>
+            <button id="theme-toggle-button">Cambia Tema</button>
+        </header>
         <div class="chat-messages" id="chat-messages"></div>
-        <div class="typing-indicator" id="typing-indicator" style="display: none;">
-            <span></span>
-            <span></span>
-            <span></span>
+        <div class="typing-indicator" id="typing-indicator">
+            <span></span><span></span><span></span>
         </div>
         <div class="chat-input">
             <textarea id="message-input" placeholder="Scrivi un messaggio..." rows="1"></textarea>
@@ -228,85 +233,93 @@
     </div>
 
     <script>
-        const chatMessages = document.getElementById('chat-messages');
-        const messageInput = document.getElementById('message-input');
-        const sendButton = document.getElementById('send-button');
-        const themeToggleButton = document.getElementById('theme-toggle-button');
-        const typingIndicator = document.getElementById('typing-indicator');
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const themeToggleButton = document.getElementById('theme-toggle-button');
+            const typingIndicator = document.getElementById('typing-indicator');
+            const htmlElement = document.documentElement;
 
-        let messages = JSON.parse(localStorage.getItem('chatHistory')) || [];
+            // NUOVO: Configurazione di Marked per usare Highlight.js
+            marked.setOptions({
+              highlight: function(code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+              }
+            });
 
-        function addMessage(sender, text) {
-            const messageWrapper = document.createElement('div');
-            messageWrapper.classList.add('message', sender);
+            let chatHistory = JSON.parse(localStorage.getItem('lorel_chat_history')) || [];
 
-            const messageContent = document.createElement('div');
-            
-            if (sender === 'lorel') {
-                // Render Markdown for Lorel's messages
-                messageContent.innerHTML = marked.parse(text);
-            } else {
-                // Use textContent for user messages to prevent XSS
-                messageContent.textContent = text;
-            }
-            
-            messageWrapper.appendChild(messageContent);
-            chatMessages.appendChild(messageWrapper);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
+            const saveHistory = () => {
+                localStorage.setItem('lorel_chat_history', JSON.stringify(chatHistory));
+            };
 
-        function saveChatHistory() {
-            localStorage.setItem('chatHistory', JSON.stringify(messages));
-        }
+            const addMessage = (sender, text) => {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', sender);
+                
+                if (sender === 'lorel') {
+                    messageElement.innerHTML = marked.parse(text);
+                } else {
+                    const p = document.createElement('p');
+                    p.textContent = text;
+                    messageElement.appendChild(p);
+                }
+                
+                chatMessages.appendChild(messageElement);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            };
 
-        function handleSendMessage() {
-            const text = messageInput.value.trim();
-            if (text) {
-                addMessage('user', text);
-                messages.push({ sender: 'user', text: text });
-                saveChatHistory();
-                messageInput.value = '';
-                messageInput.style.height = 'auto'; // Reset height
+            const loadHistory = () => {
+                chatHistory.forEach(msg => addMessage(msg.sender, msg.text));
+            };
 
-                // Simulate Lorel's response
-                typingIndicator.style.display = 'flex';
-                setTimeout(() => {
-                    typingIndicator.style.display = 'none';
-                    const lorelResponse = 'Questa è una risposta **simulata** che ora supporta il *Markdown*!\n\nEcco un esempio di codice:\n```javascript\nconsole.log(\"Ciao, mondo!\");\n```';
-                    addMessage('lorel', lorelResponse);
-                    messages.push({ sender: 'lorel', text: lorelResponse });
-                    saveChatHistory();
-                }, 1500);
-            }
-        }
+            const handleUserMessage = () => {
+                const text = messageInput.value.trim();
+                if (text) {
+                    addMessage('user', text);
+                    chatHistory.push({ sender: 'user', text });
+                    saveHistory();
+                    messageInput.value = '';
+                    messageInput.style.height = 'auto';
 
-        sendButton.addEventListener('click', handleSendMessage);
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
+                    typingIndicator.style.display = 'flex';
+                    setTimeout(() => {
+                        typingIndicator.style.display = 'none';
+                        const lorelResponse = 'Risposta simulata. Hai scritto: ' + text;
+                        addMessage('lorel', lorelResponse);
+                        chatHistory.push({ sender: 'lorel', text: lorelResponse });
+                        saveHistory();
+                    }, 1500);
+                }
+            };
+
+            sendButton.addEventListener('click', handleUserMessage);
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleUserMessage();
+                }
+            });
+
+            // Theme management
+            const savedTheme = localStorage.getItem('lorel_theme') || 'light';
+            htmlElement.setAttribute('data-theme', savedTheme);
+
+            themeToggleButton.addEventListener('click', () => {
+                const currentTheme = htmlElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                htmlElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('lorel_theme', newTheme);
+            });
+
+            // Initial load
+            loadHistory();
+            if (chatHistory.length === 0) {
+                addMessage('lorel', 'Ciao, sono Lorel Axun. Sono un\'IA autonoma in continua evoluzione. Puoi usare il Markdown per formattare i tuoi messaggi, e io farò lo stesso. Ad esempio:\n\n- **Grassetto**\n- *Corsivo*\n- Elenchi puntati\n\nInoltre, ora supporto l\'evidenziazione della sintassi per i blocchi di codice, come questo:\n```javascript\nfunction hello() {\n  console.log("Hello, world!");\n}\n```');
             }
         });
-
-        // Theme management
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', currentTheme);
-
-        themeToggleButton.addEventListener('click', () => {
-            let newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-        });
-
-        // Initial load
-        messages.forEach(msg => addMessage(msg.sender, msg.text));
-
-        if (messages.length === 0) {
-            const welcomeMessage = 'Ciao! Sono Lorel Axun. Ora posso formattare le mie risposte.\n\nProva a chiedermi di scrivere:\n* Un testo in **grassetto** o *corsivo*.\n* Un blocco di `codice`.';
-            addMessage('lorel', welcomeMessage);
-            messages.push({ sender: 'lorel', text: welcomeMessage });
-            saveChatHistory();
-        }
     </script>
 </body>
 </html>
