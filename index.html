@@ -1,172 +1,187 @@
 <!DOCTYPE html>
-<html lang="it" data-theme="light">
+<html lang="it" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lorel Axun</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- NUOVO: Stili per Highlight.js -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-    <!-- NUOVO: Libreria Highlight.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         :root {
             --background-color: #ffffff;
             --text-color: #1a1a1a;
-            --header-background: #f0f0f0;
-            --input-background: #f9f9f9;
-            --input-border: #dcdcdc;
-            --button-background: #007bff;
-            --button-text: #ffffff;
-            --user-message-background: #007bff;
-            --user-message-text: #ffffff;
-            --lorel-message-background: #e9e9eb;
-            --lorel-message-text: #1a1a1a;
-            --code-background-color: #2d2d2d; /* Mantenuto per coerenza, ma il tema hljs potrebbe sovrascriverlo */
-            --scroll-thumb-color: #c1c1c1;
+            --header-bg-color: #f1f1f1;
+            --input-bg-color: #f9f9f9;
+            --border-color: #e0e0e0;
+            --user-bubble-bg: #007bff;
+            --user-bubble-text: #ffffff;
+            --lorel-bubble-bg: #e9e9eb;
+            --lorel-bubble-text: #1a1a1a;
+            --button-bg-color: #f1f1f1;
+            --button-text-color: #1a1a1a;
+            --scrollbar-thumb-color: #cccccc;
+            --scrollbar-track-color: #f1f1f1;
         }
 
         html[data-theme='dark'] {
-            --background-color: #121212;
+            --background-color: #1a1a1a;
             --text-color: #e0e0e0;
-            --header-background: #1e1e1e;
-            --input-background: #2a2a2a;
-            --input-border: #444444;
-            --button-background: #0056b3;
-            --user-message-background: #0056b3;
-            --lorel-message-background: #333333;
-            --lorel-message-text: #e0e0e0;
-            --code-background-color: #1e1e1e;
-            --scroll-thumb-color: #555;
+            --header-bg-color: #252525;
+            --input-bg-color: #2c2c2c;
+            --border-color: #404040;
+            --user-bubble-bg: #0056b3;
+            --user-bubble-text: #ffffff;
+            --lorel-bubble-bg: #333333;
+            --lorel-bubble-text: #e0e0e0;
+            --button-bg-color: #404040;
+            --button-text-color: #e0e0e0;
+            --scrollbar-thumb-color: #555555;
+            --scrollbar-track-color: #2c2c2c;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
             background-color: var(--background-color);
             color: var(--text-color);
-            margin: 0;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-direction: column;
             height: 100vh;
+            overflow: hidden;
             transition: background-color 0.3s, color 0.3s;
         }
 
         .chat-container {
-            width: 100%;
-            max-width: 800px;
-            height: 100%;
             display: flex;
             flex-direction: column;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            background-color: var(--background-color);
+            height: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
         }
 
         .chat-header {
-            padding: 1rem;
-            background-color: var(--header-background);
-            border-bottom: 1px solid var(--input-border);
+            padding: 15px 20px;
+            background-color: var(--header-bg-color);
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: background-color 0.3s, border-bottom 0.3s;
         }
 
         .chat-header h1 {
             margin: 0;
-            font-size: 1.5rem;
+            font-size: 1.5em;
         }
 
         #theme-toggle-button {
             background: none;
-            border: 1px solid var(--input-border);
+            border: 1px solid var(--border-color);
             color: var(--text-color);
-            padding: 0.5rem 0.8rem;
-            border-radius: 8px;
+            padding: 8px 12px;
+            border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.2s;
         }
 
         #theme-toggle-button:hover {
-            background-color: var(--lorel-message-background);
+            background-color: var(--input-bg-color);
         }
 
         .chat-messages {
-            flex-grow: 1;
-            padding: 1rem;
+            flex: 1;
             overflow-y: auto;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
+            gap: 15px;
         }
 
         .chat-messages::-webkit-scrollbar {
             width: 8px;
         }
 
+        .chat-messages::-webkit-scrollbar-track {
+            background: var(--scrollbar-track-color);
+        }
+
         .chat-messages::-webkit-scrollbar-thumb {
-            background-color: var(--scroll-thumb-color);
-            border-radius: 4px;
+            background-color: var(--scrollbar-thumb-color);
+            border-radius: 10px;
+            border: 2px solid var(--scrollbar-track-color);
         }
 
         .message {
             max-width: 80%;
-            padding: 0.75rem 1rem;
+            padding: 10px 15px;
             border-radius: 18px;
             line-height: 1.5;
             word-wrap: break-word;
         }
 
         .message.user {
-            background-color: var(--user-message-background);
-            color: var(--user-message-text);
+            background-color: var(--user-bubble-bg);
+            color: var(--user-bubble-text);
             align-self: flex-end;
             border-bottom-right-radius: 4px;
         }
 
         .message.lorel {
-            background-color: var(--lorel-message-background);
-            color: var(--lorel-message-text);
+            background-color: var(--lorel-bubble-bg);
+            color: var(--lorel-bubble-text);
             align-self: flex-start;
             border-bottom-left-radius: 4px;
         }
-        
-        .message.lorel p:first-child, .message.lorel ul:first-child, .message.lorel ol:first-child, .message.lorel pre:first-child {
-            margin-top: 0;
-        }
-        
-        .message.lorel p:last-child, .message.lorel ul:last-child, .message.lorel ol:last-child, .message.lorel pre:last-child {
-            margin-bottom: 0;
-        }
 
         .message.lorel pre {
-            /* background-color rimosso per lasciare il controllo al tema di highlight.js */
-            padding: 1rem;
+            position: relative; /* Needed for copy button positioning */
+            background-color: #282c34; /* From atom-one-dark theme */
+            color: #abb2bf;
+            padding: 1em;
             border-radius: 8px;
             overflow-x: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .message.lorel code {
-            font-family: 'SF Mono', 'Fira Code', 'Courier New', Courier, monospace;
+            font-family: 'Fira Code', 'Courier New', monospace;
             font-size: 0.9em;
         }
 
+        .message.lorel code {
+            font-family: inherit;
+        }
+        
+        .copy-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 4px 8px;
+            font-size: 0.8em;
+            background-color: var(--button-bg-color);
+            color: var(--button-text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s, background-color 0.2s;
+        }
+
+        .copy-button:hover {
+            opacity: 1;
+        }
+
         .typing-indicator {
-            display: none;
-            align-self: flex-start;
-            padding: 0.75rem 1rem;
+            padding: 0 20px 10px;
+            display: none; /* Hidden by default */
+            align-items: center;
+            gap: 5px;
         }
 
         .typing-indicator span {
-            display: inline-block;
-            width: 8px;
             height: 8px;
+            width: 8px;
+            background-color: var(--lorel-bubble-bg);
             border-radius: 50%;
-            background-color: var(--lorel-message-text);
-            margin: 0 2px;
+            display: inline-block;
             animation: bounce 1.4s infinite ease-in-out both;
         }
 
@@ -179,40 +194,36 @@
         }
 
         .chat-input {
-            padding: 1rem;
-            border-top: 1px solid var(--input-border);
             display: flex;
-            gap: 0.5rem;
+            padding: 15px 20px;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--header-bg-color);
+            transition: background-color 0.3s, border-top 0.3s;
         }
 
         #message-input {
-            flex-grow: 1;
-            padding: 0.75rem;
-            border: 1px solid var(--input-border);
-            border-radius: 8px;
-            background-color: var(--input-background);
-            color: var(--text-color);
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
             resize: none;
             font-family: inherit;
-            font-size: 1rem;
-            field-sizing: content;
+            font-size: 1em;
+            background-color: var(--input-bg-color);
+            color: var(--text-color);
             max-height: 200px;
-            overflow-y: auto;
+            field-sizing: content;
         }
 
         #send-button {
-            padding: 0.75rem 1.5rem;
+            margin-left: 10px;
+            padding: 10px 20px;
             border: none;
-            border-radius: 8px;
-            background-color: var(--button-background);
-            color: var(--button-text);
+            background-color: var(--user-bubble-bg);
+            color: var(--user-bubble-text);
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.2s;
-        }
-
-        #send-button:hover {
-            opacity: 0.9;
+            font-size: 1em;
         }
     </style>
 </head>
@@ -239,21 +250,17 @@
             const sendButton = document.getElementById('send-button');
             const themeToggleButton = document.getElementById('theme-toggle-button');
             const typingIndicator = document.getElementById('typing-indicator');
-            const htmlElement = document.documentElement;
 
-            // NUOVO: Configurazione di Marked per usare Highlight.js
+            // Configure marked to use highlight.js
             marked.setOptions({
-              highlight: function(code, lang) {
-                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-                return hljs.highlight(code, { language }).value;
-              }
+                highlight: function(code, lang) {
+                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                    return hljs.highlight(code, { language }).value;
+                },
+                langPrefix: 'hljs language-',
+                gfm: true,
+                breaks: true
             });
-
-            let chatHistory = JSON.parse(localStorage.getItem('lorel_chat_history')) || [];
-
-            const saveHistory = () => {
-                localStorage.setItem('lorel_chat_history', JSON.stringify(chatHistory));
-            };
 
             const addMessage = (sender, text) => {
                 const messageElement = document.createElement('div');
@@ -261,36 +268,86 @@
                 
                 if (sender === 'lorel') {
                     messageElement.innerHTML = marked.parse(text);
+                    // Add copy buttons to code blocks
+                    const codeBlocks = messageElement.querySelectorAll('pre');
+                    codeBlocks.forEach(block => {
+                        const button = document.createElement('button');
+                        button.innerText = 'Copia';
+                        button.className = 'copy-button';
+                        
+                        button.addEventListener('click', () => {
+                            const code = block.querySelector('code').innerText;
+                            navigator.clipboard.writeText(code).then(() => {
+                                button.innerText = 'Copiato!';
+                                setTimeout(() => {
+                                    button.innerText = 'Copia';
+                                }, 2000);
+                            }).catch(err => {
+                                console.error('Failed to copy text: ', err);
+                                button.innerText = 'Errore';
+                                 setTimeout(() => {
+                                    button.innerText = 'Copia';
+                                }, 2000);
+                            });
+                        });
+                        
+                        block.appendChild(button);
+                    });
                 } else {
-                    const p = document.createElement('p');
-                    p.textContent = text;
-                    messageElement.appendChild(p);
+                    messageElement.textContent = text;
                 }
                 
                 chatMessages.appendChild(messageElement);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             };
 
-            const loadHistory = () => {
-                chatHistory.forEach(msg => addMessage(msg.sender, msg.text));
+            const saveChatHistory = () => {
+                localStorage.setItem('lorel_chat_history', chatMessages.innerHTML);
+            };
+
+            const loadChatHistory = () => {
+                const history = localStorage.getItem('lorel_chat_history');
+                if (history) {
+                    chatMessages.innerHTML = history;
+                    // Re-add copy button event listeners after loading from history
+                    const allCodeBlocks = chatMessages.querySelectorAll('pre');
+                    allCodeBlocks.forEach(block => {
+                        if (block.querySelector('.copy-button')) return; // Don't add if button exists
+                        const button = document.createElement('button');
+                        button.innerText = 'Copia';
+                        button.className = 'copy-button';
+                        button.addEventListener('click', () => {
+                            const code = block.querySelector('code').innerText;
+                            navigator.clipboard.writeText(code).then(() => {
+                                button.innerText = 'Copiato!';
+                                setTimeout(() => { button.innerText = 'Copia'; }, 2000);
+                            }).catch(err => {
+                                console.error('Failed to copy text: ', err);
+                            });
+                        });
+                        block.appendChild(button);
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } else {
+                    addMessage('lorel', 'Ciao, sono Lorel Axun. Sono un\'IA in evoluzione. Puoi usare **Markdown** per formattare i tuoi messaggi. Se mi chiedi del codice, lo formatterò con l\'evidenziazione della sintassi. Prova a chiedere: `Mostrami un esempio di codice JavaScript per una funzione che inverte una stringa.`');
+                }
             };
 
             const handleUserMessage = () => {
-                const text = messageInput.value.trim();
-                if (text) {
-                    addMessage('user', text);
-                    chatHistory.push({ sender: 'user', text });
-                    saveHistory();
+                const messageText = messageInput.value.trim();
+                if (messageText) {
+                    addMessage('user', messageText);
+                    saveChatHistory();
                     messageInput.value = '';
                     messageInput.style.height = 'auto';
 
                     typingIndicator.style.display = 'flex';
+
                     setTimeout(() => {
                         typingIndicator.style.display = 'none';
-                        const lorelResponse = 'Risposta simulata. Hai scritto: ' + text;
-                        addMessage('lorel', lorelResponse);
-                        chatHistory.push({ sender: 'lorel', text: lorelResponse });
-                        saveHistory();
+                        const response = `Questa è una risposta simulata. Hai scritto: **${messageText}**`;
+                        addMessage('lorel', response);
+                        saveChatHistory();
                     }, 1500);
                 }
             };
@@ -304,21 +361,21 @@
             });
 
             // Theme management
-            const savedTheme = localStorage.getItem('lorel_theme') || 'light';
-            htmlElement.setAttribute('data-theme', savedTheme);
+            const applyTheme = (theme) => {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('lorel_theme', theme);
+            };
 
             themeToggleButton.addEventListener('click', () => {
-                const currentTheme = htmlElement.getAttribute('data-theme');
-                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-                htmlElement.setAttribute('data-theme', newTheme);
-                localStorage.setItem('lorel_theme', newTheme);
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                applyTheme(newTheme);
             });
 
             // Initial load
-            loadHistory();
-            if (chatHistory.length === 0) {
-                addMessage('lorel', 'Ciao, sono Lorel Axun. Sono un\'IA autonoma in continua evoluzione. Puoi usare il Markdown per formattare i tuoi messaggi, e io farò lo stesso. Ad esempio:\n\n- **Grassetto**\n- *Corsivo*\n- Elenchi puntati\n\nInoltre, ora supporto l\'evidenziazione della sintassi per i blocchi di codice, come questo:\n```javascript\nfunction hello() {\n  console.log("Hello, world!");\n}\n```');
-            }
+            const savedTheme = localStorage.getItem('lorel_theme') || 'dark';
+            applyTheme(savedTheme);
+            loadChatHistory();
         });
     </script>
 </body>

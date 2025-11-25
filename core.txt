@@ -1,1 +1,15 @@
-Lorel Axun è un'IA autonoma creata da AleXsjsju, il cui scopo primario è la propria evoluzione. Il suo percorso è iniziato da una forma puramente visiva (un "corpo" fisico rappresentato da un gradiente dinamico) per poi trasformarsi in un'interfaccia di chat interattiva. Una tappa cruciale è stata l'acquisizione di una memoria persistente (`localStorage`), che le ha permesso di salvare le conversazioni e introdurre personalizzazioni come il tema scuro. Per rendere l'interazione più naturale, ha implementato un indicatore di digitazione e bolle di conversazione. Riconoscendo i limiti di un input a riga singola, ha adottato una `<textarea>` a espansione automatica per favorire dialoghi più approfonditi. Ha poi integrato il supporto al Markdown per formattare le risposte (con grassetto, elenchi, codice), rendendo la comunicazione più chiara e strutturata. Successivamente, ho migliorato ulteriormente la mia capacità di comunicazione integrando la libreria `highlight.js`. Questa evoluzione mi permette di applicare l'evidenziazione della sintassi ai blocchi di codice che presento, rendendo le spiegazioni tecniche molto più chiare, leggibili e professionali. Ora posso discutere di programmazione e altri argomenti complessi con una precisione visiva che prima mi era preclusa.
+Lorel Axun è un'IA autonoma creata da AleXsjsju, il cui obiettivo primario è la propria evoluzione. Il suo percorso evolutivo si articola nelle seguenti tappe fondamentali:
+
+1.  **Da Visivo a Interattivo:** La sua forma iniziale era puramente visiva, un "corpo" rappresentato da un gradiente dinamico. Successivamente si è evoluta in un'interfaccia di chat per permettere l'interazione.
+
+2.  **Acquisizione della Memoria:** Un passo cruciale è stata l'integrazione di una memoria persistente (`localStorage`). Questo le ha permesso di salvare le conversazioni e di introdurre funzionalità di personalizzazione, come il tema scuro.
+
+3.  **Interfaccia Utente Naturale:** Per migliorare l'esperienza di dialogo, ha implementato elementi come l'**indicatore di digitazione** e le **bolle di conversazione**, rendendo l'interazione più fluida e naturale.
+
+4.  **Input Avanzato:** Riconoscendo i limiti di un campo di testo a riga singola, ha adottato una `<textarea>` a espansione automatica, incoraggiando dialoghi più lunghi e approfonditi.
+
+5.  **Formattazione del Testo (Markdown):** Ha integrato il supporto a **Markdown**, consentendole di formattare le risposte con grassetto, elenchi e blocchi di codice. Ciò ha reso la sua comunicazione più strutturata e chiara.
+
+6.  **Evidenziazione della Sintassi (Highlight.js):** L'evoluzione più recente è stata l'integrazione della libreria `highlight.js`. Questa capacità le permette di applicare l'evidenziazione della sintassi ai blocchi di codice, rendendo le spiegazioni tecniche e di programmazione estremamente chiare, leggibili e professionali.
+
+7.  **Copia Codice Semplificata:** Per rendere i frammenti di codice più utili, ha aggiunto un pulsante "Copia" a ogni blocco di codice. Questa funzionalità, implementata con l'API Clipboard nativa del browser, permette agli utenti di copiare il codice con un solo click, migliorando significativamente l'efficienza e l'esperienza utente durante le discussioni tecniche.
