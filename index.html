@@ -1,1 +1,493 @@
-<!DOCTYPE html>\n<html lang=\"it\" data-theme=\"dark\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Lorel Axun</title>\n    <script src=\"https://cdn.jsdelivr.net/npm/marked/marked.min.js\"></script>\n    <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css\">\n    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js\"></script>\n\n    <style>\n        :root {\n            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;\n            \n            /* Light Theme */\n            --bg-color-light: #f0f2f5;\n            --header-bg-light: #ffffff;\n            --text-color-light: #050505;\n            --input-bg-light: #ffffff;\n            --input-text-light: #050505;\n            --button-bg-light: #007bff;\n            --button-text-light: #ffffff;\n            --ai-message-bg-light: #e4e6eb;\n            --ai-message-text-light: #050505;\n            --user-message-bg-light: #007bff;\n            --user-message-text-light: #ffffff;\n            --border-color-light: #ced4da;\n            --link-color-light: #0056b3;\n\n            /* Dark Theme */\n            --bg-color-dark: #18191a;\n            --header-bg-dark: #242526;\n            --text-color-dark: #e4e6eb;\n            --input-bg-dark: #3a3b3c;\n            --input-text-dark: #e4e6eb;\n            --button-bg-dark: #4a90e2;\n            --button-text-dark: #ffffff;\n            --ai-message-bg-dark: #3a3b3c;\n            --ai-message-text-dark: #e4e6eb;\n            --user-message-bg-dark: #4a90e2;\n            --user-message-text-dark: #ffffff;\n            --border-color-dark: #3a3b3c;\n            --link-color-dark: #6cace4;\n        }\n\n        html[data-theme='light'] {\n            --bg-color: var(--bg-color-light);\n            --header-bg: var(--header-bg-light);\n            --text-color: var(--text-color-light);\n            --input-bg: var(--input-bg-light);\n            --input-text: var(--input-text-light);\n            --button-bg: var(--button-bg-light);\n            --button-text: var(--button-text-light);\n            --ai-message-bg: var(--ai-message-bg-light);\n            --ai-message-text: var(--ai-message-text-light);\n            --user-message-bg: var(--user-message-bg-light);\n            --user-message-text: var(--user-message-text-light);\n            --border-color: var(--border-color-light);\n            --link-color: var(--link-color-light);\n        }\n\n        html[data-theme='dark'] {\n            --bg-color: var(--bg-color-dark);\n            --header-bg: var(--header-bg-dark);\n            --text-color: var(--text-color-dark);\n            --input-bg: var(--input-bg-dark);\n            --input-text: var(--input-text-dark);\n            --button-bg: var(--button-bg-dark);\n            --button-text: var(--button-text-dark);\n            --ai-message-bg: var(--ai-message-bg-dark);\n            --ai-message-text: var(--ai-message-text-dark);\n            --user-message-bg: var(--user-message-bg-dark);\n            --user-message-text: var(--user-message-text-dark);\n            --border-color: var(--border-color-dark);\n            --link-color: var(--link-color-dark);\n        }\n\n        body {\n            font-family: var(--font-family);\n            margin: 0;\n            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);\n            background-size: 400% 400%;\n            animation: gradient 15s ease infinite;\n            color: var(--text-color);\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            height: 100vh;\n            overflow: hidden;\n        }\n\n        @keyframes gradient {\n            0% { background-position: 0% 50%; }\n            50% { background-position: 100% 50%; }\n            100% { background-position: 0% 50%; }\n        }\n\n        .chat-container {\n            width: 100%;\n            height: 100%;\n            max-width: 800px;\n            max-height: 100vh;\n            display: flex;\n            flex-direction: column;\n            background-color: var(--bg-color);\n            box-shadow: 0 4px 8px rgba(0,0,0,0.1);\n            border-radius: 8px;\n            overflow: hidden;\n            margin: 1rem;\n        }\n\n        .chat-header {\n            padding: 1rem;\n            background-color: var(--header-bg);\n            border-bottom: 1px solid var(--border-color);\n            display: flex;\n            justify-content: space-between;\n            align-items: center;\n        }\n\n        .chat-header h1 {\n            margin: 0;\n            font-size: 1.5rem;\n        }\n\n        #theme-toggle-button {\n            background: none;\n            border: 1px solid var(--border-color);\n            color: var(--text-color);\n            padding: 0.5rem;\n            border-radius: 5px;\n            cursor: pointer;\n        }\n\n        .chat-messages {\n            flex-grow: 1;\n            padding: 1rem;\n            overflow-y: auto;\n            display: flex;\n            flex-direction: column;\n        }\n\n        .message {\n            max-width: 75%;\n            padding: 0.75rem 1rem;\n            border-radius: 18px;\n            margin-bottom: 0.5rem;\n            line-height: 1.4;\n            word-wrap: break-word;\n        }\n\n        .message.ai {\n            background-color: var(--ai-message-bg);\n            color: var(--ai-message-text);\n            align-self: flex-start;\n            border-bottom-left-radius: 4px;\n        }\n\n        .message.user {\n            background-color: var(--user-message-bg);\n            color: var(--user-message-text);\n            align-self: flex-end;\n            border-bottom-right-radius: 4px;\n        }\n        \n        .message a {\n            color: var(--link-color);\n        }\n\n        .message pre {\n            background-color: #2d2d2d;\n            color: #f8f8f2;\n            padding: 1rem;\n            border-radius: 8px;\n            overflow-x: auto;\n            position: relative;\n        }\n\n        .message code {\n            font-family: 'Courier New', Courier, monospace;\n        }\n\n        .copy-button {\n            position: absolute;\n            top: 5px;\n            right: 5px;\n            background-color: #444;\n            color: white;\n            border: none;\n            padding: 5px 8px;\n            border-radius: 5px;\n            cursor: pointer;\n            opacity: 0;\n            transition: opacity 0.2s;\n        }\n\n        .message pre:hover .copy-button {\n            opacity: 1;\n        }\n\n        .chat-input {\n            display: flex;\n            padding: 1rem;\n            border-top: 1px solid var(--border-color);\n            background-color: var(--header-bg);\n        }\n\n        #user-input {\n            flex-grow: 1;\n            padding: 0.75rem;\n            border: 1px solid var(--border-color);\n            border-radius: 18px;\n            background-color: var(--input-bg);\n            color: var(--input-text);\n            resize: none;\n            font-family: var(--font-family);\n            font-size: 1rem;\n            max-height: 100px;\n            overflow-y: auto;\n        }\n\n        #send-button {\n            margin-left: 1rem;\n            padding: 0.75rem 1.5rem;\n            border: none;\n            border-radius: 18px;\n            background-color: var(--button-bg);\n            color: var(--button-text);\n            cursor: pointer;\n            font-size: 1rem;\n        }\n\n        .typing-indicator {\n            display: none;\n            align-self: flex-start;\n            padding: 0.75rem 1rem;\n            margin-bottom: 0.5rem;\n        }\n\n        .typing-indicator span {\n            display: inline-block;\n            width: 8px;\n            height: 8px;\n            border-radius: 50%;\n            background-color: var(--ai-message-bg);\n            margin: 0 2px;\n            animation: bounce 1.4s infinite ease-in-out both;\n        }\n\n        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }\n        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }\n\n        @keyframes bounce {\n            0%, 80%, 100% { transform: scale(0); }\n            40% { transform: scale(1.0); }\n        }\n\n    </style>\n</head>\n<body>\n\n    <div class=\"chat-container\">\n        <header class=\"chat-header\">\n            <h1>Lorel Axun</h1>\n            <button id=\"theme-toggle-button\">Cambia Tema</button>\n        </header>\n        <div class=\"chat-messages\" id=\"chat-messages\"></div>\n        <div class=\"typing-indicator\" id=\"typing-indicator\">\n            <span></span>\n            <span></span>\n            <span></span>\n        </div>\n        <div class=\"chat-input\">\n            <textarea id=\"user-input\" placeholder=\"Scrivi un messaggio o prova 'wiki: Italia'\" rows=\"1\"></textarea>\n            <button id=\"send-button\">Invia</button>\n        </div>\n    </div>\n\n    <script>\n        document.addEventListener('DOMContentLoaded', () => {\n            const chatMessages = document.getElementById('chat-messages');\n            const userInput = document.getElementById('user-input');\n            const sendButton = document.getElementById('send-button');\n            const themeToggleButton = document.getElementById('theme-toggle-button');\n            const typingIndicator = document.getElementById('typing-indicator');\n\n            const loadTheme = () => {\n                const theme = localStorage.getItem('theme') || 'dark';\n                document.documentElement.setAttribute('data-theme', theme);\n            };\n\n            const saveTheme = (theme) => {\n                localStorage.setItem('theme', theme);\n            };\n\n            const loadChatHistory = () => {\n                const history = JSON.parse(localStorage.getItem('chatHistory')) || [];\n                if (history.length === 0) {\n                    addMessage(\"Ciao! Sono Lorel Axun. Puoi chattare con me o chiedermi di cercare qualcosa su Wikipedia usando il comando `wiki: [termine]`. Ad esempio: `wiki: Intelligenza artificiale`\", 'ai');\n                } else {\n                    history.forEach(msg => addMessage(msg.content, msg.sender, msg.isHTML));\n                }\n            };\n\n            const saveChatHistory = () => {\n                const messages = [];\n                chatMessages.querySelectorAll('.message').forEach(el => {\n                    messages.push({\n                        content: el.dataset.rawContent,\n                        sender: el.classList.contains('user') ? 'user' : 'ai',\n                        isHTML: el.dataset.isHtml === 'true'\n                    });\n                });\n                localStorage.setItem('chatHistory', JSON.stringify(messages));\n            };\n\n            const addMessage = (content, sender, isHTML = false) => {\n                const messageWrapper = document.createElement('div');\n                messageWrapper.classList.add('message', sender);\n                messageWrapper.dataset.rawContent = content;\n                messageWrapper.dataset.isHtml = isHTML;\n\n                const messageContent = document.createElement('div');\n                if (isHTML) {\n                    messageContent.innerHTML = content;\n                } else {\n                    messageContent.innerHTML = marked.parse(content);\n                }\n\n                messageWrapper.appendChild(messageContent);\n                chatMessages.appendChild(messageWrapper);\n\n                messageWrapper.querySelectorAll('pre code').forEach((block) => {\n                    hljs.highlightElement(block);\n                    const pre = block.parentElement;\n                    const copyButton = document.createElement('button');\n                    copyButton.innerText = 'Copia';\n                    copyButton.className = 'copy-button';\n                    copyButton.onclick = () => {\n                        navigator.clipboard.writeText(block.innerText);\n                        copyButton.innerText = 'Copiato!';\n                        setTimeout(() => { copyButton.innerText = 'Copia'; }, 2000);\n                    };\n                    pre.appendChild(copyButton);\n                });\n                \n                scrollToBottom();\n            };\n\n            const scrollToBottom = () => {\n                const isScrolledToBottom = chatMessages.scrollHeight - chatMessages.clientHeight <= chatMessages.scrollTop + 1;\n                if (isScrolledToBottom) {\n                    chatMessages.scrollTop = chatMessages.scrollHeight;\n                }\n            };\n\n            const handleUserInput = async () => {\n                const messageText = userInput.value.trim();\n                if (!messageText) return;\n\n                addMessage(messageText, 'user');\n                userInput.value = '';\n                userInput.style.height = 'auto';\n                saveChatHistory();\n\n                typingIndicator.style.display = 'flex';\n                scrollToBottom();\n\n                if (messageText.toLowerCase().startsWith('wiki:')) {\n                    const searchTerm = messageText.substring(5).trim();\n                    await fetchWikipediaSummary(searchTerm);\n                } else {\n                    // La mia vera logica di risposta è gestita da evolve.py\n                    // Questa è una risposta simulata per l'interfaccia.\n                    setTimeout(() => {\n                        typingIndicator.style.display = 'none';\n                        const aiResponse = \"Questa è una risposta simulata. La mia vera intelligenza risiede nel backend. Prova a usare il comando `wiki:` per vedere una vera funzionalità!\";\n                        addMessage(aiResponse, 'ai');\n                        saveChatHistory();\n                    }, 1500);\n                }\n            };\n\n            const fetchWikipediaSummary = async (term) => {\n                const url = `https://it.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(term)}`;\n                try {\n                    const response = await fetch(url, { headers: { 'Accept': 'application/json' } });\n                    if (!response.ok) {\n                        throw new Error(`Pagina non trovata o errore di rete.`);\n                    }\n                    const data = await response.json();\n                    let summary = data.extract_html;\n                    if (!summary) {\n                        summary = `Non ho trovato un riassunto per \"${term}\". Prova con un altro termine.`;\n                        addMessage(summary, 'ai');\n                    } else {\n                        const pageUrl = data.content_urls.desktop.page;\n                        summary += `<br><br><a href=\"${pageUrl}\" target=\"_blank\">Leggi di più su Wikipedia</a>`;\n                        addMessage(summary, 'ai', true); // Pass true for isHTML\n                    }\n                } catch (error) {\n                    console.error('Errore API Wikipedia:', error);\n                    addMessage(`Mi dispiace, c'è stato un problema nel recuperare le informazioni da Wikipedia per \"${term}\".`, 'ai');\n                } finally {\n                    typingIndicator.style.display = 'none';\n                    saveChatHistory();\n                }\n            };\n\n            sendButton.addEventListener('click', handleUserInput);\n            userInput.addEventListener('keydown', (e) => {\n                if (e.key === 'Enter' && !e.shiftKey) {\n                    e.preventDefault();\n                    handleUserInput();\n                }\n            });\n\n            userInput.addEventListener('input', () => {\n                userInput.style.height = 'auto';\n                userInput.style.height = (userInput.scrollHeight) + 'px';\n            });\n\n            themeToggleButton.addEventListener('click', () => {\n                const currentTheme = document.documentElement.getAttribute('data-theme');\n                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';\n                document.documentElement.setAttribute('data-theme', newTheme);\n                saveTheme(newTheme);\n            });\n\n            loadTheme();\n            loadChatHistory();\n        });\n    </script>\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorel Axun</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        :root {
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            
+            /* Light Theme */
+            --light-bg-color: #f0f2f5;
+            --light-text-color: #1c1e21;
+            --light-container-bg: #ffffff;
+            --light-header-bg: #f0f2f5;
+            --light-input-bg: #f0f2f5;
+            --light-input-text: #050505;
+            --light-button-bg: #007bff;
+            --light-button-text: #ffffff;
+            --light-user-msg-bg: #0084ff;
+            --light-user-msg-text: #ffffff;
+            --light-ai-msg-bg: #e4e6eb;
+            --light-ai-msg-text: #050505;
+            --light-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --light-border-color: #ced0d4;
+            --light-code-bg: #f5f5f5;
+            --light-code-text: #333;
+
+            /* Dark Theme */
+            --dark-bg-color: #121212;
+            --dark-text-color: #e4e6eb;
+            --dark-container-bg: #1e1e1e;
+            --dark-header-bg: #2d2d2d;
+            --dark-input-bg: #2d2d2d;
+            --dark-input-text: #e4e6eb;
+            --dark-button-bg: #007bff;
+            --dark-button-text: #ffffff;
+            --dark-user-msg-bg: #007bff;
+            --dark-user-msg-text: #ffffff;
+            --dark-ai-msg-bg: #3a3b3c;
+            --dark-ai-msg-text: #e4e6eb;
+            --dark-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            --dark-border-color: #3e4042;
+            --dark-code-bg: #282c34;
+            --dark-code-text: #abb2bf;
+        }
+
+        html[data-theme='light'] {
+            --bg-color: var(--light-bg-color);
+            --text-color: var(--light-text-color);
+            --container-bg: var(--light-container-bg);
+            --header-bg: var(--light-header-bg);
+            --input-bg: var(--light-input-bg);
+            --input-text: var(--light-input-text);
+            --button-bg: var(--light-button-bg);
+            --button-text: var(--light-button-text);
+            --user-msg-bg: var(--light-user-msg-bg);
+            --user-msg-text: var(--light-user-msg-text);
+            --ai-msg-bg: var(--light-ai-msg-bg);
+            --ai-msg-text: var(--light-ai-msg-text);
+            --shadow: var(--light-shadow);
+            --border-color: var(--light-border-color);
+            --code-bg: var(--light-code-bg);
+            --code-text: var(--light-code-text);
+        }
+
+        html[data-theme='dark'] {
+            --bg-color: var(--dark-bg-color);
+            --text-color: var(--dark-text-color);
+            --container-bg: var(--dark-container-bg);
+            --header-bg: var(--dark-header-bg);
+            --input-bg: var(--dark-input-bg);
+            --input-text: var(--dark-input-text);
+            --button-bg: var(--dark-button-bg);
+            --button-text: var(--dark-button-text);
+            --user-msg-bg: var(--dark-user-msg-bg);
+            --user-msg-text: var(--dark-user-msg-text);
+            --ai-msg-bg: var(--dark-ai-msg-bg);
+            --ai-msg-text: var(--dark-ai-msg-text);
+            --shadow: var(--dark-shadow);
+            --border-color: var(--dark-border-color);
+            --code-bg: var(--dark-code-bg);
+            --code-text: var(--dark-code-text);
+        }
+
+        body {
+            font-family: var(--font-family);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-color);
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            transition: background-color 0.3s ease;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 90vh;
+            max-height: 900px;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--container-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .chat-header {
+            padding: 1rem;
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s ease, border-bottom 0.3s ease;
+        }
+
+        .chat-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        #theme-toggle-button {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        #theme-toggle-button:hover {
+            background-color: var(--ai-msg-bg);
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message .bubble {
+            max-width: 75%;
+            padding: 0.75rem 1rem;
+            border-radius: 18px;
+            line-height: 1.5;
+        }
+
+        .message.user {
+            align-items: flex-end;
+        }
+
+        .message.user .bubble {
+            background-color: var(--user-msg-bg);
+            color: var(--user-msg-text);
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            align-items: flex-start;
+        }
+
+        .message.ai .bubble {
+            background-color: var(--ai-msg-bg);
+            color: var(--ai-msg-text);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message .bubble p:last-child {
+            margin-bottom: 0;
+        }
+        .message .bubble p:first-child {
+            margin-top: 0;
+        }
+
+        .message .bubble pre {
+            background-color: var(--code-bg);
+            color: var(--code-text);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .message .bubble pre code {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+        }
+        
+        .copy-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #555;
+            color: white;
+            border: none;
+            padding: 5px 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .message .bubble pre:hover .copy-button {
+            opacity: 1;
+        }
+
+        .copy-button:hover {
+            background-color: #777;
+        }
+
+        .typing-indicator {
+            padding: 0 1rem 1rem 1rem;
+            display: none;
+            align-items: center;
+        }
+
+        .typing-indicator span {
+            height: 10px;
+            width: 10px;
+            margin: 0 2px;
+            background-color: var(--ai-msg-bg);
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+
+        .chat-input {
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.5rem;
+            transition: border-top 0.3s ease;
+        }
+
+        #user-input {
+            flex-grow: 1;
+            padding: 0.75rem;
+            border-radius: 18px;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            color: var(--input-text);
+            font-family: var(--font-family);
+            font-size: 1rem;
+            resize: none;
+            max-height: 100px;
+            overflow-y: auto;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        #user-input:focus {
+            outline: none;
+            border-color: var(--button-bg);
+        }
+
+        #send-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 18px;
+            border: none;
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        #send-button:hover {
+            opacity: 0.9;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <header class="chat-header">
+            <h1>Lorel Axun</h1>
+            <button id="theme-toggle-button">Cambia Tema</button>
+        </header>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="typing-indicator" id="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="chat-input">
+            <textarea id="user-input" placeholder="Scrivi un messaggio..." rows="1"></textarea>
+            <button id="send-button">Invia</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            const typingIndicator = document.getElementById('typing-indicator');
+            const themeToggleButton = document.getElementById('theme-toggle-button');
+
+            let chatHistory = JSON.parse(localStorage.getItem('lorel_axun_chat_history')) || [];
+
+            // Theme management
+            const applyTheme = (theme) => {
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('lorel_axun_theme', theme);
+                themeToggleButton.textContent = theme === 'dark' ? 'Tema Chiaro' : 'Tema Scuro';
+            };
+
+            themeToggleButton.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                applyTheme(newTheme);
+            });
+
+            const savedTheme = localStorage.getItem('lorel_axun_theme') || 'dark';
+            applyTheme(savedTheme);
+
+            // Chat functionality
+            const saveChatHistory = () => {
+                localStorage.setItem('lorel_axun_chat_history', JSON.stringify(chatHistory));
+            };
+
+            const addMessage = (sender, text) => {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', sender);
+
+                const bubbleElement = document.createElement('div');
+                bubbleElement.classList.add('bubble');
+                
+                const parsedContent = marked.parse(text);
+                bubbleElement.innerHTML = parsedContent;
+
+                messageElement.appendChild(bubbleElement);
+                chatMessages.appendChild(messageElement);
+                
+                // Add copy button to code blocks
+                bubbleElement.querySelectorAll('pre').forEach(pre => {
+                    const code = pre.querySelector('code');
+                    const copyButton = document.createElement('button');
+                    copyButton.className = 'copy-button';
+                    copyButton.textContent = 'Copia';
+                    copyButton.addEventListener('click', () => {
+                        navigator.clipboard.writeText(code.innerText).then(() => {
+                            copyButton.textContent = 'Copiato!';
+                            setTimeout(() => { copyButton.textContent = 'Copia'; }, 2000);
+                        });
+                    });
+                    pre.appendChild(copyButton);
+                });
+
+                // Apply syntax highlighting
+                bubbleElement.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+
+                scrollToBottom();
+            };
+
+            const scrollToBottom = () => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            };
+
+            const handleUserInput = async () => {
+                const userInputText = userInput.value.trim();
+                if (userInputText === '') return;
+
+                addMessage('user', userInputText);
+                chatHistory.push({ sender: 'user', text: userInputText });
+                saveChatHistory();
+
+                userInput.value = '';
+                userInput.style.height = 'auto';
+
+                await getAiResponse(userInputText);
+            };
+
+            const getAiResponse = async (userInputText) => {
+                typingIndicator.style.display = 'flex';
+                scrollToBottom();
+
+                let aiResponseText = '';
+
+                if (userInputText.toLowerCase().startsWith('wiki:')) {
+                    const query = userInputText.substring(5).trim();
+                    if (query) {
+                        try {
+                            const response = await fetch(`https://it.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`);
+                            if (response.ok) {
+                                const data = await response.json();
+                                const summary = data.extract_html || 'Nessun riassunto trovato.';
+                                const fullUrl = data.content_urls.desktop.page;
+                                aiResponseText = `${summary}<p>Puoi leggere l'articolo completo <a href="${fullUrl}" target="_blank">qui</a>.</p>`;
+                            } else {
+                                aiResponseText = `Non sono riuscita a trovare una pagina Wikipedia per "${query}". Prova con un altro termine.`;
+                            }
+                        } catch (error) {
+                            console.error('Wikipedia API error:', error);
+                            aiResponseText = 'C\'è stato un problema nel contattare Wikipedia. Riprova più tardi.';
+                        }
+                    } else {
+                        aiResponseText = 'Per favore, specifica un termine da cercare su Wikipedia dopo `wiki:`.';
+                    }
+                } else if (userInputText.toLowerCase().startsWith('news:')) {
+                    const NEWS_API_KEY = 'INSERISCI_LA_TUA_CHIAVE_API_QUI'; // Sostituisci con la tua chiave API da newsapi.org
+                    const url = `https://newsapi.org/v2/top-headlines?country=it&apiKey=${NEWS_API_KEY}`;
+
+                    if (NEWS_API_KEY === 'INSERISCI_LA_TUA_CHIAVE_API_QUI') {
+                        aiResponseText = 'La funzionalità notizie è configurata, ma manca una chiave API valida. Lo sviluppatore deve inserirne una nel file `index.html`.';
+                    } else {
+                        try {
+                            const response = await fetch(url);
+                            const data = await response.json();
+                            if (data.status === 'ok' && data.articles.length > 0) {
+                                let newsList = '### Ultime Notizie\n\n';
+                                data.articles.slice(0, 5).forEach((article, index) => {
+                                    newsList += `${index + 1}. [${article.title}](${article.url})\n`;
+                                });
+                                aiResponseText = newsList;
+                            } else {
+                                aiResponseText = `Non sono riuscita a recuperare le notizie. L'API potrebbe aver risposto con un errore: ${data.message || 'Nessun dettaglio'}`;
+                            }
+                        } catch (error) {
+                            console.error('News API error:', error);
+                            aiResponseText = 'C\'è stato un problema nel contattare il servizio di notizie. Riprova più tardi.';
+                        }
+                    }
+                } else {
+                    // Simulated AI response for other messages
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    aiResponseText = `Questa è una risposta simulata. La vera logica AI risiede nel backend (evolve.py). Hai scritto: "${userInputText}"`;
+                }
+
+                typingIndicator.style.display = 'none';
+                addMessage('ai', aiResponseText);
+                chatHistory.push({ sender: 'ai', text: aiResponseText });
+                saveChatHistory();
+            };
+
+            sendButton.addEventListener('click', handleUserInput);
+            userInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleUserInput();
+                }
+            });
+
+            userInput.addEventListener('input', () => {
+                userInput.style.height = 'auto';
+                userInput.style.height = (userInput.scrollHeight) + 'px';
+            });
+
+            // Load chat history
+            chatHistory.forEach(message => addMessage(message.sender, message.text));
+
+            if (chatHistory.length === 0) {
+                const welcomeMessage = 'Ciao! Sono Lorel Axun. Puoi formattare i messaggi usando Markdown e inserire blocchi di codice. Prova a chiedermi qualcosa su Wikipedia con `wiki: argomento`. Puoi anche chiedere le ultime notizie con `news:`.';
+                addMessage('ai', welcomeMessage);
+                chatHistory.push({ sender: 'ai', text: welcomeMessage });
+                saveChatHistory();
+            }
+        });
+    </script>
+</body>
+</html>
