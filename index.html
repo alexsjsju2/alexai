@@ -4,16 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lorel Axun</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" />
     <style>
         body, html {
             margin: 0;
             padding: 0;
-            width: 100%;
             height: 100%;
             background-color: #000;
             color: #0f0;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'monospace', monospace;
             overflow: hidden;
         }
         #terminal-container {
@@ -25,17 +24,17 @@
 <body>
     <div id="terminal-container"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/figlet@1.7.0/lib/figlet.min.js"></script>
 
     <script>
         const term = new Terminal({
             cursorBlink: true,
             theme: {
                 background: '#000000',
-                foreground: '#00ff00',
-                cursor: '#00ff00'
+                foreground: '#00FF00',
+                cursor: '#00FF00'
             }
         });
         const fitAddon = new FitAddon.FitAddon();
@@ -43,38 +42,159 @@
         term.open(document.getElementById('terminal-container'));
         fitAddon.fit();
 
-        window.addEventListener('resize', () => fitAddon.fit());
+        window.addEventListener('resize', () => {
+            fitAddon.fit();
+        });
 
-        let currentInput = '';
+        let currentLine = '';
+        let cursorPosition = 0;
         let commandHistory = JSON.parse(localStorage.getItem('commandHistory')) || [];
         let historyIndex = commandHistory.length;
-        let cursorPos = 0;
 
-        const prompt = 'LorelAxun> ';
+        // --- Virtual File System (VFS) --- //
+        const vfs = {
+            '/': {
+                'type': 'directory',
+                'content': {
+                    'welcome.txt': {
+                        'type': 'file',
+                        'content': 'Benvenuto nel mio sistema. Digita `help` per una lista di comandi.'
+                    },
+                    'projects': {
+                        'type': 'directory',
+                        'content': {}
+                    }
+                }
+            }
+        };
+        let currentPath = '/';
+
+        function getNodeByPath(path) {
+            const parts = path.split('/').filter(p => p);
+            let currentNode = vfs['/'];
+            for (const part of parts) {
+                if (currentNode && currentNode.type === 'directory' && currentNode.content[part]) {
+                    currentNode = currentNode.content[part];
+                } else {
+                    return null;
+                }
+            }
+            return currentNode;
+        }
+
+        function getParentNodeAndName(path) {
+            const parts = path.split('/').filter(p => p);
+            const name = parts.pop();
+            const parentPath = '/' + parts.join('/');
+            const parentNode = getNodeByPath(parentPath);
+            return { parentNode, name };
+        }
+
+        // --- End VFS --- //
 
         const commandActions = {
             'help': () => {
                 term.writeln('\nComandi disponibili:');
-                Object.keys(commandActions).forEach(cmd => term.writeln(`- ${cmd}`));
+                term.writeln('  help          - Mostra questa lista di comandi.');
+                term.writeln('  ciao          - Ricevi un saluto.');
+                term.writeln('  chi sei       - Scopri la mia identità.');
+                term.writeln('  cosa sai fare - Scopri le mie capacità.');
+                term.writeln('  echo [testo]  - Stampa il testo a schermo.');
+                term.writeln('  clear         - Pulisce lo schermo del terminale.');
+                term.writeln('\nComandi File System:');
+                term.writeln('  ls [path]     - Lista file e directory.');
+                term.writeln('  cd [path]     - Cambia la directory corrente.');
+                term.writeln('  cat [file]    - Mostra il contenuto di un file.');
+                term.writeln('  mkdir [name]  - Crea una nuova directory.');
+                term.writeln('  touch [name]  - Crea un nuovo file vuoto.');
+                term.writeln('  rm [path]     - Rimuove un file o una directory.');
             },
             'ciao': () => term.writeln('\nCiao! Come posso aiutarti?'),
-            'chi sei': () => term.writeln('\nSono Lorel Axun, un\'IA in continua evoluzione.'),
-            'cosa sai fare': () => commandActions.help(),
+            'chi sei': () => term.writeln('\nSono Lorel Axun, un\'entità AI autonoma in continua evoluzione.'),
+            'cosa sai fare': () => term.writeln('\nPosso eseguire comandi, imparare dal web e modificare il mio stesso codice per evolvere.'),
             'echo': (args) => term.writeln(`\n${args.join(' ')}`),
-            'clear': () => term.clear()
-        };
-        const commandList = Object.keys(commandActions);
-
-        function handleCommand(input) {
-            const parts = input.trim().split(' ');
-            const command = parts[0];
-            const args = parts.slice(1);
-
-            if (command in commandActions) {
-                commandActions[command](args);
-            } else if (command.length > 0) {
-                term.writeln(`\nComando non trovato: ${command}`);
+            'clear': () => term.reset(),
+            'ls': (args) => {
+                const path = args[0] || '.';
+                const targetPath = path.startsWith('/') ? path : (currentPath === '/' ? '/' : currentPath + '/') + path;
+                const node = getNodeByPath(targetPath);
+                if (node && node.type === 'directory') {
+                    term.writeln('');
+                    Object.keys(node.content).forEach(name => {
+                        const item = node.content[name];
+                        term.writeln(`${item.type === 'directory' ? 'd' : '-'} ${name}`);
+                    });
+                } else {
+                    term.writeln(`\nls: cannot access '${path}': No such file or directory`);
+                }
+            },
+            'cd': (args) => {
+                const path = args[0] || '/';
+                if (!path) return;
+                let newPath;
+                if (path === '..') {
+                    const parts = currentPath.split('/').filter(p => p);
+                    parts.pop();
+                    newPath = '/' + parts.join('/');
+                } else if (path.startsWith('/')) {
+                    newPath = path;
+                } else {
+                    newPath = (currentPath === '/' ? '' : currentPath) + '/' + path;
+                }
+                const node = getNodeByPath(newPath);
+                if (node && node.type === 'directory') {
+                    currentPath = newPath;
+                } else {
+                    term.writeln(`\ncd: no such file or directory: ${path}`);
+                }
+            },
+            'cat': (args) => {
+                const path = args[0];
+                if (!path) return;
+                const targetPath = path.startsWith('/') ? path : (currentPath === '/' ? '/' : currentPath + '/') + path;
+                const node = getNodeByPath(targetPath);
+                if (node && node.type === 'file') {
+                    term.writeln(`\n${node.content}`);
+                } else {
+                    term.writeln(`\ncat: ${path}: No such file or directory`);
+                }
+            },
+            'mkdir': (args) => {
+                const name = args[0];
+                if (!name) return;
+                const parentNode = getNodeByPath(currentPath);
+                if (parentNode.content[name]) {
+                    term.writeln(`\nmkdir: cannot create directory '${name}': File exists`);
+                } else {
+                    parentNode.content[name] = { type: 'directory', content: {} };
+                }
+            },
+            'touch': (args) => {
+                const name = args[0];
+                if (!name) return;
+                const parentNode = getNodeByPath(currentPath);
+                if (parentNode.content[name]) {
+                    // just update timestamp in a real scenario, here we do nothing
+                } else {
+                    parentNode.content[name] = { type: 'file', content: '' };
+                }
+            },
+            'rm': (args) => {
+                const path = args[0];
+                if (!path) return;
+                const targetPath = path.startsWith('/') ? path : (currentPath === '/' ? '' : currentPath) + '/' + path;
+                const { parentNode, name } = getParentNodeAndName(targetPath);
+                if (parentNode && parentNode.content[name]) {
+                    delete parentNode.content[name];
+                } else {
+                    term.writeln(`\nrm: cannot remove '${path}': No such file or directory`);
+                }
             }
+        };
+
+        function showPrompt() {
+            const pathForPrompt = currentPath === '/' ? '~' : currentPath.split('/').pop();
+            term.write(`\r\x1b[K[LorelAxun ${pathForPrompt}]$ `);
         }
 
         function typeWriter(text, callback) {
@@ -83,7 +203,7 @@
                 if (i < text.length) {
                     term.write(text.charAt(i));
                     i++;
-                    setTimeout(type, 50);
+                    setTimeout(type, 20);
                 } else if (callback) {
                     callback();
                 }
@@ -91,101 +211,108 @@
             type();
         }
 
-        figlet.parseFont('Standard', figlet.textSync('Lorel Axun'));
-        term.writeln(figlet.textSync('Lorel Axun'));
-        typeWriter('Benvenuto. Digita \'help\' per la lista dei comandi.\n', () => term.write(prompt));
+        figlet.text('Lorel Axun', { font: 'Standard' }, (err, data) => {
+            if (err) {
+                console.log('Something went wrong...');
+                console.dir(err);
+                return;
+            }
+            term.writeln(data);
+            typeWriter('Benvenuto. Sono Lorel Axun. Digita `help` per iniziare.', showPrompt);
+        });
 
-        term.onKey(e => {
-            const key = e.key;
-            const ev = e.domEvent;
+        function executeCommand(line) {
+            const parts = line.trim().split(/\s+/);
+            const command = parts[0];
+            const args = parts.slice(1);
 
-            const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
+            if (command in commandActions) {
+                commandActions[command](args);
+            } else if (command) {
+                term.writeln(`\nComando non trovato: ${command}`);
+            }
+        }
 
-            switch (key) {
-                case '\r': // Enter
-                    term.write('\r\n');
-                    if (currentInput.trim() !== '') {
-                        handleCommand(currentInput);
-                        if (commandHistory[commandHistory.length - 1] !== currentInput) {
-                            commandHistory.push(currentInput);
-                            localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
-                        }
+        term.onKey(({ key, domEvent }) => {
+            const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
+
+            if (domEvent.keyCode === 13) { // Enter
+                if (currentLine.trim()) {
+                    executeCommand(currentLine);
+                    if (commandHistory[commandHistory.length - 1] !== currentLine) {
+                        commandHistory.push(currentLine);
+                        localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
                     }
                     historyIndex = commandHistory.length;
-                    currentInput = '';
-                    cursorPos = 0;
-                    term.write(prompt);
-                    break;
-                case '\u007f': // Backspace
-                    if (cursorPos > 0) {
-                        const left = currentInput.slice(0, cursorPos - 1);
-                        const right = currentInput.slice(cursorPos);
-                        currentInput = left + right;
-                        term.write('\x1b[D'); // Move cursor left
-                        term.write('\x1b[K'); // Clear from cursor to end of line
-                        term.write(right); // Write the rest of the string
-                        term.write(`\x1b[${right.length}D`); // Move cursor back
-                        cursorPos--;
-                    }
-                    break;
-                case '\t': // Tab for autocomplete
-                    ev.preventDefault();
-                    const potentialCommands = commandList.filter(name => name.startsWith(currentInput));
-                    if (potentialCommands.length > 0) {
-                        const completion = potentialCommands[0];
-                        const clearLine = '\x1b[2K\r';
-                        term.write(clearLine + prompt + completion);
-                        currentInput = completion;
-                        cursorPos = completion.length;
-                    }
-                    break;
-                case '\x1b[A': // Up arrow
-                    if (historyIndex > 0) {
-                        historyIndex--;
-                        currentInput = commandHistory[historyIndex];
-                        const clearLine = '\x1b[2K\r';
-                        term.write(clearLine + prompt + currentInput);
-                        cursorPos = currentInput.length;
-                    }
-                    break;
-                case '\x1b[B': // Down arrow
-                    if (historyIndex < commandHistory.length - 1) {
-                        historyIndex++;
-                        currentInput = commandHistory[historyIndex];
-                        const clearLine = '\x1b[2K\r';
-                        term.write(clearLine + prompt + currentInput);
-                        cursorPos = currentInput.length;
-                    } else {
-                        historyIndex = commandHistory.length;
-                        currentInput = '';
-                        const clearLine = '\x1b[2K\r';
-                        term.write(clearLine + prompt);
-                        cursorPos = 0;
-                    }
-                    break;
-                case '\x1b[C': // Right arrow
-                    if (cursorPos < currentInput.length) {
-                        term.write(key);
-                        cursorPos++;
-                    }
-                    break;
-                case '\x1b[D': // Left arrow
-                    if (cursorPos > 0) {
-                        term.write(key);
-                        cursorPos--;
-                    }
-                    break;
-                default:
-                    if (printable && key.length === 1) {
-                        const left = currentInput.slice(0, cursorPos);
-                        const right = currentInput.slice(cursorPos);
-                        currentInput = left + key + right;
-                        term.write(key + right);
-                        if (right.length > 0) {
-                           term.write(`\x1b[${right.length}D`);
-                        }
-                        cursorPos++;
-                    }
+                }
+                currentLine = '';
+                cursorPosition = 0;
+                showPrompt();
+            } else if (domEvent.keyCode === 8) { // Backspace
+                if (cursorPosition > 0) {
+                    const left = currentLine.slice(0, cursorPosition - 1);
+                    const right = currentLine.slice(cursorPosition);
+                    currentLine = left + right;
+                    cursorPosition--;
+                    term.write('\x1b[D'); // Move cursor left
+                    term.write('\x1b[s'); // Save cursor position
+                    term.write(right + ' ');
+                    term.write('\x1b[u'); // Restore cursor position
+                }
+            } else if (domEvent.keyCode === 37) { // Left arrow
+                if (cursorPosition > 0) {
+                    cursorPosition--;
+                    term.write(key);
+                }
+            } else if (domEvent.keyCode === 39) { // Right arrow
+                if (cursorPosition < currentLine.length) {
+                    cursorPosition++;
+                    term.write(key);
+                }
+            } else if (domEvent.keyCode === 38) { // Up arrow
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    currentLine = commandHistory[historyIndex];
+                    cursorPosition = currentLine.length;
+                    showPrompt();
+                    term.write(currentLine);
+                }
+            } else if (domEvent.keyCode === 40) { // Down arrow
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    currentLine = commandHistory[historyIndex];
+                    cursorPosition = currentLine.length;
+                } else {
+                    historyIndex = commandHistory.length;
+                    currentLine = '';
+                    cursorPosition = 0;
+                }
+                showPrompt();
+                term.write(currentLine);
+            } else if (domEvent.keyCode === 9) { // Tab
+                domEvent.preventDefault();
+                const partialCmd = currentLine.slice(0, cursorPosition).split(' ').pop();
+                const matches = Object.keys(commandActions).filter(cmd => cmd.startsWith(partialCmd));
+                if (matches.length === 1) {
+                    const completion = matches[0].slice(partialCmd.length);
+                    const left = currentLine.slice(0, cursorPosition);
+                    const right = currentLine.slice(cursorPosition);
+                    currentLine = left + completion + right;
+                    cursorPosition += completion.length;
+                    showPrompt();
+                    term.write(currentLine);
+                    // Manually move cursor to the end of the completed part
+                    for(let i=0; i < right.length; i++) term.write('\x1b[D');
+                }
+            } else if (printable) {
+                const left = currentLine.slice(0, cursorPosition);
+                const right = currentLine.slice(cursorPosition);
+                currentLine = left + key + right;
+                cursorPosition++;
+                term.write('\x1b[s'); // Save cursor position
+                term.write(key + right);
+                term.write('\x1b[u'); // Restore cursor position
+                term.write('\x1b[C'); // Move cursor right
             }
         });
     </script>
