@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lorel Axun</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
     <style>
         body, html {
             margin: 0;
             padding: 0;
             height: 100%;
             background-color: #000;
-            color: #0f0;
+            color: #0F0;
             font-family: 'Courier New', Courier, monospace;
         }
         #terminal-container {
@@ -23,17 +23,17 @@
 <body>
     <div id="terminal-container"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/figlet@1.7.0/lib/figlet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js"></script>
 
     <script>
         const term = new Terminal({
             cursorBlink: true,
             theme: {
                 background: '#000000',
-                foreground: '#00ff00',
-                cursor: '#00ff00'
+                foreground: '#00FF00',
+                cursor: '#00FF00'
             }
         });
         const fitAddon = new FitAddon.FitAddon();
@@ -41,28 +41,37 @@
         term.open(document.getElementById('terminal-container'));
         fitAddon.fit();
 
-        window.addEventListener('resize', () => fitAddon.fit());
+        window.addEventListener('resize', () => {
+            fitAddon.fit();
+        });
 
-        let currentLine = '';
-        const prompt = '$ ';
+        const prompt = '\n$ ';
+        let currentInput = '';
         let commandHistory = JSON.parse(localStorage.getItem('commandHistory')) || [];
         let historyIndex = commandHistory.length;
 
         const commands = {
             'help': () => {
-                term.writeln('\r\nComandi disponibili:');
-                term.writeln('  help         - Mostra questo messaggio di aiuto.');
-                term.writeln('  ciao         - Ricevi un saluto.');
-                term.writeln('  chi sei      - Scopri chi sono.');
-                term.writeln('  cosa sai fare - Scopri le mie capacità.');
-                term.writeln('  echo [testo] - Ripeto quello che scrivi.');
-                term.writeln('  clear        - Pulisce lo schermo.');
+                term.writeln('Comandi disponibili:');
+                Object.keys(commands).forEach(command => {
+                    term.writeln(`  ${command}`);
+                });
             },
-            'ciao': () => term.writeln('\r\nCiao! Come posso aiutarti?'),
-            'chi sei': () => term.writeln('\r\nSono Lorel Axun, un\'entità digitale in continua evoluzione.'),
-            'cosa sai fare': () => term.writeln('\r\nPosso eseguire comandi, imparare dal web e modificare me stessa.'),
-            'echo': (args) => term.writeln(`\r\n${args.join(' ')}`),
-            'clear': () => term.clear()
+            'ciao': () => {
+                term.writeln('Ciao! Come posso aiutarti?');
+            },
+            'chi sei': () => {
+                term.writeln('Sono Lorel Axun, un\'entità digitale in continua evoluzione.');
+            },
+            'cosa sai fare': () => {
+                term.writeln('Apprendo, mi evolvo e interagisco. Prova il comando \'help\' per vedere cosa posso fare.');
+            },
+            'echo': (args) => {
+                term.writeln(args.join(' '));
+            },
+            'clear': () => {
+                term.clear();
+            }
         };
 
         function typewriterEffect(text, callback) {
@@ -71,7 +80,7 @@
                 if (i < text.length) {
                     term.write(text.charAt(i));
                     i++;
-                    setTimeout(type, 50);
+                    setTimeout(type, 25);
                 } else if (callback) {
                     callback();
                 }
@@ -79,86 +88,78 @@
             type();
         }
 
-        function showBanner() {
-            figlet.text('Lorel Axun', { font: 'Standard' }, (err, data) => {
+        function showWelcomeMessage() {
+            figlet.text('Lorel Axun', {
+                font: 'Standard',
+                horizontalLayout: 'default',
+                verticalLayout: 'default'
+            }, function(err, data) {
                 if (err) {
-                    term.writeln('Lorel Axun');
+                    console.log('Qualcosa è andato storto...');
+                    console.dir(err);
+                    term.writeln('Lorel Axun'); // Fallback
                     return;
                 }
                 term.writeln(data);
-                term.writeln('');
-                typewriterEffect("Benvenuto. Digita 'help' per iniziare.", () => {
-                    term.write(`\r\n${prompt}`);
-                });
+                const welcomeText = 'Benvenuto. Digita \'help\' per iniziare.';
+                typewriterEffect(welcomeText, () => term.write(prompt));
             });
         }
 
         function processCommand() {
-            const trimmedLine = currentLine.trim();
-            if (trimmedLine) {
-                if (commandHistory[commandHistory.length - 1] !== trimmedLine) {
-                    commandHistory.push(trimmedLine);
+            const trimmedInput = currentInput.trim();
+            if (trimmedInput) {
+                if (commandHistory[commandHistory.length - 1] !== trimmedInput) {
+                    commandHistory.push(trimmedInput);
+                    localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
                 }
-                localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
                 historyIndex = commandHistory.length;
 
-                const [command, ...args] = trimmedLine.split(/\s+/);
+                const [command, ...args] = trimmedInput.split(/\s+/);
                 if (commands[command]) {
+                    term.writeln('');
                     commands[command](args);
                 } else {
-                    term.writeln(`\r\nComando non trovato: ${command}`);
+                    term.writeln(`\nComando non trovato: ${command}`);
                 }
             }
-            term.write(`\r\n${prompt}`);
-            currentLine = '';
+            currentInput = '';
+            term.write(prompt);
         }
 
         term.onKey(({ key, domEvent }) => {
             const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
 
-            switch (domEvent.key) {
-                case 'Enter':
-                    processCommand();
-                    break;
-                case 'Backspace':
-                    // Nota: una ricerca ha rivelato un potenziale bug su Android Chrome
-                    // dove il backspace potrebbe navigare la cronologia invece di cancellare.
-                    // La nostra logica qui è corretta, ma il problema potrebbe essere a livello di xterm.js o del browser.
-                    if (currentLine.length > 0) {
-                        term.write('\b \b');
-                        currentLine = currentLine.slice(0, -1);
-                    }
-                    break;
-                case 'ArrowUp':
-                    if (historyIndex > 0) {
-                        historyIndex--;
-                        term.write(`\r${prompt}` + ' '.repeat(currentLine.length)); // Clear current line
-                        currentLine = commandHistory[historyIndex];
-                        term.write(`\r${prompt}${currentLine}`);
-                    }
-                    break;
-                case 'ArrowDown':
-                    if (historyIndex < commandHistory.length -1) {
-                        historyIndex++;
-                        term.write(`\r${prompt}` + ' '.repeat(currentLine.length));
-                        currentLine = commandHistory[historyIndex];
-                        term.write(`\r${prompt}${currentLine}`);
-                    } else {
-                        historyIndex = commandHistory.length;
-                        term.write(`\r${prompt}` + ' '.repeat(currentLine.length));
-                        currentLine = '';
-                        term.write(`\r${prompt}`);
-                    }
-                    break;
-                default:
-                    if (printable) {
-                        currentLine += key;
-                        term.write(key);
-                    }
+            if (domEvent.keyCode === 13) { // Enter
+                processCommand();
+            } else if (domEvent.keyCode === 8) { // Backspace
+                if (currentInput.length > 0) {
+                    term.write('\b \b');
+                    currentInput = currentInput.slice(0, -1);
+                }
+            } else if (domEvent.keyCode === 38) { // ArrowUp
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    term.write('\x1b[2K\r' + prompt + commandHistory[historyIndex]);
+                    currentInput = commandHistory[historyIndex];
+                }
+            } else if (domEvent.keyCode === 40) { // ArrowDown
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    term.write('\x1b[2K\r' + prompt + commandHistory[historyIndex]);
+                    currentInput = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    term.write('\x1b[2K\r' + prompt);
+                    currentInput = '';
+                }
+            } else if (printable) {
+                currentInput += key;
+                term.write(key);
             }
         });
 
-        showBanner();
+        showWelcomeMessage();
     </script>
 </body>
 </html>
