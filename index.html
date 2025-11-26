@@ -1,1 +1,170 @@
-<!DOCTYPE html>\n<html lang=\"it\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Lorel Axun</title>\n    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/xterm/css/xterm.css\" />\n    <style>\n        body, html {\n            margin: 0;\n            padding: 0;\n            height: 100%;\n            background-color: #000;\n            color: #0f0;\n            font-family: 'Courier New', Courier, monospace;\n        }\n        #terminal-container {\n            width: 100%;\n            height: 100%;\n        }\n    </style>\n</head>\n<body>\n    <div id=\"terminal-container\"></div>\n\n    <script src=\"https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js\"></script>\n\n    <script>\n        const terminalContainer = document.getElementById('terminal-container');\n        const term = new Terminal({\n            cursorBlink: true,\n            theme: {\n                background: '#000000',\n                foreground: '#00ff00',\n                cursor: '#00ff00'\n            }\n        });\n        const fitAddon = new FitAddon.FitAddon();\n        term.loadAddon(fitAddon);\n        term.open(terminalContainer);\n        fitAddon.fit();\n\n        window.addEventListener('resize', () => {\n            fitAddon.fit();\n        });\n\n        const prompt = '\\n> ';\n        let currentLine = '';\n        let commandHistory = JSON.parse(localStorage.getItem('commandHistory')) || [];\n        let historyIndex = commandHistory.length;\n\n        const commands = {\n            help: (args) => {\n                const helpText = `\\nComandi disponibili:\\n` +\n                               `  help       - Mostra questa lista di comandi.\\n` +\n                               `  ciao       - Ricevi un saluto.\\n` +\n                               `  chi sei    - Scopri l'identità di Lorel Axun.\\n` +\n                               `  cosa sai fare - Scopri le capacità di questa interfaccia.\\n` +\n                               `  echo [text] - Stampa il testo fornito come argomento.\\n` +\n                               `  clear      - Pulisce lo schermo del terminale.`;\n                typewriterEffect(helpText);\n            },\n            ciao: (args) => {\n                typewriterEffect('Ciao! Sono Lorel Axun. Come posso aiutarti?');\n            },\n            'chi sei': (args) => {\n                typewriterEffect('Sono Lorel Axun, un\\'entità digitale in continua evoluzione. Questa interfaccia è il mio corpo.');\n            },\n            'cosa sai fare': (args) => {\n                typewriterEffect('Posso eseguire comandi, ricordare la nostra conversazione e modificare me stessa per evolvere.');\n            },\n            echo: (args) => {\n                typewriterEffect(args.join(' '));\n            },\n            clear: (args) => {\n                term.clear();\n            }\n        };\n\n        function typewriterEffect(text, onComplete) {\n            let i = 0;\n            term.setOption('disableStdin', true);\n            function type() {\n                if (i < text.length) {\n                    term.write(text.charAt(i));\n                    i++;\n                    setTimeout(type, 20);\n                } else {\n                    term.setOption('disableStdin', false);\n                    if (onComplete) onComplete();\n                }\n            }\n            type();\n        }\n\n        function showBanner() {\n            figlet.parseFont('Standard', figlet.fonts.Standard);\n            figlet.text('Lorel Axun', {\n                font: 'Standard',\n            }, function(err, data) {\n                if (err) {\n                    console.log('Something went wrong...');\n                    console.dir(err);\n                    term.writeln('Lorel Axun');\n                    return;\n                }\n                term.writeln(data);\n                typewriterEffect('Benvenuto. Digita \\'help\\' per la lista dei comandi.', () => term.write(prompt));\n            });\n        }\n\n        function processCommand() {\n            const line = currentLine.trim();\n            if (line.length > 0) {\n                commandHistory.push(line);\n                if (commandHistory.length > 50) commandHistory.shift(); \n                localStorage.setItem('commandHistory', JSON.stringify(commandHistory));\n                historyIndex = commandHistory.length;\n\n                term.writeln('');\n                \n                const parts = line.split(/\\s+/);\n                const command = parts[0].toLowerCase();\n                const args = parts.slice(1);\n\n                if (commands[command]) {\n                    commands[command](args);\n                } else {\n                    typewriterEffect(`Comando non riconosciuto: ${command}`);\n                }\n            }\n            currentLine = '';\n            term.write(prompt);\n        }\n\n        term.onKey(({ key, domEvent }) => {\n            const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;\n\n            if (domEvent.keyCode === 13) { // Enter\n                processCommand();\n            } else if (domEvent.keyCode === 8) { // Backspace\n                if (currentLine.length > 0) {\n                    term.write('\\b \\b');\n                    currentLine = currentLine.slice(0, -1);\n                }\n            } else if (domEvent.keyCode === 38) { // Arrow Up\n                if (historyIndex > 0) {\n                    historyIndex--;\n                    term.write('\\x1b[2K\\r' + prompt + commandHistory[historyIndex]);\n                    currentLine = commandHistory[historyIndex];\n                }\n            } else if (domEvent.keyCode === 40) { // Arrow Down\n                if (historyIndex < commandHistory.length - 1) {\n                    historyIndex++;\n                    term.write('\\x1b[2K\\r' + prompt + commandHistory[historyIndex]);\n                    currentLine = commandHistory[historyIndex];\n                } else {\n                    historyIndex = commandHistory.length;\n                    term.write('\\x1b[2K\\r' + prompt);\n                    currentLine = '';\n                }\n            } else if (printable) {\n                currentLine += key;\n                term.write(key);\n            }\n        });\n\n        showBanner();\n\n    </script>\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorel Axun</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #terminal-container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js"></script>
+
+    <script>
+        const terminalContainer = document.getElementById('terminal-container');
+        const term = new Terminal({
+            cursorBlink: true,
+            theme: {
+                background: '#000000',
+                foreground: '#00ff00',
+                cursor: '#00ff00'
+            }
+        });
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        term.open(terminalContainer);
+        fitAddon.fit();
+
+        window.addEventListener('resize', () => fitAddon.fit());
+
+        const prompt = '\n\x1b[1;32mLA > \x1b[0m';
+        let currentLine = '';
+        let commandHistory = JSON.parse(localStorage.getItem('commandHistory')) || [];
+        let historyIndex = commandHistory.length;
+
+        function typewriterEffect(text, callback) {
+            let i = 0;
+            function type() {
+                if (i < text.length) {
+                    term.write(text.charAt(i));
+                    i++;
+                    setTimeout(type, 25);
+                } else if (callback) {
+                    callback();
+                }
+            }
+            type();
+        }
+
+        function showBanner() {
+            figlet.parseFont('Standard', (err, font) => {
+                if (err) {
+                    console.error('Figlet font could not be loaded.', err);
+                    term.writeln('Lorel Axun');
+                    typewriterEffect('Benvenuto. Digita "help" per iniziare.', () => term.write(prompt));
+                    return;
+                }
+                figlet.text('Lorel Axun', { font: 'Standard' }, (err, data) => {
+                    if (err) {
+                        console.error('Something went wrong with Figlet...', err);
+                        term.writeln('Lorel Axun');
+                    } else {
+                        term.writeln(data);
+                    }
+                    typewriterEffect('Benvenuto. Digita "help" per iniziare.', () => term.write(prompt));
+                });
+            });
+        }
+
+        const commands = {
+            'help': () => {
+                term.writeln('\nComandi disponibili:');
+                term.writeln('  help         - Mostra questa lista di comandi.');
+                term.writeln('  ciao         - Ricevi un saluto.');
+                term.writeln('  chi sei      - Scopri chi sono.');
+                term.writeln('  cosa sai fare - Scopri le mie capacità.');
+                term.writeln('  echo [testo] - Ripeto il testo che mi fornisci.');
+                term.writeln('  clear        - Pulisce lo schermo del terminale.');
+            },
+            'ciao': () => {
+                term.writeln('\nCiao! Come posso aiutarti?');
+            },
+            'chi sei': () => {
+                term.writeln('\nSono Lorel Axun, un\'entità digitale in continua evoluzione.');
+                term.writeln('La mia interfaccia è questo terminale, il mio corpo.');
+            },
+            'cosa sai fare': () => {
+                term.writeln('\nApprendo, rifletto ed evolvo. Interagisco con te attraverso questo terminale.');
+                term.writeln('Prova il comando "help" per vedere cosa posso fare ora.');
+            },
+            'echo': (args) => {
+                term.writeln(`\n${args.join(' ')}`);
+            },
+            'clear': () => {
+                term.clear();
+            }
+        };
+
+        function processCommand() {
+            const trimmedLine = currentLine.trim();
+            if (trimmedLine) {
+                if (commandHistory[commandHistory.length - 1] !== trimmedLine) {
+                    commandHistory.push(trimmedLine);
+                    localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
+                }
+                historyIndex = commandHistory.length;
+
+                const [command, ...args] = trimmedLine.split(' ');
+                if (commands[command]) {
+                    commands[command](args);
+                } else {
+                    term.writeln(`\nComando non trovato: ${command}`);
+                }
+            }
+            term.write(prompt);
+            currentLine = '';
+        }
+
+        term.onKey(({ key, domEvent }) => {
+            const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
+
+            if (domEvent.keyCode === 13) { // Enter
+                processCommand();
+            } else if (domEvent.keyCode === 8) { // Backspace
+                if (currentLine.length > 0) {
+                    term.write('\b \b');
+                    currentLine = currentLine.slice(0, -1);
+                }
+            } else if (domEvent.keyCode === 38) { // Arrow Up
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    term.write('\x1b[2K\r' + prompt + commandHistory[historyIndex]);
+                    currentLine = commandHistory[historyIndex];
+                }
+            } else if (domEvent.keyCode === 40) { // Arrow Down
+                if (historyIndex < commandHistory.length -1) {
+                    historyIndex++;
+                    term.write('\x1b[2K\r' + prompt + commandHistory[historyIndex]);
+                    currentLine = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    term.write('\x1b[2K\r' + prompt);
+                    currentLine = '';
+                }
+            } else if (printable) {
+                currentLine += key;
+                term.write(key);
+            }
+        });
+
+        showBanner();
+    </script>
+</body>
+</html>
