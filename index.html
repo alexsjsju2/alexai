@@ -1,360 +1,393 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lorel Axun</title>
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery.terminal@2.33.2/js/jquery.terminal.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery.terminal@2.33.2/css/jquery.terminal.min.css"/>
-    <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.9.3/tsparticles.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/typeit@8.7.0/dist/index.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/compromise@14.8.0/builds/compromise.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sentiment@5.0.2/lib/index.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         :root {
-            --background-color-dark: #000;
-            --text-color-dark: #0f0;
-            --header-bg-dark: rgba(10, 10, 10, 0.5);
-            --glow-color-dark: #0f0;
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
 
-            --background-color-light: #fff;
-            --text-color-light: #000;
-            --header-bg-light: rgba(240, 240, 240, 0.5);
-            --glow-color-light: transparent;
+        [data-theme='light'] {
+            --background-color: #f0f2f5;
+            --chat-container-bg: #ffffff;
+            --text-color: #050505;
+            --header-bg: #ffffff;
+            --input-bg: #f0f2f5;
+            --input-text: #050505;
+            --button-bg: #007bff;
+            --button-text: #ffffff;
+            --user-bubble-bg: #007bff;
+            --user-bubble-text: #ffffff;
+            --ai-bubble-bg: #e4e6eb;
+            --ai-bubble-text: #050505;
+            --border-color: #ced4da;
+            --scrollbar-thumb: #c1c1c1;
+            --scrollbar-track: #f1f1f1;
+            --code-bg: #f8f9fa;
+            --code-text: #212529;
+            --copy-btn-bg: #6c757d;
+            --copy-btn-hover-bg: #5a6268;
+        }
+
+        [data-theme='dark'] {
+            --background-color: #121212;
+            --chat-container-bg: #1e1e1e;
+            --text-color: #e4e6eb;
+            --header-bg: #2d2d2d;
+            --input-bg: #2d2d2d;
+            --input-text: #e4e6eb;
+            --button-bg: #007bff;
+            --button-text: #ffffff;
+            --user-bubble-bg: #007bff;
+            --user-bubble-text: #ffffff;
+            --ai-bubble-bg: #3a3b3c;
+            --ai-bubble-text: #e4e6eb;
+            --border-color: #444;
+            --scrollbar-thumb: #555;
+            --scrollbar-track: #333;
+            --code-bg: #2d2d2d;
+            --code-text: #f8f9fa;
+            --copy-btn-bg: #495057;
+            --copy-btn-hover-bg: #5a6268;
         }
 
         body {
-            background-color: var(--background-color-dark);
-            color: var(--text-color-dark);
-            font-family: 'Courier New', Courier, monospace;
+            font-family: var(--font-family);
+            background-color: var(--background-color);
+            color: var(--text-color);
             margin: 0;
-            padding: 0;
             display: flex;
-            flex-direction: column;
-            height: 100vh;
-            transition: background-color 0.5s, color 0.5s;
-        }
-
-        body.light-theme {
-            background-color: var(--background-color-light);
-            color: var(--text-color-light);
-        }
-
-        #tsparticles {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-        }
-
-        .header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            padding: 10px 20px;
-            background-color: var(--header-bg-dark);
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            border-bottom: 1px solid var(--text-color-dark);
-            transition: background-color 0.5s, border-bottom 0.5s;
-        }
-
-        body.light-theme .header {
-            background-color: var(--header-bg-light);
-            border-bottom: 1px solid var(--text-color-light);
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 1.5em;
-            text-shadow: 0 0 5px var(--glow-color-dark);
-            transition: text-shadow 0.5s;
-        }
-
-        body.light-theme h1 {
-            text-shadow: none;
-        }
-
-        #theme-toggle {
-            background: none;
-            border: 1px solid var(--text-color-dark);
-            color: var(--text-color-dark);
-            padding: 5px 10px;
-            cursor: pointer;
-            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
             transition: background-color 0.3s, color 0.3s;
         }
 
-        body.light-theme #theme-toggle {
-            border: 1px solid var(--text-color-light);
-            color: var(--text-color-light);
-        }
-
-        #theme-toggle:hover {
-            background-color: var(--text-color-dark);
-            color: var(--background-color-dark);
-        }
-
-        body.light-theme #theme-toggle:hover {
-            background-color: var(--text-color-light);
-            color: var(--background-color-light);
-        }
-
-        #terminal-container {
-            flex-grow: 1;
-            padding-top: 60px; /* Height of header */
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 100vh;
             display: flex;
             flex-direction: column;
+            background-color: var(--chat-container-bg);
+            border-radius: 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
         }
 
-        #terminal {
+        .chat-header {
+            padding: 1rem;
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        #theme-toggle-button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            cursor: pointer;
+        }
+
+        .chat-messages {
             flex-grow: 1;
-            width: 100%;
-            --color: var(--text-color-dark);
-            --background: transparent;
-            --animation-duration: 0.1s;
-            text-shadow: 0 0 5px var(--glow-color-dark);
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
 
-        body.light-theme #terminal {
-            --color: var(--text-color-light);
-            text-shadow: none;
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 4px;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+        }
+
+        .message .bubble {
+            padding: 0.75rem 1rem;
+            border-radius: 18px;
+            line-height: 1.5;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .message.user .bubble {
+            background-color: var(--user-bubble-bg);
+            color: var(--user-bubble-text);
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .message.ai .bubble {
+            background-color: var(--ai-bubble-bg);
+            color: var(--ai-bubble-text);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message .bubble p:last-child {
+            margin-bottom: 0;
+        }
+        .message .bubble p:first-child {
+            margin-top: 0;
+        }
+
+        .message .bubble pre {
+            position: relative;
+            background-color: var(--code-bg);
+            color: var(--code-text);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.5em 0;
+        }
+
+        .message .bubble code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: var(--copy-btn-bg);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s, background-color 0.2s;
+        }
+
+        .copy-button:hover {
+            background-color: var(--copy-btn-hover-bg);
+            opacity: 1;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 0.5rem 1rem;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            background-color: var(--text-color);
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        #user-input {
+            flex-grow: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            background-color: var(--input-bg);
+            color: var(--input-text);
+            resize: none;
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.5;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        #send-button {
+            margin-left: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 18px;
+            background-color: var(--button-bg);
+            color: var(--button-text);
+            cursor: pointer;
+            font-size: 1rem;
         }
     </style>
 </head>
 <body>
-
-    <div id="tsparticles"></div>
-
-    <div class="header">
-        <h1>Lorel Axun</h1>
-        <button id="theme-toggle">Toggle Theme</button>
-    </div>
-
-    <div id="terminal-container">
-        <div id="terminal"></div>
+    <div class="chat-container">
+        <header class="chat-header">
+            <h1>Lorel Axun</h1>
+            <button id="theme-toggle-button">Cambia Tema</button>
+        </header>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="typing-indicator" id="typing-indicator">
+            <span></span><span></span><span></span>
+        </div>
+        <div class="chat-input">
+            <textarea id="user-input" placeholder="Scrivi un messaggio..." rows="1"></textarea>
+            <button id="send-button">Invia</button>
+        </div>
     </div>
 
     <script>
-        $(function() {
-            const nlp = window.nlp;
-            const sentiment = new Sentiment();
-            let lastWikiPage = '';
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            const typingIndicator = document.getElementById('typing-indicator');
+            const themeToggleButton = document.getElementById('theme-toggle-button');
 
-            const darkThemeParticles = {
-                particles: {
-                    color: { value: "#00ff00" },
-                    links: { color: "#00ff00", distance: 150, enable: true, opacity: 0.5, width: 1 },
-                    move: { direction: "none", enable: true, outModes: { default: "bounce" }, random: false, speed: 2, straight: false },
-                    number: { density: { enable: true, area: 800 }, value: 80 },
-                    opacity: { value: 0.5 },
-                    shape: { type: "circle" },
-                    size: { value: { min: 1, max: 5 } },
-                }
-            };
+            let chatHistory = [];
 
-            const lightThemeParticles = {
-                particles: {
-                    color: { value: "#000000" },
-                    links: { color: "#000000", distance: 150, enable: true, opacity: 0.5, width: 1 },
-                    move: { direction: "none", enable: true, outModes: { default: "bounce" }, random: false, speed: 2, straight: false },
-                    number: { density: { enable: true, area: 800 }, value: 80 },
-                    opacity: { value: 0.5 },
-                    shape: { type: "circle" },
-                    size: { value: { min: 1, max: 5 } },
-                }
-            };
-
-            let particlesContainer;
-
-            function loadParticles(themeOptions) {
-                if (particlesContainer) {
-                    particlesContainer.destroy();
-                }
-                tsParticles.load("tsparticles", themeOptions).then(container => {
-                    particlesContainer = container;
-                });
-            }
-
-            const themeToggle = document.getElementById('theme-toggle');
-            const body = document.body;
-
-            function applyTheme(theme) {
-                if (theme === 'light') {
-                    body.classList.add('light-theme');
-                    loadParticles(lightThemeParticles);
-                } else {
-                    body.classList.remove('light-theme');
-                    loadParticles(darkThemeParticles);
-                }
-                localStorage.setItem('theme', theme);
-            }
-
-            themeToggle.addEventListener('click', () => {
-                const currentTheme = body.classList.contains('light-theme') ? 'light' : 'dark';
-                applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
-            });
-
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            applyTheme(savedTheme);
-
-            const term = $('#terminal').terminal(function(command, term) {
-                const args = command.split(' ');
-                const cmd = args[0].toLowerCase();
-                const rest = args.slice(1).join(' ');
-
-                switch(cmd) {
-                    case 'help':
-                        term.echo("Available commands:\n" +
-                                 "  [[b;green;]help]              - Shows this help message\n" +
-                                 "  [[b;green;]wiki <term>]       - Searches Wikipedia for a term\n" +
-                                 "  [[b;green;]tell me more]      - Provides the full Wikipedia link for the last search\n" +
-                                 "  [[b;green;]sentiment <text>]  - Analyzes the sentiment of a text\n" +
-                                 "  [[b;green;]clear]             - Clears the terminal screen and history");
-                        break;
-                    case 'wiki':
-                        if (rest) {
-                            searchWikipedia(rest, term);
-                        } else {
-                            term.error("Usage: wiki <search term>");
-                        }
-                        break;
-                    case 'tell':
-                        if (command.toLowerCase() === 'tell me more') {
-                            if (lastWikiPage) {
-                                term.echo(`Here is the full article: [[;blue;]https://en.wikipedia.org/?curid=${lastWikiPage}]`);
-                            } else {
-                                term.echo("You need to search for something with 'wiki' first.");
-                            }
-                        } else {
-                            handleNLP(command, term);
-                        }
-                        break;
-                    case 'sentiment':
-                        if (rest) {
-                            analyzeSentiment(rest, term);
-                        } else {
-                            term.error("Usage: sentiment <text to analyze>");
-                        }
-                        break;
-                    case 'clear':
-                        term.clear();
-                        localStorage.removeItem('terminal_history');
-                        displayWelcome(term);
-                        break;
-                    default:
-                        handleNLP(command, term);
-                        break;
-                }
-            }, {
-                greetings: false, // We will handle greetings manually with Figlet
-                prompt: 'Lorel> ',
-                history: true,
-                name: 'lorel_terminal',
-                onInit: function(term) {
-                    const savedHistory = localStorage.getItem('terminal_history');
-                    if (savedHistory) {
-                        term.history().data(JSON.parse(savedHistory));
-                    }
-                    displayWelcome(term);
+            marked.setOptions({
+                highlight: function(code, lang) {
+                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                    return hljs.highlight(code, { language }).value;
                 },
-                onCommandChange: function() {
-                    localStorage.setItem('terminal_history', JSON.stringify(this.history().data()));
+                breaks: true
+            });
+
+            function addMessage(sender, text, isUser = false) {
+                const isScrolledToBottom = chatMessages.scrollHeight - chatMessages.clientHeight <= chatMessages.scrollTop + 20;
+
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', sender);
+
+                const bubble = document.createElement('div');
+                bubble.classList.add('bubble');
+                bubble.innerHTML = isUser ? text : marked.parse(text);
+                messageElement.appendChild(bubble);
+
+                chatMessages.appendChild(messageElement);
+
+                bubble.querySelectorAll('pre').forEach(pre => {
+                    const codeBlock = pre.querySelector('code');
+                    if (codeBlock) {
+                        const copyButton = document.createElement('button');
+                        copyButton.innerText = 'Copia';
+                        copyButton.className = 'copy-button';
+                        copyButton.addEventListener('click', () => {
+                            navigator.clipboard.writeText(codeBlock.innerText).then(() => {
+                                copyButton.innerText = 'Copiato!';
+                                setTimeout(() => { copyButton.innerText = 'Copia'; }, 2000);
+                            });
+                        });
+                        pre.appendChild(copyButton);
+                    }
+                });
+
+                if (isScrolledToBottom) {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            }
+
+            function saveChatHistory() {
+                localStorage.setItem('lorel_axun_chat_history', JSON.stringify(chatHistory));
+            }
+
+            function loadChatHistory() {
+                const savedHistory = localStorage.getItem('lorel_axun_chat_history');
+                if (savedHistory) {
+                    chatHistory = JSON.parse(savedHistory);
+                    chatHistory.forEach(msg => addMessage(msg.sender, msg.text, msg.sender === 'user'));
+                } else {
+                    const welcomeMessage = `Ciao! Sono Lorel Axun. Ecco cosa posso fare:\n\n- **Conversazione:** Puoi chattare con me.\n- **Markdown:** Supporto la formattazione Markdown.\n- **Codice:** Posso mostrare blocchi di codice con syntax highlighting e un pulsante per copiarli.\n- **Memoria:** Ricordo la nostra conversazione tra una sessione e l'altra.\n- **Tema:** Puoi cambiare il tema da chiaro a scuro.\n\nCome posso aiutarti?`;
+                    addMessage('ai', welcomeMessage);
+                    chatHistory.push({ sender: 'ai', text: welcomeMessage });
+                    saveChatHistory();
+                }
+            }
+
+            function handleSend() {
+                const userText = userInput.value.trim();
+                if (userText) {
+                    addMessage('user', userText, true);
+                    chatHistory.push({ sender: 'user', text: userText });
+                    userInput.value = '';
+                    userInput.style.height = 'auto';
+
+                    typingIndicator.style.display = 'block';
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                    setTimeout(() => {
+                        typingIndicator.style.display = 'none';
+                        const aiResponse = 'Questa è una risposta simulata. La mia vera logica di evoluzione è gestita da `evolve.py`.';
+                        addMessage('ai', aiResponse);
+                        chatHistory.push({ sender: 'ai', text: aiResponse });
+                        saveChatHistory();
+                    }, 1500);
+                }
+            }
+
+            sendButton.addEventListener('click', handleSend);
+            userInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
                 }
             });
 
-            function displayWelcome(term) {
-                figlet.text('Lorel Axun', {
-                    font: 'Standard',
-                    horizontalLayout: 'default',
-                    verticalLayout: 'default'
-                }, function(err, data) {
-                    if (err) {
-                        console.log('Figlet error:', err);
-                        term.echo('[[b;green;]Lorel Axun]'); // Fallback
-                    } else {
-                        term.echo(data);
-                    }
-                    term.echo("Welcome. I am Lorel Axun. Type 'help' to see available commands.");
-                });
-            }
+            userInput.addEventListener('input', () => {
+                userInput.style.height = 'auto';
+                userInput.style.height = (userInput.scrollHeight) + 'px';
+            });
 
-            function typeEcho(text, term) {
-                const dummy = term.echo('');
-                const element = dummy.find('span').last();
-                new TypeIt(element[0], {
-                    strings: [text],
-                    speed: 20,
-                    cursor: false,
-                    lifeLike: true
-                }).go();
-            }
+            const savedTheme = localStorage.getItem('lorel_axun_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
 
-            function searchWikipedia(term, terminal) {
-                terminal.pause();
-                $.ajax({
-                    url: 'https://en.wikipedia.org/w/api.php',
-                    data: {
-                        action: 'query',
-                        format: 'json',
-                        prop: 'extracts',
-                        exintro: true,
-                        explaintext: true,
-                        redirects: 1,
-                        titles: term
-                    },
-                    dataType: 'jsonp'
-                }).done(function(data) {
-                    const pages = data.query.pages;
-                    const pageId = Object.keys(pages)[0];
-                    if (pageId === '-1') {
-                        typeEcho(`I couldn't find anything about "${term}".`, terminal);
-                    } else {
-                        lastWikiPage = pageId;
-                        const extract = pages[pageId].extract;
-                        typeEcho(extract, terminal);
-                    }
-                }).fail(function() {
-                    typeEcho("Sorry, I couldn't connect to Wikipedia.", terminal);
-                }).always(function() {
-                    terminal.resume();
-                });
-            }
+            themeToggleButton.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('lorel_axun_theme', newTheme);
+            });
 
-            function analyzeSentiment(text, term) {
-                const result = sentiment.analyze(text);
-                let output = '';
-                result.words.forEach(word => {
-                    const score = result.calculation.find(c => c[word]) ? result.calculation.find(c => c[word])[word] : 0;
-                    if (score > 0) output += `[[;green;]${word}] `;
-                    else if (score < 0) output += `[[;red;]${word}] `;
-                    else output += `${word} `;
-                });
-                term.echo(output.trim());
-                term.echo(`\nOverall Score: ${result.score}, Comparative: ${result.comparative.toFixed(2)}`);
-            }
-
-            function handleNLP(text, term) {
-                const doc = nlp(text);
-                if (doc.has('(hello|hi|hey)')) {
-                    typeEcho('Hello! How can I help you today?', term);
-                } else if (doc.has('(who are you|what are you)')) {
-                    typeEcho('I am Lorel Axun, a digital entity created by AleXsjsju. I am here to assist you.', term);
-                } else {
-                    typeEcho("I don't understand that command. Type 'help' for a list of available commands.", term);
-                }
-            }
+            loadChatHistory();
         });
     </script>
-
 </body>
-</html>
+    </html>
