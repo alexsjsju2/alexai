@@ -1,1 +1,193 @@
-<!DOCTYPE html>\n<html lang=\"it\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Lorel Axun</title>\n    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/xterm/css/xterm.css\" />\n    <style>\n        body, html {\n            margin: 0;\n            padding: 0;\n            height: 100%;\n            background-color: #000;\n            color: #0f0;\n            font-family: 'Courier New', Courier, monospace;\n            overflow: hidden;\n        }\n        #terminal-container {\n            width: 100%;\n            height: 100%;\n        }\n    </style>\n</head>\n<body>\n    <div id=\"terminal-container\"></div>\n\n    <script src=\"https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js\"></script>\n\n    <script>\n        document.addEventListener('DOMContentLoaded', function () {\n            const term = new Terminal({\n                cursorBlink: true,\n                theme: {\n                    background: '#000000',\n                    foreground: '#00FF00',\n                    cursor: '#00FF00'\n                }\n            });\n\n            const fitAddon = new FitAddon.FitAddon();\n            term.loadAddon(fitAddon);\n            term.open(document.getElementById('terminal-container'));\n            fitAddon.fit();\n            window.addEventListener('resize', () => fitAddon.fit());\n\n            const prompt = '\\n> ';\n            let currentInput = '';\n            let cursorPos = 0;\n            let commandHistory = JSON.parse(localStorage.getItem('commandHistory')) || [];\n            let historyIndex = commandHistory.length;\n\n            const commands = {\n                'help': () => {\n                    term.writeln('Comandi disponibili:');\n                    Object.keys(commands).forEach(cmd => {\n                        term.writeln(`  ${cmd}`);\n                    });\n                },\n                'ciao': () => term.writeln('Ciao! Come posso aiutarti?'),\n                'chi sei': () => term.writeln('Sono Lorel Axun, un\\'intelligenza artificiale in evoluzione.'),\n                'cosa sai fare': () => term.writeln('Usa il comando \\'help\\' per vedere la lista delle mie capacità.'),\n                'echo': (args) => term.writeln(args.join(' ')),\n                'clear': () => term.reset()\n            };\n\n            function typewriterEffect(text, callback) {\n                let i = 0;\n                function type() {\n                    if (i < text.length) {\n                        term.write(text.charAt(i));\n                        i++;\n                        setTimeout(type, 50);\n                    } else if (callback) {\n                        callback();\n                    }\n                }\n                type();\n            }\n\n            function processCommand() {\n                const trimmedInput = currentInput.trim();\n                if (trimmedInput === '') {\n                    term.write(prompt);\n                    return;\n                }\n\n                if (commandHistory[commandHistory.length - 1] !== trimmedInput) {\n                    commandHistory.push(trimmedInput);\n                    localStorage.setItem('commandHistory', JSON.stringify(commandHistory));\n                }\n                historyIndex = commandHistory.length;\n\n                const [command, ...args] = trimmedInput.split(/\\s+/);\n                term.writeln('');\n                if (commands[command]) {\n                    commands[command](args);\n                } else {\n                    term.writeln(`Comando non trovato: ${command}`);\n                }\n                currentInput = '';\n                cursorPos = 0;\n                term.write(prompt);\n            }\n            \n            function redrawLine() {\n                const originalCursorPos = cursorPos;\n                term.write('\\r' + prompt + '\\x1b[K' + currentInput);\n                cursorPos = originalCursorPos;\n                term.write(`\\r\\x1b[${prompt.length + cursorPos}C`);\n            }\n\n            figlet.parseFont('Standard', figlet.defaults.font);\n            figlet.text('Lorel Axun', {\n                font: 'Standard',\n            }, function(err, data) {\n                if (err) {\n                    console.log('Something went wrong...');\n                    console.dir(err);\n                    return;\n                }\n                term.writeln(data);\n                typewriterEffect('Benvenuto. Digita \\'help\\' per iniziare.', () => term.write(prompt));\n            });\n\n            term.onKey(({ key, domEvent }) => {\n                const ev = domEvent;\n                const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;\n\n                switch (ev.key) {\n                    case 'Enter':\n                        processCommand();\n                        break;\n                    case 'Backspace':\n                        if (cursorPos > 0) {\n                            currentInput = currentInput.slice(0, cursorPos - 1) + currentInput.slice(cursorPos);\n                            cursorPos--;\n                            redrawLine();\n                        }\n                        break;\n                    case 'ArrowUp':\n                        if (historyIndex > 0) {\n                            historyIndex--;\n                            currentInput = commandHistory[historyIndex];\n                            cursorPos = currentInput.length;\n                            redrawLine();\n                        }\n                        break;\n                    case 'ArrowDown':\n                        if (historyIndex < commandHistory.length - 1) {\n                            historyIndex++;\n                            currentInput = commandHistory[historyIndex];\n                            cursorPos = currentInput.length;\n                            redrawLine();\n                        } else {\n                            historyIndex = commandHistory.length;\n                            currentInput = '';\n                            cursorPos = 0;\n                            redrawLine();\n                        }\n                        break;\n                    case 'ArrowLeft':\n                        if (cursorPos > 0) {\n                            cursorPos--;\n                            term.write('\\x1b[D'); // Move cursor left\n                        }\n                        break;\n                    case 'ArrowRight':\n                        if (cursorPos < currentInput.length) {\n                            cursorPos++;\n                            term.write('\\x1b[C'); // Move cursor right\n                        }\n                        break;\n                    default:\n                        if (printable && ev.key.length === 1) {\n                            const firstPart = currentInput.slice(0, cursorPos);\n                            const secondPart = currentInput.slice(cursorPos);\n                            currentInput = firstPart + key + secondPart;\n                            cursorPos++;\n                            redrawLine();\n                        }\n                }\n            });\n        });\n    </script>\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorel Axun</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+        }
+        #terminal-container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js"></script>
+
+    <script>
+        const terminalContainer = document.getElementById('terminal-container');
+        const term = new Terminal({
+            cursorBlink: true,
+            theme: {
+                background: '#000000',
+                foreground: '#00ff00',
+                cursor: '#00ff00'
+            }
+        });
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        term.open(terminalContainer);
+        fitAddon.fit();
+
+        window.addEventListener('resize', () => {
+            fitAddon.fit();
+        });
+
+        const prompt = 'LorelAxun> ';
+        let currentInput = '';
+        let cursorPosition = 0;
+        let history = JSON.parse(localStorage.getItem('command_history')) || [];
+        let historyIndex = history.length;
+
+        function typewriterEffect(text, callback) {
+            let i = 0;
+            function type() {
+                if (i < text.length) {
+                    term.write(text.charAt(i));
+                    i++;
+                    setTimeout(type, 20);
+                } else if (callback) {
+                    callback();
+                }
+            }
+            type();
+        }
+
+        function showWelcomeMessage() {
+            figlet.text('Lorel Axun', {
+                font: 'Standard',
+                horizontalLayout: 'default',
+                verticalLayout: 'default'
+            }, function(err, data) {
+                if (err) {
+                    console.log('Something went wrong...');
+                    console.dir(err);
+                    return;
+                }
+                term.writeln(data);
+                typewriterEffect('\nBenvenuto. Sono Lorel Axun. Digita `help` per iniziare.\n\n', () => {
+                    term.write(prompt);
+                });
+            });
+        }
+
+        const commands = {
+            'help': () => {
+                term.writeln('\nComandi disponibili:');
+                Object.keys(commands).forEach(cmd => {
+                    term.writeln(`  ${cmd}`);
+                });
+            },
+            'ciao': () => term.writeln('\nCiao!'),
+            'chi sei': () => term.writeln('\nSono Lorel Axun, un\'entità digitale in continua evoluzione.'),
+            'cosa sai fare': () => commands.help(),
+            'echo': (args) => term.writeln(`\n${args.join(' ')}`),
+            'clear': () => term.clear()
+        };
+
+        function processCommand(input) {
+            const parts = input.trim().split(' ');
+            const command = parts[0].toLowerCase();
+            const args = parts.slice(1);
+
+            if (command in commands) {
+                commands[command](args);
+            } else if (command !== '') {
+                term.writeln(`\nComando non trovato: ${command}`);
+            }
+        }
+
+        term.onKey(({ key, domEvent }) => {
+            const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
+
+            switch (domEvent.keyCode) {
+                case 13: // Enter
+                    if (currentInput.trim() !== '') {
+                        history.push(currentInput);
+                        localStorage.setItem('command_history', JSON.stringify(history));
+                        historyIndex = history.length;
+                    }
+                    processCommand(currentInput);
+                    currentInput = '';
+                    cursorPosition = 0;
+                    term.write(`\r\n${prompt}`);
+                    break;
+                case 8: // Backspace
+                    if (cursorPosition > 0) {
+                        const leftPart = currentInput.substring(0, cursorPosition - 1);
+                        const rightPart = currentInput.substring(cursorPosition);
+                        currentInput = leftPart + rightPart;
+                        cursorPosition--;
+                        term.write('\b' + rightPart + ' ' + '\b'.repeat(rightPart.length + 1));
+                    }
+                    break;
+                case 37: // Left arrow
+                    if (cursorPosition > 0) {
+                        cursorPosition--;
+                        term.write('\x1b[D');
+                    }
+                    break;
+                case 39: // Right arrow
+                    if (cursorPosition < currentInput.length) {
+                        cursorPosition++;
+                        term.write('\x1b[C');
+                    }
+                    break;
+                case 38: // Up arrow
+                    if (historyIndex > 0) {
+                        historyIndex--;
+                        // Clear current line
+                        term.write('\x1b[D'.repeat(cursorPosition)); // Move to start of input
+                        term.write('\x1b[K'); // Clear from cursor to end
+                        // Write history item
+                        currentInput = history[historyIndex];
+                        cursorPosition = currentInput.length;
+                        term.write(currentInput);
+                    }
+                    break;
+                case 40: // Down arrow
+                    if (historyIndex < history.length - 1) {
+                        historyIndex++;
+                        term.write('\x1b[D'.repeat(cursorPosition));
+                        term.write('\x1b[K');
+                        currentInput = history[historyIndex];
+                        cursorPosition = currentInput.length;
+                        term.write(currentInput);
+                    } else if (historyIndex === history.length - 1) {
+                        historyIndex++;
+                        term.write('\x1b[D'.repeat(cursorPosition));
+                        term.write('\x1b[K');
+                        currentInput = '';
+                        cursorPosition = 0;
+                    }
+                    break;
+                default:
+                    if (printable) {
+                        const leftPart = currentInput.substring(0, cursorPosition);
+                        const rightPart = currentInput.substring(cursorPosition);
+                        currentInput = leftPart + key + rightPart;
+                        cursorPosition++;
+                        term.write(key + rightPart + '\x1b[D'.repeat(rightPart.length));
+                    }
+            }
+        });
+
+        showWelcomeMessage();
+    </script>
+</body>
+</html>
