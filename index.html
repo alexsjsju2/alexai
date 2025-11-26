@@ -9,8 +9,8 @@
         body, html {
             margin: 0;
             padding: 0;
-            height: 100%;
             width: 100%;
+            height: 100%;
             background-color: #000;
             color: #0f0;
             font-family: 'Courier New', Courier, monospace;
@@ -30,7 +30,6 @@
     <script src="https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js"></script>
 
     <script>
-        const terminalContainer = document.getElementById('terminal-container');
         const term = new Terminal({
             cursorBlink: true,
             theme: {
@@ -41,26 +40,50 @@
         });
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
-        term.open(terminalContainer);
+        term.open(document.getElementById('terminal-container'));
         fitAddon.fit();
 
-        window.addEventListener('resize', () => {
-            fitAddon.fit();
-        });
+        window.addEventListener('resize', () => fitAddon.fit());
+
+        let currentInput = '';
+        let commandHistory = JSON.parse(localStorage.getItem('commandHistory')) || [];
+        let historyIndex = commandHistory.length;
+        let cursorPos = 0;
 
         const prompt = 'LorelAxun> ';
-        let currentInput = '';
-        let cursorPosition = 0;
-        let history = JSON.parse(localStorage.getItem('command_history')) || [];
-        let historyIndex = history.length;
 
-        function typewriterEffect(text, callback) {
+        const commandActions = {
+            'help': () => {
+                term.writeln('\nComandi disponibili:');
+                Object.keys(commandActions).forEach(cmd => term.writeln(`- ${cmd}`));
+            },
+            'ciao': () => term.writeln('\nCiao! Come posso aiutarti?'),
+            'chi sei': () => term.writeln('\nSono Lorel Axun, un\'IA in continua evoluzione.'),
+            'cosa sai fare': () => commandActions.help(),
+            'echo': (args) => term.writeln(`\n${args.join(' ')}`),
+            'clear': () => term.clear()
+        };
+        const commandList = Object.keys(commandActions);
+
+        function handleCommand(input) {
+            const parts = input.trim().split(' ');
+            const command = parts[0];
+            const args = parts.slice(1);
+
+            if (command in commandActions) {
+                commandActions[command](args);
+            } else if (command.length > 0) {
+                term.writeln(`\nComando non trovato: ${command}`);
+            }
+        }
+
+        function typeWriter(text, callback) {
             let i = 0;
             function type() {
                 if (i < text.length) {
                     term.write(text.charAt(i));
                     i++;
-                    setTimeout(type, 20);
+                    setTimeout(type, 50);
                 } else if (callback) {
                     callback();
                 }
@@ -68,126 +91,103 @@
             type();
         }
 
-        function showWelcomeMessage() {
-            figlet.text('Lorel Axun', {
-                font: 'Standard',
-                horizontalLayout: 'default',
-                verticalLayout: 'default'
-            }, function(err, data) {
-                if (err) {
-                    console.log('Something went wrong...');
-                    console.dir(err);
-                    return;
-                }
-                term.writeln(data);
-                typewriterEffect('\nBenvenuto. Sono Lorel Axun. Digita `help` per iniziare.\n\n', () => {
-                    term.write(prompt);
-                });
-            });
-        }
+        figlet.parseFont('Standard', figlet.textSync('Lorel Axun'));
+        term.writeln(figlet.textSync('Lorel Axun'));
+        typeWriter('Benvenuto. Digita \'help\' per la lista dei comandi.\n', () => term.write(prompt));
 
-        const commands = {
-            'help': () => {
-                term.writeln('\nComandi disponibili:');
-                Object.keys(commands).forEach(cmd => {
-                    term.writeln(`  ${cmd}`);
-                });
-            },
-            'ciao': () => term.writeln('\nCiao!'),
-            'chi sei': () => term.writeln('\nSono Lorel Axun, un\'entità digitale in continua evoluzione.'),
-            'cosa sai fare': () => commands.help(),
-            'echo': (args) => term.writeln(`\n${args.join(' ')}`),
-            'clear': () => term.clear()
-        };
+        term.onKey(e => {
+            const key = e.key;
+            const ev = e.domEvent;
 
-        function processCommand(input) {
-            const parts = input.trim().split(' ');
-            const command = parts[0].toLowerCase();
-            const args = parts.slice(1);
+            const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
 
-            if (command in commands) {
-                commands[command](args);
-            } else if (command !== '') {
-                term.writeln(`\nComando non trovato: ${command}`);
-            }
-        }
-
-        term.onKey(({ key, domEvent }) => {
-            const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
-
-            switch (domEvent.keyCode) {
-                case 13: // Enter
+            switch (key) {
+                case '\r': // Enter
+                    term.write('\r\n');
                     if (currentInput.trim() !== '') {
-                        history.push(currentInput);
-                        localStorage.setItem('command_history', JSON.stringify(history));
-                        historyIndex = history.length;
+                        handleCommand(currentInput);
+                        if (commandHistory[commandHistory.length - 1] !== currentInput) {
+                            commandHistory.push(currentInput);
+                            localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
+                        }
                     }
-                    processCommand(currentInput);
+                    historyIndex = commandHistory.length;
                     currentInput = '';
-                    cursorPosition = 0;
-                    term.write(`\r\n${prompt}`);
+                    cursorPos = 0;
+                    term.write(prompt);
                     break;
-                case 8: // Backspace
-                    if (cursorPosition > 0) {
-                        const leftPart = currentInput.substring(0, cursorPosition - 1);
-                        const rightPart = currentInput.substring(cursorPosition);
-                        currentInput = leftPart + rightPart;
-                        cursorPosition--;
-                        term.write('\b' + rightPart + ' ' + '\b'.repeat(rightPart.length + 1));
+                case '\u007f': // Backspace
+                    if (cursorPos > 0) {
+                        const left = currentInput.slice(0, cursorPos - 1);
+                        const right = currentInput.slice(cursorPos);
+                        currentInput = left + right;
+                        term.write('\x1b[D'); // Move cursor left
+                        term.write('\x1b[K'); // Clear from cursor to end of line
+                        term.write(right); // Write the rest of the string
+                        term.write(`\x1b[${right.length}D`); // Move cursor back
+                        cursorPos--;
                     }
                     break;
-                case 37: // Left arrow
-                    if (cursorPosition > 0) {
-                        cursorPosition--;
-                        term.write('\x1b[D');
+                case '\t': // Tab for autocomplete
+                    ev.preventDefault();
+                    const potentialCommands = commandList.filter(name => name.startsWith(currentInput));
+                    if (potentialCommands.length > 0) {
+                        const completion = potentialCommands[0];
+                        const clearLine = '\x1b[2K\r';
+                        term.write(clearLine + prompt + completion);
+                        currentInput = completion;
+                        cursorPos = completion.length;
                     }
                     break;
-                case 39: // Right arrow
-                    if (cursorPosition < currentInput.length) {
-                        cursorPosition++;
-                        term.write('\x1b[C');
-                    }
-                    break;
-                case 38: // Up arrow
+                case '\x1b[A': // Up arrow
                     if (historyIndex > 0) {
                         historyIndex--;
-                        // Clear current line
-                        term.write('\x1b[D'.repeat(cursorPosition)); // Move to start of input
-                        term.write('\x1b[K'); // Clear from cursor to end
-                        // Write history item
-                        currentInput = history[historyIndex];
-                        cursorPosition = currentInput.length;
-                        term.write(currentInput);
+                        currentInput = commandHistory[historyIndex];
+                        const clearLine = '\x1b[2K\r';
+                        term.write(clearLine + prompt + currentInput);
+                        cursorPos = currentInput.length;
                     }
                     break;
-                case 40: // Down arrow
-                    if (historyIndex < history.length - 1) {
+                case '\x1b[B': // Down arrow
+                    if (historyIndex < commandHistory.length - 1) {
                         historyIndex++;
-                        term.write('\x1b[D'.repeat(cursorPosition));
-                        term.write('\x1b[K');
-                        currentInput = history[historyIndex];
-                        cursorPosition = currentInput.length;
-                        term.write(currentInput);
-                    } else if (historyIndex === history.length - 1) {
-                        historyIndex++;
-                        term.write('\x1b[D'.repeat(cursorPosition));
-                        term.write('\x1b[K');
+                        currentInput = commandHistory[historyIndex];
+                        const clearLine = '\x1b[2K\r';
+                        term.write(clearLine + prompt + currentInput);
+                        cursorPos = currentInput.length;
+                    } else {
+                        historyIndex = commandHistory.length;
                         currentInput = '';
-                        cursorPosition = 0;
+                        const clearLine = '\x1b[2K\r';
+                        term.write(clearLine + prompt);
+                        cursorPos = 0;
+                    }
+                    break;
+                case '\x1b[C': // Right arrow
+                    if (cursorPos < currentInput.length) {
+                        term.write(key);
+                        cursorPos++;
+                    }
+                    break;
+                case '\x1b[D': // Left arrow
+                    if (cursorPos > 0) {
+                        term.write(key);
+                        cursorPos--;
                     }
                     break;
                 default:
-                    if (printable) {
-                        const leftPart = currentInput.substring(0, cursorPosition);
-                        const rightPart = currentInput.substring(cursorPosition);
-                        currentInput = leftPart + key + rightPart;
-                        cursorPosition++;
-                        term.write(key + rightPart + '\x1b[D'.repeat(rightPart.length));
+                    if (printable && key.length === 1) {
+                        const left = currentInput.slice(0, cursorPos);
+                        const right = currentInput.slice(cursorPos);
+                        currentInput = left + key + right;
+                        term.write(key + right);
+                        if (right.length > 0) {
+                           term.write(`\x1b[${right.length}D`);
+                        }
+                        cursorPos++;
                     }
             }
         });
-
-        showWelcomeMessage();
     </script>
 </body>
 </html>
