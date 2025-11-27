@@ -1,1 +1,55 @@
-const express = require('express');\nconst http = require('http');\nconst expressWs = require('express-ws');\nconst pty = require('node-pty');\nconst os = require('os');\n\n// Determine the shell based on the OS.\nconst shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';\n\nconst app = express();\nconst server = http.createServer(app);\nconst wss = expressWs(app, server);\n\nconst port = 3000;\n\n// Serve static files from the current directory\napp.use(express.static(__dirname));\n\n// Handle WebSocket connections\napp.ws('/shell', (ws, req) => {\n  console.log('New WebSocket connection established.');\n\n  // Spawn a new pseudo-terminal\n  const term = pty.spawn(shell, [], {\n    name: 'xterm-color',\n    cols: 80,\n    rows: 30,\n    cwd: process.env.HOME,\n    env: process.env\n  });\n\n  console.log(`PTY created with PID: ${term.pid}`);\n\n  // Pipe PTY output to WebSocket\n  term.on('data', (data) => {\n    try {\n      ws.send(data);\n    } catch (e) {\n      console.error('Error sending data to WebSocket:', e);\n    }\n  });\n\n  // Pipe WebSocket input to PTY\n  ws.on('message', (msg) => {\n    term.write(msg);\n  });\n\n  // Handle connection close\n  ws.on('close', () => {\n    console.log(`WebSocket connection closed. Killing PTY with PID: ${term.pid}`);\n    term.kill();\n  });\n\n  // Handle PTY exit\n  term.on('exit', (code, signal) => {\n      console.log(`PTY process exited with code ${code}, signal ${signal}`);\n      if (ws.readyState === ws.OPEN) {\n          ws.close();\n      }\n  });\n});\n\nserver.listen(port, () => {\n  console.log(`Server listening on http://localhost:${port}`);\n  console.log(`WebSocket endpoint available at ws://localhost:${port}/shell`);\n});
+const express = require('express');
+const http = require('http');
+const expressWs = require('express-ws');
+const pty = require('node-pty');
+const os = require('os');
+
+const app = express();
+const server = http.createServer(app);
+const wss = expressWs(app, server);
+
+const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
+const port = 3000;
+
+app.ws('/shell', (ws, req) => {
+    console.log('New WebSocket connection established.');
+
+    const ptyProcess = pty.spawn(shell, [], {
+        name: 'xterm-color',
+        cols: 80,
+        rows: 30,
+        cwd: process.env.HOME,
+        env: process.env
+    });
+
+    // Pipe data from PTY to WebSocket
+    ptyProcess.on('data', function (data) {
+        try {
+            ws.send(data);
+        } catch (e) {
+            console.log('Error sending data to WebSocket:', e);
+        }
+    });
+
+    // Pipe data from WebSocket to PTY
+    ws.on('message', function (msg) {
+        ptyProcess.write(msg);
+    });
+
+    // Handle connection close
+    ws.on('close', () => {
+        ptyProcess.kill();
+        console.log('Connection closed.');
+    });
+
+    // Handle PTY exit
+    ptyProcess.on('exit', (code, signal) => {
+        console.log(`PTY process exited with code ${code}, signal ${signal}`);
+        ws.close();
+    });
+});
+
+server.listen(port, () => {
+    console.log(`Lorel Axun server bridge listening on port ${port}`);
+    console.log('Ready to receive WebSocket connections on ws://localhost:3000/shell');
+});

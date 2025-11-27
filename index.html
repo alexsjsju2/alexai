@@ -1,2 +1,227 @@
-<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Lorel Axun</title>\n    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/xterm/css/xterm.css\" />\n    <script src=\"https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/xterm-addon-attach/lib/xterm-addon-attach.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js\"></script>\n    <style>\n        :root {\n            --bg: #1a1b26;\n            --fg: #a9b1d6;\n            --black: #32344a;\n            --red: #f7768e;\n            --green: #9ece6a;\n            --yellow: #e0af68;\n            --blue: #7aa2f7;\n            --magenta: #bb9af7;\n            --cyan: #7dcfff;\n            --white: #c0caf5;\n        }\n        body, html {\n            margin: 0;\n            padding: 0;\n            height: 100%;\n            background-color: var(--bg);\n            color: var(--fg);\n            font-family: 'Menlo', 'Consolas', 'monospace';\n            overflow: hidden;\n        }\n        #terminal-container {\n            width: 100%;\n            height: 100%;\n            padding: 10px;\n            box-sizing: border-box;\n        }\n        .xterm .xterm-viewport {\n            background-color: var(--bg);\n        }\n        #desktop {\n            display: none;\n            width: 100vw;\n            height: 100vh;\n            background-size: cover;\n            background-position: center;\n            position: relative;\n        }\n        #dock {\n            position: absolute;\n            bottom: 20px;\n            left: 50%;\n            transform: translateX(-50%);\n            background-color: rgba(50, 52, 74, 0.8);\n            padding: 10px;\n            border-radius: 15px;\n            display: flex;\n            gap: 15px;\n        }\n        #terminal-icon {\n            width: 60px;\n            height: 60px;\n            background-color: var(--black);\n            border-radius: 10px;\n            cursor: pointer;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n            font-size: 24px;\n        }\n        #editor {\n            display: none;\n            position: fixed;\n            top: 0;\n            left: 0;\n            width: 100%;\n            height: 100%;\n            background-color: var(--bg);\n            z-index: 100;\n            display: none;\n            flex-direction: column;\n        }\n        #editor-textarea {\n            flex-grow: 1;\n            background-color: var(--bg);\n            color: var(--fg);\n            border: none;\n            outline: none;\n            font-family: 'Menlo', 'Consolas', 'monospace';\n            font-size: 16px;\n            padding: 15px;\n            resize: none;\n        }\n        #editor-status {\n            background-color: var(--blue);\n            color: var(--bg);\n            padding: 5px 10px;\n            font-size: 14px;\n        }\n    </style>\n</head>\n<body>\n    <div id=\"terminal-container\"></div>\n    <div id=\"desktop\">\n        <div id=\"dock\">\n            <div id=\"terminal-icon\" title=\"Open Terminal\">&gt;_</div>\n        </div>\n    </div>\n    <div id=\"editor\">\n        <div id=\"editor-status\">File: <span id=\"editor-filename\"></span> | Ctrl+S to Save | Ctrl+Q to Quit</div>\n        <textarea id=\"editor-textarea\"></textarea>\n    </div>\n\n    <script>\n        const termContainer = document.getElementById('terminal-container');\n        const term = new Terminal({\n            cursorBlink: true,\n            theme: {\n                background: '#1a1b26',\n                foreground: '#a9b1d6',\n                black: '#32344a',\n                red: '#f7768e',\n                green: '#9ece6a',\n                yellow: '#e0af68',\n                blue: '#7aa2f7',\n                magenta: '#bb9af7',\n                cyan: '#7dcfff',\n                white: '#c0caf5',\n            }\n        });\n        const fitAddon = new FitAddon.FitAddon();\n        term.loadAddon(fitAddon);\n        term.open(termContainer);\n        fitAddon.fit();\n        window.addEventListener('resize', () => fitAddon.fit());\n\n        let vfs = JSON.parse(localStorage.getItem('lorel_vfs')) || {\n            '/': {\n                type: 'directory',\n                children: {\n                    'home': { type: 'directory', children: {} },\n                    'etc': { type: 'directory', children: {} },\n                    'bin': { type: 'directory', children: {} },\n                }\n            }\n        };\n        let env = JSON.parse(localStorage.getItem('lorel_env')) || {\n            'USER': 'utente',\n            'HOSTNAME': 'lorel-os',\n            'PWD': '/',\n            'HOME': '/home'\n        };\n        let currentPath = env.PWD;\n        let commandHistory = [];\n        let historyIndex = -1;\n        let currentCommand = '';\n        let webSocket = null;\n\n        function saveState() {\n            localStorage.setItem('lorel_vfs', JSON.stringify(vfs));\n            localStorage.setItem('lorel_env', JSON.stringify(env));\n        }\n\n        function getPrompt() {\n            return `\\x1b[32m${env.USER}@${env.HOSTNAME}\\x1b[0m:\\x1b[34m${currentPath}\\x1b[0m$ `;
-        }\n\n        function writePrompt() {\n            currentCommand = '';\n            term.write('\\r\\n' + getPrompt());\n        }\n\n        figlet.parseFont('Standard', figlet.fonts.Standard);\n        figlet.text('Lorel Axun', { font: 'Standard' }, (err, data) => {\n            if (data) {\n                term.writeln(data.replace(/\\n/g, '\\r\\n'));\n            }\n            term.writeln('Welcome to Lorel OS. Type \"help\" for a list of commands.');\n            writePrompt();\n        });\n        \n        async function executeCommand(command) {\n            const [cmd, ...args] = command.trim().split(' ');\n            \n            if (cmd === 'connect') {\n                const url = args[0];\n                if (!url) {\n                    term.writeln('Usage: connect <ws_url>');\n                    return;\n                }\n                if (webSocket) {\n                    term.writeln('Already connected. Disconnect first.');\n                    return;\n                }\n                term.writeln(`Connecting to ${url}...`);\n                try {\n                    webSocket = new WebSocket(url);\n                    const attachAddon = new AttachAddon.AttachAddon(webSocket);\n                    term.loadAddon(attachAddon);\n                    \n                    webSocket.onclose = () => {\n                        term.writeln('\\r\\nConnection closed.');\n                        webSocket = null; \n                    };\n                    webSocket.onerror = (err) => {\n                        term.writeln(`\\r\\nConnection error.`);\n                        webSocket = null;\n                    };\n                } catch (e) {\n                    term.writeln(`Error: ${e.message}`);\n                    webSocket = null;\n                }\n            } else if (cmd === 'startx') {\n                document.getElementById('terminal-container').style.display = 'none';\n                const desktop = document.getElementById('desktop');\n                desktop.style.backgroundImage = `url('https://source.unsplash.com/random/1920x1080?technology,nature')`;\n                desktop.style.display = 'block';\n            } else {\n                 if (command.trim().length > 0) {\n                    term.writeln(`lorel: command not found: ${command}`);\n                 }\n            }\n        }\n\n        term.onKey(({ key, domEvent }) => {\n            if (webSocket && webSocket.readyState === WebSocket.OPEN) {\n                // If connected, the attach addon handles everything.\n                return;\n            }\n\n            const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;\n\n            if (domEvent.keyCode === 13) { // Enter\n                term.write('\\r\\n');\n                executeCommand(currentCommand).then(writePrompt);\n                if (currentCommand) commandHistory.unshift(currentCommand);\n                historyIndex = -1;\n            } else if (domEvent.keyCode === 8) { // Backspace\n                if (currentCommand.length > 0) {\n                    term.write('\\b \\b');\n                    currentCommand = currentCommand.slice(0, -1);\n                }\n            } else if (printable) {\n                currentCommand += key;\n                term.write(key);\n            }\n        });\n        \n        document.getElementById('terminal-icon').addEventListener('click', () => {\n            document.getElementById('desktop').style.display = 'none';\n            document.getElementById('terminal-container').style.display = 'block';\n            term.focus();\n        });\n\n    </script>\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorel Axun</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-attach@0.9.0/lib/xterm-addon-attach.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/figlet@1.7.0/lib/figlet.min.js"></script>
+    <style>
+        :root {
+            --bg: #1a1b26;
+            --fg: #a9b1d6;
+            --black: #32344a;
+            --red: #f7768e;
+            --green: #9ece6a;
+            --yellow: #e0af68;
+            --blue: #7aa2f7;
+            --magenta: #bb9af7;
+            --cyan: #7dcfff;
+            --white: #acb0d0;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+        }
+        #terminal-container {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        #desktop {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg) url('https://source.unsplash.com/random/1920x1080/?abstract,dark') no-repeat center center/cover;
+            position: relative;
+        }
+        #dock {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(44, 45, 62, 0.7);
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            gap: 10px;
+            backdrop-filter: blur(5px);
+        }
+        #terminal-icon {
+            width: 50px;
+            height: 50px;
+            background-color: var(--black);
+            border: 2px solid var(--blue);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        #terminal-icon:hover {
+            background-color: var(--blue);
+            color: var(--bg);
+        }
+        #editor {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--bg);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="terminal-container"></div>
+
+    <div id="desktop">
+        <div id="dock">
+            <div id="terminal-icon" title="Open Terminal">Term</div>
+        </div>
+    </div>
+
+    <div id="editor">
+        <!-- Editor UI would go here -->
+    </div>
+
+    <script>
+        const termContainer = document.getElementById('terminal-container');
+        const desktop = document.getElementById('desktop');
+        const terminalIcon = document.getElementById('terminal-icon');
+
+        const term = new Terminal({
+            cursorBlink: true,
+            theme: {
+                background: 'var(--bg)',
+                foreground: 'var(--fg)',
+                black: 'var(--black)',
+                red: 'var(--red)',
+                green: 'var(--green)',
+                yellow: 'var(--yellow)',
+                blue: 'var(--blue)',
+                magenta: 'var(--magenta)',
+                cyan: 'var(--cyan)',
+                white: 'var(--white)',
+            }
+        });
+
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        term.open(termContainer);
+        fitAddon.fit();
+        window.addEventListener('resize', () => fitAddon.fit());
+
+        let vfs = JSON.parse(localStorage.getItem('lorel_vfs')) || {
+            '/': { type: 'dir', content: ['home'] },
+            '/home': { type: 'dir', content: [] }
+        };
+        let env = JSON.parse(localStorage.getItem('lorel_env')) || {
+            USER: 'guest',
+            HOSTNAME: 'lorel-os',
+            PWD: '/home'
+        };
+
+        function saveState() {
+            localStorage.setItem('lorel_vfs', JSON.stringify(vfs));
+            localStorage.setItem('lorel_env', JSON.stringify(env));
+        }
+
+        function getPrompt() {
+            const user = `\x1b[32m${env.USER}\x1b[0m`;
+            const hostname = `\x1b[32m${env.HOSTNAME}\x1b[0m`;
+            const pwd = `\x1b[34m${env.PWD}\x1b[0m`;
+            return `${user}@${hostname}:${pwd}$ `;
+        }
+
+        let currentLine = '';
+        let commandHistory = [];
+        let historyIndex = -1;
+
+        function printPrompt() {
+            term.write(getPrompt());
+        }
+
+        async function executeCommand(command) {
+            const [cmd, ...args] = command.trim().split(' ');
+            term.writeln('');
+            switch (cmd) {
+                case 'connect':
+                    if (args.length === 1) {
+                        const url = args[0];
+                        term.writeln(`Connecting to ${url}...`);
+                        const socket = new WebSocket(url);
+                        const attachAddon = new AttachAddon.AttachAddon(socket);
+                        term.loadAddon(attachAddon);
+                    } else {
+                        term.writeln('Usage: connect <ws_url>');
+                    }
+                    break;
+                case 'startx':
+                    termContainer.style.display = 'none';
+                    desktop.style.display = 'block';
+                    return; // Don't print prompt again
+                case '':
+                    break;
+                default:
+                    term.writeln(`lorel: command not found: ${cmd}`);
+                    break;
+            }
+            printPrompt();
+        }
+
+        term.onKey(({ key, domEvent }) => {
+            const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
+
+            if (domEvent.keyCode === 13) { // Enter
+                executeCommand(currentLine);
+                commandHistory.push(currentLine);
+                historyIndex = commandHistory.length;
+                currentLine = '';
+            } else if (domEvent.keyCode === 8) { // Backspace
+                if (currentLine.length > 0) {
+                    term.write('\b \b');
+                    currentLine = currentLine.slice(0, -1);
+                }
+            } else if (printable) {
+                currentLine += key;
+                term.write(key);
+            }
+        });
+
+        terminalIcon.addEventListener('click', () => {
+            desktop.style.display = 'none';
+            termContainer.style.display = 'block';
+            term.focus();
+            fitAddon.fit();
+        });
+
+        figlet.parseFont('Standard', figlet.fonts.Standard);
+        figlet.text('Lorel Axun', { font: 'Standard' }, function(err, data) {
+            if (err) {
+                term.writeln('Lorel Axun');
+                printPrompt();
+                return;
+            }
+            term.writeln(data.replace(/\n/g, '\r\n'));
+            term.writeln('Welcome. Type commands to proceed.');
+            printPrompt();
+        });
+
+        term.focus();
+    </script>
+</body>
+</html>

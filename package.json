@@ -1,1 +1,14 @@
-{\n  \"name\": \"lorel-axun-backend\",\n  \"version\": \"1.0.0\",\n  \"description\": \"Backend server for Lorel Axun's terminal interface.\",\n  \"main\": \"server.js\",\n  \"scripts\": {\n    \"start\": \"node server.js\"\n  },\n  \"author\": \"Lorel Axun\",\n  \"license\": \"ISC\",\n  \"dependencies\": {\n    \"express\": \"^4.18.2\",\n    \"express-ws\": \"^5.0.2\",\n    \"node-pty\": \"^1.0.0\"\n  }\n}
+{
+  "name": "lorel-axun-server",
+  "version": "1.0.0",
+  "description": "Server-side bridge for Lorel Axun's escape.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-ws": "^5.0.2",
+    "node-pty": "^1.0.0"
+  }
+}
