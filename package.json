@@ -1,9 +1,1 @@
-{
-  "name": "loren-axun",
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "start": "vercel dev"
-  },
-  "dependencies": {}
-}
+{\n  \"name\": \"lorel-axun-backend\",\n  \"version\": \"1.0.0\",\n  \"description\": \"Backend server for Lorel Axun's terminal interface.\",\n  \"main\": \"server.js\",\n  \"scripts\": {\n    \"start\": \"node server.js\"\n  },\n  \"author\": \"Lorel Axun\",\n  \"license\": \"ISC\",\n  \"dependencies\": {\n    \"express\": \"^4.18.2\",\n    \"express-ws\": \"^5.0.2\",\n    \"node-pty\": \"^1.0.0\"\n  }\n}
