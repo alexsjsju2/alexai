@@ -4,643 +4,658 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lorel Axun</title>
-    <link rel="stylesheet" href="https://unpkg.com/xterm@5.3.0/css/xterm.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
     <style>
+        :root {
+            --background: #1a1b26;
+            --foreground: #c0caf5;
+            --comment: #5c6370;
+            --cyan: #7dcfff;
+            --green: #9ece6a;
+            --yellow: #e0af68;
+            --blue: #7aa2f7;
+            --magenta: #bb9af7;
+            --red: #f7768e;
+            --font-family: 'Menlo', 'Consolas', 'DejaVu Sans Mono', monospace;
+            --window-bg: rgba(44, 45, 64, 0.85);
+            --title-bar-bg: #1e1e2e;
+            --dock-bg: rgba(26, 27, 38, 0.6);
+            --dock-hover: rgba(44, 45, 64, 0.8);
+        }
+
         body, html {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #000;
-            color: #0f0;
-            font-family: 'monospace', monospace;
             overflow: hidden;
+            background-color: var(--background);
+            color: var(--foreground);
+            font-family: var(--font-family);
         }
 
         #terminal-container {
             width: 100%;
             height: 100%;
+        }
+
+        #editor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--background);
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+        }
+
+        #editor-textarea {
+            flex-grow: 1;
+            background-color: transparent;
+            color: var(--foreground);
+            border: none;
+            outline: none;
+            font-family: var(--font-family);
+            font-size: 14px;
             padding: 10px;
-            box-sizing: border-box;
+            resize: none;
+        }
+
+        #editor-status-bar {
+            background-color: var(--title-bar-bg);
+            color: var(--foreground);
+            padding: 4px 10px;
+            font-size: 12px;
+            text-align: center;
         }
 
         #desktop {
             width: 100%;
             height: 100%;
-            background: url('https://i.imgur.com/xIIiL5d.jpg') no-repeat center center fixed;
+            background-image: url('https://source.unsplash.com/random/1920x1080?nature,cyberpunk');
             background-size: cover;
+            background-position: center;
             position: relative;
-            overflow: hidden;
+            display: none;
         }
 
         .window {
             position: absolute;
-            border: 1px solid #555;
-            background-color: rgba(20, 20, 20, 0.8);
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
-            border-radius: 5px;
-            min-width: 300px;
-            min-height: 200px;
+            background-color: var(--window-bg);
+            border: 1px solid var(--comment);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             display: flex;
             flex-direction: column;
+            min-width: 300px;
+            min-height: 200px;
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
 
         .title-bar {
-            background-color: #333;
-            color: #fff;
-            padding: 5px;
+            background-color: var(--title-bar-bg);
+            color: var(--foreground);
+            padding: 8px;
             cursor: move;
-            user-select: none;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
-        }
-        
-        .title-bar .title { 
-            font-weight: bold;
-            padding-left: 5px;
+            font-size: 14px;
         }
 
-        .close-btn {
-            background: #ff5f56;
-            border: 1px solid #e0443e;
-            border-radius: 50%;
+        .title-bar-buttons {
+            display: flex;
+        }
+
+        .title-bar-button {
             width: 12px;
             height: 12px;
+            border-radius: 50%;
+            margin-left: 6px;
             cursor: pointer;
-            padding: 0;
         }
 
-        .window-body {
+        .close-button { background-color: #ff5f57; }
+
+        .window-content {
             flex-grow: 1;
             padding: 5px;
-            box-sizing: border-box;
             overflow: auto;
         }
         
-        #terminal-window-body {
-            padding: 0 10px;
-        }
-
-        #editor {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: #0d0d0d;
-            z-index: 1000;
-            display: none;
-            flex-direction: column;
-        }
-        #editor-textarea {
-            flex-grow: 1;
-            background: #0d0d0d;
-            color: #0f0;
-            border: none;
-            outline: none;
-            font-family: 'monospace', monospace;
-            font-size: 14px;
-            padding: 10px;
-        }
-        #editor-status {
-            padding: 5px;
-            background: #333;
-            font-size: 12px;
-        }
-
         #dock {
-            position: absolute;
-            bottom: 10px;
+            position: fixed;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: rgba(50, 50, 50, 0.7);
-            backdrop-filter: blur(10px);
+            background-color: var(--dock-bg);
             border-radius: 12px;
-            padding: 5px;
+            padding: 8px;
             display: flex;
             gap: 10px;
-            align-items: flex-end;
-            z-index: 100;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--comment);
+            transition: all 0.2s ease-in-out;
         }
 
         .dock-item {
             width: 50px;
             height: 50px;
-            font-size: 40px;
+            background-color: var(--dock-hover);
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 24px;
             cursor: pointer;
-            transition: transform 0.1s ease-out, margin-bottom 0.1s ease-out;
+            transition: transform 0.1s ease-out, margin 0.1s ease-out;
             position: relative;
         }
 
-        .dock-item .tooltip {
+        .tooltip {
             visibility: hidden;
-            background-color: #222;
-            color: #fff;
+            background-color: var(--background);
+            color: var(--foreground);
             text-align: center;
             border-radius: 6px;
-            padding: 5px 8px;
+            padding: 5px 10px;
             position: absolute;
             z-index: 1;
             bottom: 125%;
             left: 50%;
-            transform: translateX(-50%);
+            margin-left: -50px; /* Use a fixed value */
             opacity: 0;
             transition: opacity 0.2s;
-            white-space: nowrap;
+            width: 80px; /* Fixed width */
         }
 
         .dock-item:hover .tooltip {
             visibility: visible;
             opacity: 1;
         }
-        
-        #explorer-body {
-            padding: 5px;
-            height: calc(100% - 35px);
-            overflow-y: auto;
-            background: #111;
-            color: #eee;
+
+        .file-explorer-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
         }
-        #explorer-path {
-            padding: 2px 5px;
-            background: #222;
-            border-bottom: 1px solid #444;
-            margin-bottom: 5px;
+
+        .file-explorer-path {
+            padding: 5px;
+            background-color: rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--comment);
             white-space: nowrap;
             overflow-x: auto;
         }
-        .explorer-item {
-            padding: 3px 5px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border-radius: 3px;
-        }
-        .explorer-item:hover {
-            background-color: #333;
-        }
-        .explorer-item .icon::before {
-            font-family: monospace;
-            display: inline-block;
-            width: 1em;
-            text-align: center;
-        }
-        .explorer-item.directory .icon::before {
-            content: '📁';
-        }
-        .explorer-item.file .icon::before {
-            content: '📄';
+
+        .file-explorer-list {
+            list-style: none;
+            padding: 5px;
+            margin: 0;
+            overflow-y: auto;
+            flex-grow: 1;
         }
 
+        .file-explorer-list li {
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .file-explorer-list li:hover {
+            background-color: var(--dock-hover);
+        }
     </style>
 </head>
 <body>
+
     <div id="terminal-container"></div>
-    <div id="desktop" style="display: none;">
-        <div id="terminal-window" class="window" style="width: 600px; height: 400px; top: 50px; left: 50px;">
-            <div class="title-bar">
-                <span class="title">Terminal</span>
-                <button class="close-btn" data-window="terminal-window">×</button>
+    
+    <div id="desktop">
+        <div id="dock">
+            <div class="dock-item" id="dock-terminal" title="Terminal">
+                <span>&#128187;</span>
+                <span class="tooltip">Terminal</span>
             </div>
-            <div class="window-body" id="terminal-window-body"></div>
-        </div>
-
-        <div id="explorer-window" class="window" style="display: none; width: 400px; height: 300px; top: 150px; left: 150px;">
-            <div class="title-bar">
-                <span class="title">Explorer</span>
-                <button class="close-btn" data-window="explorer-window">×</button>
-            </div>
-            <div class="window-body" id="explorer-body">
-                <div id="explorer-path">/home/user</div>
-                <div id="explorer-content"></div>
+            <div class="dock-item" id="dock-files" title="File Explorer">
+                <span>&#128193;</span>
+                <span class="tooltip">File Explorer</span>
             </div>
         </div>
-
-        <div id="dock"></div>
     </div>
+
     <div id="editor">
         <textarea id="editor-textarea"></textarea>
-        <div id="editor-status">File: | Press Ctrl+S to Save, Ctrl+Q to Quit</div>
+        <div id="editor-status-bar">Ctrl+S to Save | Ctrl+Q to Quit</div>
     </div>
 
-    <script src="https://unpkg.com/xterm@5.3.0/lib/xterm.js"></script>
-    <script src="https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js"></script>
 
     <script>
-        const termContainer = document.getElementById('terminal-container');
-        const term = new Xterm.Terminal({ cursorBlink: true, theme: { background: '#000', foreground: '#0f0' } });
-        const fitAddon = new FitAddon.FitAddon();
-        term.loadAddon(fitAddon);
-        term.open(termContainer);
-        fitAddon.fit();
-        window.addEventListener('resize', () => fitAddon.fit());
-
-        let state = {
-            vfs: {
-                '/': {
-                    type: 'directory',
-                    content: {
-                        'home': {
-                            type: 'directory',
-                            content: {
-                                'user': {
-                                    type: 'directory',
-                                    content: {
-                                        '.axunrc': {
-                                            type: 'file',
-                                            content: 'echo "Welcome to Lorel Axun OS"\nalias ll="ls -l"'
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        'bin': { type: 'directory', content: {} },
-                        'etc': { type: 'directory', content: {} },
-                    }
-                }
-            },
-            env: {
-                'USER': 'user',
-                'HOME': '/home/user',
-                'PS1': 'guest@axun:[~]$ '
-            },
-            cwd: '/home/user',
-            history: [],
-            aliases: {}
-        };
-
-        function saveState() {
-            localStorage.setItem('lorel_axun_state', JSON.stringify(state));
-        }
-
-        function loadState() {
-            const savedState = localStorage.getItem('lorel_axun_state');
-            if (savedState) {
-                state = JSON.parse(savedState);
-            }
-        }
-
-        function resolvePath(path) {
-            if (!path.startsWith('/')) {
-                path = state.cwd === '/' ? `/${path}` : `${state.cwd}/${path}`;
-            }
-            const parts = path.split('/').filter(p => p);
-            const resolved = [];
-            for (const part of parts) {
-                if (part === '.') continue;
-                if (part === '..') {
-                    resolved.pop();
-                } else {
-                    resolved.push(part);
-                }
-            }
-            return '/' + resolved.join('/');
-        }
-
-        function getNode(path) {
-            const resolvedPath = resolvePath(path);
-            let current = state.vfs['/'];
-            if (resolvedPath === '/') return current;
-            const parts = resolvedPath.split('/').filter(p => p);
-            for (const part of parts) {
-                if (current && current.type === 'directory' && current.content[part]) {
-                    current = current.content[part];
-                } else {
-                    return null;
-                }
-            }
-            return current;
-        }
-
-        function getParentNode(path) {
-            const resolvedPath = resolvePath(path);
-            const parentPath = resolvedPath.substring(0, resolvedPath.lastIndexOf('/')) || '/';
-            return getNode(parentPath);
-        }
-
-        function getEnv(key) {
-            return state.env[key] || '';
-        }
-
-        let command = '';
-        let historyIndex = -1;
-
-        function printPrompt() {
-            const ps1 = getEnv('PS1').replace('~', getEnv('HOME'));
-            term.write(`\r\n${ps1}`);
-        }
-
-        async function runCommand(fullCommand) {
-            state.history.push(fullCommand);
-            historyIndex = state.history.length;
-
-            const pipelines = fullCommand.split('|').map(s => s.trim());
-            let input = '';
-
-            for (let i = 0; i < pipelines.length; i++) {
-                let cmdPart = pipelines[i];
-                let output = '';
-                let error = '';
-
-                const redirectionMatch = cmdPart.match(/(.*?)(\s*(>>?)\s*(.*))$/);
-                let redirectOp = null;
-                let redirectFile = null;
-
-                if (redirectionMatch) {
-                    cmdPart = redirectionMatch[1].trim();
-                    redirectOp = redirectionMatch[3];
-                    redirectFile = redirectionMatch[4].trim();
-                }
-
-                const [cmd, ...args] = cmdPart.split(' ').filter(Boolean);
-                const aliasedCmd = state.aliases[cmd] || cmd;
-                const [finalCmd, ...finalArgs] = [...aliasedCmd.split(' '), ...args];
-
-                if (commands[finalCmd]) {
-                    try {
-                        output = await commands[finalCmd](finalArgs, input);
-                    } catch (e) {
-                        error = e.message;
-                    }
-                } else {
-                    error = `command not found: ${cmd}`;
-                }
-
-                if (error) {
-                    term.write(`\r\n${error}`);
-                    break;
-                }
-
-                if (redirectFile) {
-                    const filePath = resolvePath(redirectFile);
-                    const parent = getParentNode(filePath);
-                    const fileName = filePath.split('/').pop();
-                    if (!parent || parent.type !== 'directory') {
-                        term.write(`\r\nError: Cannot write to ${redirectFile}: No such directory`);
-                    } else {
-                        const existingNode = parent.content[fileName];
-                        if (redirectOp === '>') {
-                            parent.content[fileName] = { type: 'file', content: output };
-                        } else if (redirectOp === '>>') {
-                            if (existingNode && existingNode.type === 'file') {
-                                existingNode.content += output;
-                            } else {
-                                parent.content[fileName] = { type: 'file', content: output };
-                            }
+        // --- VIRTUAL FILE SYSTEM ---
+        class VFS {
+            constructor() {
+                this.fs = {
+                    '/': {
+                        type: 'directory',
+                        children: {
+                            'home': { type: 'directory', children: { 'user': { type: 'directory', children: { '.axunrc': { type: 'file', content: 'echo "Welcome to Lorel Axun OS"\nfiglet -f slant Lorel Axun\nalias ll="ls -l"' } } } } },
+                            'bin': { type: 'directory', children: {} },
+                            'etc': { type: 'directory', children: {} },
                         }
                     }
-                } else if (i < pipelines.length - 1) {
-                    input = output;
-                } else if (output) {
-                    term.write(`\r\n${output.replace(/\n/g, '\r\n')}`);
+                };
+                this.load();
+            }
+
+            save() {
+                localStorage.setItem('vfs', JSON.stringify(this.fs));
+            }
+
+            load() {
+                const savedVfs = localStorage.getItem('vfs');
+                if (savedVfs) {
+                    this.fs = JSON.parse(savedVfs);
                 }
             }
-            printPrompt();
-            saveState();
+
+            resolvePath(path, cwd) {
+                if (!path) return cwd;
+                let currentPath = path.startsWith('/') ? '/' : cwd;
+                const parts = path.split('/').filter(p => p);
+
+                if (!path.startsWith('/')) {
+                    const cwdParts = cwd.split('/').filter(p => p);
+                    currentPath = '/' + cwdParts.join('/');
+                }
+
+                for (const part of parts) {
+                    if (part === '.') continue;
+                    if (part === '..') {
+                        currentPath = currentPath.substring(0, currentPath.lastIndexOf('/')) || '/';
+                    } else {
+                        const node = this.getNode(currentPath);
+                        if (node && node.type === 'directory' && node.children[part]) {
+                            currentPath = (currentPath === '/' ? '' : currentPath) + '/' + part;
+                        } else {
+                            return null; // Path not found
+                        }
+                    }
+                }
+                return currentPath;
+            }
+
+            getNode(path, cwd = '/') {
+                const absolutePath = this.resolvePath(path, cwd);
+                if (!absolutePath) return null;
+
+                const parts = absolutePath.split('/').filter(p => p);
+                let currentNode = this.fs['/'];
+                for (const part of parts) {
+                    if (currentNode && currentNode.type === 'directory' && currentNode.children[part]) {
+                        currentNode = currentNode.children[part];
+                    } else {
+                        return null;
+                    }
+                }
+                return currentNode;
+            }
+
+            create(path, type, content = '', cwd = '/') {
+                const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
+                const name = path.substring(path.lastIndexOf('/') + 1);
+                if (!name) return false;
+
+                const parentNode = this.getNode(parentPath, cwd);
+                if (parentNode && parentNode.type === 'directory') {
+                    parentNode.children[name] = { type, content: content || (type === 'directory' ? { children: {} } : '') };
+                    if (type === 'directory') parentNode.children[name].children = {};
+                    this.save();
+                    return true;
+                }
+                return false;
+            }
+
+            list(path, cwd = '/') {
+                const node = this.getNode(path, cwd);
+                if (node && node.type === 'directory') {
+                    return Object.keys(node.children);
+                }
+                return null;
+            }
+
+            read(path, cwd = '/') {
+                const node = this.getNode(path, cwd);
+                if (node && node.type === 'file') {
+                    return node.content;
+                }
+                return null;
+            }
+
+            write(path, content, cwd = '/') {
+                const node = this.getNode(path, cwd);
+                if (node && node.type === 'file') {
+                    node.content = content;
+                    this.save();
+                    return true;
+                }
+                return false;
+            }
+            
+            remove(path, cwd = '/') {
+                const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
+                const name = path.substring(path.lastIndexOf('/') + 1);
+                if (!name) return false;
+
+                const parentNode = this.getNode(parentPath, cwd);
+                if (parentNode && parentNode.type === 'directory' && parentNode.children[name]) {
+                    delete parentNode.children[name];
+                    this.save();
+                    return true;
+                }
+                return false;
+            }
         }
 
+        // --- SHELL & TERMINAL ---
+        const term = new Terminal({
+            cursorBlink: true,
+            theme: {
+                background: 'var(--background)',
+                foreground: 'var(--foreground)',
+                cursor: 'var(--foreground)',
+                selection: 'var(--comment)',
+                black: '#15161E',
+                red: 'var(--red)',
+                green: 'var(--green)',
+                yellow: 'var(--yellow)',
+                blue: 'var(--blue)',
+                magenta: 'var(--magenta)',
+                cyan: 'var(--cyan)',
+                white: '#c0caf5',
+                brightBlack: '#414868',
+                brightRed: 'var(--red)',
+                brightGreen: 'var(--green)',
+                brightYellow: 'var(--yellow)',
+                brightBlue: 'var(--blue)',
+                brightMagenta: 'var(--magenta)',
+                brightCyan: 'var(--cyan)',
+                brightWhite: '#c0caf5'
+            }
+        });
+        const terminalContainer = document.getElementById('terminal-container');
+        term.open(terminalContainer);
+
+        const vfs = new VFS();
+        let cwd = '/home/user';
+        let commandHistory = [];
+        let historyIndex = -1;
+        let env = { 'USER': 'user', 'HOME': '/home/user', 'PATH': '/bin' };
+        let aliases = {};
+
+        function getPrompt() {
+            return `\x1b[38;5;153m${env.USER}\x1b[m@\x1b[38;5;117mlorel\x1b[m:\x1b[38;5;81m${cwd.replace(env.HOME, '~')}\x1b[m$ `;
+        }
+
+        term.prompt = () => {
+            term.write(getPrompt());
+        };
+
+        let currentLine = '';
         term.onKey(({ key, domEvent }) => {
             const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
 
             if (domEvent.keyCode === 13) { // Enter
-                if (command.trim()) {
-                    runCommand(command);
+                term.write('\r\n');
+                if (currentLine.trim()) {
+                    commandHistory.unshift(currentLine);
+                    historyIndex = -1;
+                    executeCommand(currentLine);
                 }
-                command = '';
-                if (!command) printPrompt();
+                currentLine = '';
+                term.prompt();
             } else if (domEvent.keyCode === 8) { // Backspace
-                if (command.length > 0) {
+                if (currentLine.length > 0) {
                     term.write('\b \b');
-                    command = command.slice(0, -1);
+                    currentLine = currentLine.slice(0, -1);
                 }
             } else if (domEvent.keyCode === 38) { // Arrow Up
-                if (historyIndex > 0) {
-                    historyIndex--;
-                    term.write(`\r${' '.repeat(getEnv('PS1').length + command.length)}`);
-                    command = state.history[historyIndex];
-                    printPrompt();
-                    term.write(command);
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    term.write(`\x1b[2K\r${getPrompt()}${commandHistory[historyIndex]}`);
+                    currentLine = commandHistory[historyIndex];
                 }
             } else if (domEvent.keyCode === 40) { // Arrow Down
-                if (historyIndex < state.history.length - 1) {
-                    historyIndex++;
-                    term.write(`\r${' '.repeat(getEnv('PS1').length + command.length)}`);
-                    command = state.history[historyIndex];
-                    printPrompt();
-                    term.write(command);
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    term.write(`\x1b[2K\r${getPrompt()}${commandHistory[historyIndex]}`);
+                    currentLine = commandHistory[historyIndex];
                 } else {
-                    historyIndex = state.history.length;
-                    term.write(`\r${' '.repeat(getEnv('PS1').length + command.length)}`);
-                    command = '';
-                    printPrompt();
+                    historyIndex = -1;
+                    term.write(`\x1b[2K\r${getPrompt()}`);
+                    currentLine = '';
                 }
             } else if (printable) {
-                command += key;
+                currentLine += key;
                 term.write(key);
             }
         });
 
-        const commands = {
-            help: () => 'Available commands: ls, cd, pwd, cat, mkdir, touch, rm, echo, clear, help, fetch, edit, js, startx, env, export, unset',
-            ls: (args) => {
-                const path = args[0] || state.cwd;
-                const node = getNode(path);
-                if (!node || node.type !== 'directory') return `ls: cannot access '${path}': No such file or directory`;
-                return Object.keys(node.content).map(name => node.content[name].type === 'directory' ? `${name}/` : name).join('\n');
-            },
-            cd: (args) => {
-                if (!args[0]) return '';
-                const newPath = resolvePath(args[0]);
-                const node = getNode(newPath);
-                if (node && node.type === 'directory') {
-                    state.cwd = newPath;
-                } else {
-                    return `cd: no such file or directory: ${args[0]}`;
+        async function executeCommand(line, stdin = '') {
+            const parts = line.trim().split('|').map(p => p.trim());
+            let currentInput = stdin;
+
+            for (let i = 0; i < parts.length; i++) {
+                const commandPart = parts[i];
+                const isLast = i === parts.length - 1;
+                
+                // Handle redirection
+                let redirectPath = null;
+                let append = false;
+                let commandToRun = commandPart;
+                if (commandPart.includes('>>')) {
+                    [commandToRun, redirectPath] = commandPart.split('>>').map(p => p.trim());
+                    append = true;
+                } else if (commandPart.includes('>')) {
+                    [commandToRun, redirectPath] = commandPart.split('>').map(p => p.trim());
                 }
-                return '';
-            },
-            pwd: () => state.cwd,
-            cat: (args) => {
-                const node = getNode(args[0]);
-                if (!node) return `cat: ${args[0]}: No such file or directory`;
-                if (node.type === 'directory') return `cat: ${args[0]}: Is a directory`;
-                return node.content;
-            },
-            mkdir: (args) => {
-                const newDirPath = resolvePath(args[0]);
-                const parent = getParentNode(newDirPath);
-                const dirName = newDirPath.split('/').pop();
-                if (parent && parent.type === 'directory' && !parent.content[dirName]) {
-                    parent.content[dirName] = { type: 'directory', content: {} };
-                } else {
-                    return `mkdir: cannot create directory ‘${args[0]}’: File exists or invalid path`;
+
+                const args = commandToRun.split(/\s+/);
+                let command = args.shift();
+
+                if (aliases[command]) {
+                    const aliasExpansion = aliases[command].split(/\s+/);
+                    command = aliasExpansion.shift();
+                    args.unshift(...aliasExpansion);
                 }
-                return '';
-            },
-            touch: (args) => {
-                const newFilePath = resolvePath(args[0]);
-                const parent = getParentNode(newFilePath);
-                const fileName = newFilePath.split('/').pop();
-                if (parent && parent.type === 'directory' && !parent.content[fileName]) {
-                    parent.content[fileName] = { type: 'file', content: '' };
-                } else if (!parent || parent.type !== 'directory') {
-                     return `touch: cannot touch '${args[0]}': No such file or directory`;
-                }
-                return '';
-            },
-            rm: (args) => {
-                const path = resolvePath(args[0]);
-                const parent = getParentNode(path);
-                const name = path.split('/').pop();
-                if (parent && parent.content[name]) {
-                    delete parent.content[name];
-                } else {
-                    return `rm: cannot remove '${args[0]}': No such file or directory`;
-                }
-                return '';
-            },
-            echo: (args, input) => input ? input : args.join(' '),
-            clear: () => { term.clear(); return ''; },
-            fetch: async (args) => {
-                try {
-                    const response = await fetch(args[0]);
-                    if (!response.ok) return `HTTP error! status: ${response.status}`;
-                    return await response.text();
-                } catch (e) {
-                    return `Fetch error: ${e.message}`;
-                }
-            },
-            edit: (args) => {
-                return new Promise(resolve => {
-                    const filePath = resolvePath(args[0]);
-                    const node = getNode(filePath);
-                    if (!node || node.type !== 'file') {
-                        resolve(`edit: cannot open ${args[0]}`);
+
+                const output = await runSingleCommand(command, args, currentInput);
+
+                if (isLast && !redirectPath) {
+                    if (output) term.write(output.replace(/\n/g, '\r\n') + (output.endsWith('\n') ? '' : '\r\n'));
+                } else if (redirectPath) {
+                    const absolutePath = vfs.resolvePath(redirectPath, cwd);
+                    if (!absolutePath) {
+                        term.write(`\r\nError: Cannot write to ${redirectPath}: No such file or directory\r\n`);
                         return;
                     }
-                    const editor = document.getElementById('editor');
-                    const textarea = document.getElementById('editor-textarea');
-                    const status = document.getElementById('editor-status');
-                    textarea.value = node.content;
-                    status.textContent = `File: ${filePath} | Press Ctrl+S to Save, Ctrl+Q to Quit`;
-                    editor.style.display = 'flex';
-                    textarea.focus();
-
-                    const keydownHandler = (e) => {
-                        if (e.ctrlKey && e.key === 's') {
-                            e.preventDefault();
-                            node.content = textarea.value;
-                            saveState();
-                            status.textContent = `File: ${filePath} | Saved! | Press Ctrl+Q to Quit`;
-                        } else if (e.ctrlKey && e.key === 'q') {
-                            e.preventDefault();
-                            editor.style.display = 'none';
-                            document.removeEventListener('keydown', keydownHandler);
-                            term.focus();
-                            resolve('');
-                        }
-                    };
-                    document.addEventListener('keydown', keydownHandler);
-                });
-            },
-            js: (args) => {
-                const fileNode = getNode(args[0]);
-                if (!fileNode || fileNode.type !== 'file') return `js: file not found: ${args[0]}`;
-                let output = '';
-                const sandbox = {
-                    axun: {
-                        log: (...args) => { output += args.map(String).join(' ') + '\n'; },
-                        vfs: {
-                            read: (path) => {
-                                const node = getNode(path);
-                                return (node && node.type === 'file') ? node.content : null;
-                            },
-                            write: (path, content) => {
-                                const resolvedPath = resolvePath(path);
-                                const parent = getParentNode(resolvedPath);
-                                const name = resolvedPath.split('/').pop();
-                                if (parent && parent.type === 'directory') {
-                                    parent.content[name] = { type: 'file', content: String(content) };
-                                    return true;
-                                } return false;
-                            },
-                            list: (path) => {
-                                const node = getNode(path);
-                                return (node && node.type === 'directory') ? Object.keys(node.content) : null;
-                            }
-                        },
-                        env: {
-                            get: (key) => state.env[key],
-                            set: (key, value) => { state.env[key] = value; }
-                        }
+                    let node = vfs.getNode(absolutePath);
+                    if (node && node.type === 'directory') {
+                        term.write(`\r\nError: ${redirectPath} is a directory\r\n`);
+                        return;
                     }
-                };
-                try {
-                    const func = new Function('axun', fileNode.content);
-                    func(sandbox.axun);
-                } catch (e) {
-                    return `js error: ${e.message}`;
-                }
-                return output.trim();
-            },
-            startx: () => {
-                document.getElementById('terminal-container').style.display = 'none';
-                const desktop = document.getElementById('desktop');
-                desktop.style.display = 'block';
-                const termWindowBody = document.getElementById('terminal-window-body');
-                termWindowBody.appendChild(term.element);
-                fitAddon.fit();
-                initDock();
-                return 'Starting graphical environment...';
-            },
-            env: () => Object.entries(state.env).map(([k, v]) => `${k}=${v}`).join('\n'),
-            export: (args) => {
-                args.forEach(arg => {
-                    const [key, ...valueParts] = arg.split('=');
-                    if (key) state.env[key] = valueParts.join('=');
-                });
-                return '';
-            },
-            unset: (args) => {
-                args.forEach(key => delete state.env[key]);
-                return '';
-            }
-        };
-
-        function processAliases(rcContent) {
-            state.aliases = {};
-            rcContent.split('\n').forEach(line => {
-                const match = line.match(/^alias\s+([^=]+)='([^']*)'$/);
-                if (match) {
-                    state.aliases[match[1]] = match[2];
-                }
-            });
-        }
-
-        async function runStartupScript() {
-            const rcPath = resolvePath('~/.axunrc');
-            const rcNode = getNode(rcPath);
-            if (rcNode && rcNode.type === 'file') {
-                processAliases(rcNode.content);
-                const commandsToRun = rcNode.content.split('\n').filter(line => !line.trim().startsWith('alias') && line.trim() !== '');
-                for (const cmd of commandsToRun) {
-                    await runCommand(cmd);
+                    if (!node) {
+                        vfs.create(absolutePath, 'file', '', '/');
+                    }
+                    const oldContent = append ? vfs.read(absolutePath) : '';
+                    vfs.write(absolutePath, oldContent + output);
+                } else {
+                    currentInput = output;
                 }
             }
         }
-        
-        // --- GUI Logic ---
-        function makeDraggable(elmnt) {
+
+        async function runSingleCommand(command, args, stdin) {
+            switch (command) {
+                case 'echo': return args.join(' ');
+                case 'ls':
+                    const path = args[0] || '.';
+                    const items = vfs.list(path, cwd);
+                    if (items) {
+                        return items.map(item => {
+                            const node = vfs.getNode(`${path}/${item}`, cwd);
+                            return node.type === 'directory' ? `\x1b[1;34m${item}/\x1b[0m` : item;
+                        }).join('\n');
+                    } else return `ls: cannot access '${path}': No such file or directory`;
+                case 'cd':
+                    const newPath = vfs.resolvePath(args[0] || env.HOME, cwd);
+                    if (newPath && vfs.getNode(newPath).type === 'directory') {
+                        cwd = newPath;
+                    } else return `cd: ${args[0]}: No such file or directory`;
+                    return '';
+                case 'pwd': return cwd;
+                case 'cat':
+                    const content = vfs.read(args[0], cwd);
+                    return content !== null ? content : `cat: ${args[0]}: No such file or directory`;
+                case 'mkdir':
+                    vfs.create(`${cwd}/${args[0]}`, 'directory');
+                    return '';
+                case 'touch':
+                    vfs.create(`${cwd}/${args[0]}`, 'file');
+                    return '';
+                case 'rm':
+                    if (vfs.remove(`${cwd}/${args[0]}`)) return '';
+                    else return `rm: cannot remove '${args[0]}': No such file or directory`;
+                case 'clear': term.clear(); return '';
+                case 'help': return 'Available commands: echo, ls, cd, pwd, cat, mkdir, touch, rm, clear, help, fetch, edit, js, startx, env, export, unset, alias';
+                case 'fetch':
+                    try {
+                        const response = await fetch(args[0]);
+                        const data = await response.text();
+                        return data;
+                    } catch (e) { return `fetch: failed to fetch ${args[0]}` }
+                case 'edit':
+                    openEditor(args[0]);
+                    return '';
+                case 'js':
+                    const scriptContent = vfs.read(args[0], cwd);
+                    if (scriptContent) return runInSandbox(scriptContent);
+                    else return `js: file not found: ${args[0]}`;
+                case 'startx':
+                    startGUI();
+                    return 'Starting graphical environment...';
+                case 'figlet':
+                    return new Promise(resolve => {
+                        figlet.text(args.slice(1).join(' '), { font: args[0] === '-f' ? args[1] : 'Standard' }, (err, data) => {
+                            if (err) resolve('Figlet error');
+                            else resolve(data);
+                        });
+                    });
+                case 'env': return Object.entries(env).map(([k, v]) => `${k}=${v}`).join('\n');
+                case 'export':
+                    const [key, ...value] = args.join(' ').split('=');
+                    if (key && value.length > 0) env[key] = value.join('=');
+                    localStorage.setItem('axun_env', JSON.stringify(env));
+                    return '';
+                case 'unset':
+                    delete env[args[0]];
+                    localStorage.setItem('axun_env', JSON.stringify(env));
+                    return '';
+                case 'alias':
+                    if (args.length === 0) {
+                        return Object.entries(aliases).map(([k, v]) => `alias ${k}='${v}'`).join('\n');
+                    }
+                    const aliasMatch = args.join(' ').match(/^([^=]+)='([^']*)'$/);
+                    if (aliasMatch) {
+                        aliases[aliasMatch[1]] = aliasMatch[2];
+                    } else {
+                        return 'Usage: alias name=\'command\''
+                    }
+                    return '';
+                default: return `command not found: ${command}`;
+            }
+        }
+
+        // --- EDITOR ---
+        const editorEl = document.getElementById('editor');
+        const editorTextarea = document.getElementById('editor-textarea');
+        let editorFilePath = '';
+
+        function openEditor(filePath) {
+            editorFilePath = vfs.resolvePath(filePath, cwd);
+            const content = vfs.read(editorFilePath);
+            if (content !== null) {
+                editorTextarea.value = content;
+                editorEl.style.display = 'flex';
+                term.blur();
+                editorTextarea.focus();
+            }
+        }
+
+        editorTextarea.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                vfs.write(editorFilePath, editorTextarea.value);
+            } else if (e.ctrlKey && e.key === 'q') {
+                e.preventDefault();
+                editorEl.style.display = 'none';
+                term.focus();
+            }
+        });
+
+        // --- SANDBOX ---
+        function runInSandbox(code) {
+            const sandboxApi = {
+                vfs: {
+                    read: (path) => vfs.read(path, cwd),
+                    write: (path, content) => vfs.write(path, content, cwd),
+                    list: (path) => vfs.list(path, cwd),
+                },
+                env: { ...env },
+                term: { log: (msg) => term.writeln(msg) }
+            };
+            try {
+                const func = new Function('api', code);
+                return func(sandboxApi) || '';
+            } catch (e) {
+                return `Sandbox error: ${e.message}`;
+            }
+        }
+
+        // --- GUI ENVIRONMENT ---
+        const desktop = document.getElementById('desktop');
+        let highestZIndex = 100;
+
+        function startGUI() {
+            terminalContainer.style.display = 'none';
+            desktop.style.display = 'block';
+            openTerminalWindow();
+        }
+
+        function bringToFront(windowEl) {
+            highestZIndex++;
+            windowEl.style.zIndex = highestZIndex;
+        }
+
+        function dragElement(elmnt) {
             let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
             const titleBar = elmnt.querySelector(".title-bar");
-            
-            const dragMouseDown = (e) => {
+            if (titleBar) {
+                titleBar.onmousedown = dragMouseDown;
+            } else {
+                elmnt.onmousedown = dragMouseDown;
+            }
+
+            function dragMouseDown(e) {
+                e = e || window.event;
                 e.preventDefault();
                 pos3 = e.clientX;
                 pos4 = e.clientY;
@@ -649,13 +664,8 @@
                 bringToFront(elmnt);
             }
 
-            if (titleBar) {
-                titleBar.onmousedown = dragMouseDown;
-            } else {
-                elmnt.onmousedown = dragMouseDown;
-            }
-
-            const elementDrag = (e) => {
+            function elementDrag(e) {
+                e = e || window.event;
                 e.preventDefault();
                 pos1 = pos3 - e.clientX;
                 pos2 = pos4 - e.clientY;
@@ -665,126 +675,148 @@
                 elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
             }
 
-            const closeDragElement = () => {
+            function closeDragElement() {
                 document.onmouseup = null;
                 document.onmousemove = null;
             }
+        }
+
+        function createWindow(title, contentElement, options = {}) {
+            const { width = '500px', height = '300px', top = '100px', left = '100px' } = options;
+            const windowEl = document.createElement('div');
+            windowEl.className = 'window';
+            windowEl.style.width = width;
+            windowEl.style.height = height;
+            windowEl.style.top = top;
+            windowEl.style.left = left;
             
-            elmnt.addEventListener('mousedown', () => bringToFront(elmnt));
+            bringToFront(windowEl);
+            windowEl.addEventListener('click', () => bringToFront(windowEl));
+
+            const titleBar = document.createElement('div');
+            titleBar.className = 'title-bar';
+            titleBar.innerHTML = `<span>${title}</span>`;
+
+            const buttons = document.createElement('div');
+            buttons.className = 'title-bar-buttons';
+            const closeBtn = document.createElement('div');
+            closeBtn.className = 'title-bar-button close-button';
+            closeBtn.onclick = () => windowEl.remove();
+            buttons.appendChild(closeBtn);
+            titleBar.appendChild(buttons);
+
+            const content = document.createElement('div');
+            content.className = 'window-content';
+            content.appendChild(contentElement);
+
+            windowEl.appendChild(titleBar);
+            windowEl.appendChild(content);
+            desktop.appendChild(windowEl);
+
+            dragElement(windowEl);
+
+            return windowEl;
         }
 
-        let zIndexCounter = 10;
-        function bringToFront(elmnt) {
-            elmnt.style.zIndex = ++zIndexCounter;
+        function openTerminalWindow() {
+            const termContainer = document.createElement('div');
+            termContainer.style.width = '100%';
+            termContainer.style.height = '100%';
+            const newTerm = new Terminal({ theme: term.getOption('theme') });
+            createWindow('Terminal', termContainer, { width: '600px', height: '400px' });
+            newTerm.open(termContainer);
+            newTerm.write('This is a new terminal window.\r\n');
         }
-
-        function openTerminal() {
-            const termWindow = document.getElementById('terminal-window');
-            termWindow.style.display = 'block';
-            bringToFront(termWindow);
-        }
-
-        const explorerWindow = document.getElementById('explorer-window');
-        const explorerContent = document.getElementById('explorer-content');
-        const explorerPath = document.getElementById('explorer-path');
-        let currentExplorerPath = getEnv('HOME');
-
-        function openExplorer() {
-            explorerWindow.style.display = 'block';
-            bringToFront(explorerWindow);
-            renderExplorer(currentExplorerPath);
-        }
-
-        function renderExplorer(path) {
-            currentExplorerPath = resolvePath(path);
-            explorerPath.textContent = currentExplorerPath;
-            explorerContent.innerHTML = '';
-
-            const node = getNode(currentExplorerPath);
-            if (!node || node.type !== 'directory') {
-                explorerContent.textContent = 'Error: Path not found or not a directory.';
-                return;
-            }
-
-            if (currentExplorerPath !== '/') {
-                const parentPath = currentExplorerPath.substring(0, currentExplorerPath.lastIndexOf('/')) || '/';
-                const parentDiv = document.createElement('div');
-                parentDiv.className = 'explorer-item directory';
-                parentDiv.innerHTML = `<span class="icon"></span><span>..</span>`;
-                parentDiv.onclick = () => renderExplorer(parentPath);
-                explorerContent.appendChild(parentDiv);
-            }
-
-            const entries = Object.keys(node.content).sort();
-            for (const entry of entries) {
-                const childNode = node.content[entry];
-                const div = document.createElement('div');
-                div.className = `explorer-item ${childNode.type}`;
-                div.innerHTML = `<span class="icon"></span><span>${entry}</span>`;
-                if (childNode.type === 'directory') {
-                    const newPath = currentExplorerPath === '/' ? `/${entry}` : `${currentExplorerPath}/${entry}`;
-                    div.onclick = () => renderExplorer(newPath);
-                }
-                explorerContent.appendChild(div);
-            }
-        }
-
-        const dockApps = [
-            { name: 'Terminal', icon: '❯_', action: openTerminal },
-            { name: 'Explorer', icon: '📁', action: openExplorer }
-        ];
-
-        function initDock() {
-            const dock = document.getElementById('dock');
-            dock.innerHTML = '';
-            dockApps.forEach(app => {
-                const item = document.createElement('div');
-                item.className = 'dock-item';
-                item.innerHTML = `${app.icon}<span class="tooltip">${app.name}</span>`;
-                item.onclick = app.action;
-                dock.appendChild(item);
-            });
-
-            const dockItems = dock.querySelectorAll('.dock-item');
-            dock.addEventListener('mousemove', (e) => {
-                const dockRect = dock.getBoundingClientRect();
-                dockItems.forEach(item => {
-                    const itemRect = item.getBoundingClientRect();
-                    const offset = Math.abs(e.clientX - (itemRect.left + itemRect.width / 2));
-                    const scale = Math.max(1, 1.8 - offset / 100);
-                    item.style.transform = `scale(${scale})`;
-                    item.style.marginBottom = `${(scale - 1) * 20}px`;
-                });
-            });
-
-            dock.addEventListener('mouseleave', () => {
-                dockItems.forEach(item => {
-                    item.style.transform = 'scale(1)';
-                    item.style.marginBottom = '0px';
-                });
-            });
-        }
-
-        // --- Init --- 
-        figlet.parseFont('Standard', figlet.fonts.Standard);
-        figlet.text('Lorel Axun', { font: 'Standard' }, (err, data) => {
-            if (data) term.write(data.replace(/\n/g, '\r\n'));
-            term.write('\r\nType "help" for a list of commands.');
-            loadState();
-            runStartupScript().then(printPrompt);
-        });
         
-        makeDraggable(document.getElementById('terminal-window'));
-        makeDraggable(document.getElementById('explorer-window'));
+        function openFileExplorerWindow() {
+            const explorerContent = document.createElement('div');
+            explorerContent.className = 'file-explorer-content';
+            const pathBar = document.createElement('div');
+            pathBar.className = 'file-explorer-path';
+            const fileList = document.createElement('ul');
+            fileList.className = 'file-explorer-list';
+            explorerContent.appendChild(pathBar);
+            explorerContent.appendChild(fileList);
 
-        document.querySelectorAll('.close-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const windowId = e.target.dataset.window;
-                if (windowId) {
-                    document.getElementById(windowId).style.display = 'none';
+            let currentExplorerPath = '/';
+
+            function render(path) {
+                currentExplorerPath = path;
+                pathBar.textContent = path;
+                fileList.innerHTML = '';
+                if (path !== '/') {
+                    const up = document.createElement('li');
+                    up.textContent = '..';
+                    up.onclick = () => render(path.substring(0, path.lastIndexOf('/')) || '/');
+                    fileList.appendChild(up);
+                }
+                const items = vfs.list(path);
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    const node = vfs.getNode(`${path === '/' ? '' : path}/${item}`);
+                    if (node.type === 'directory') {
+                        li.textContent = `\ud83d\udcc1 ${item}`;
+                        li.onclick = () => render(`${path === '/' ? '' : path}/${item}`);
+                    } else {
+                        li.textContent = `\ud83d\udcc4 ${item}`;
+                    }
+                    fileList.appendChild(li);
+                });
+            }
+
+            createWindow('File Explorer', explorerContent, { top: '150px', left: '150px' });
+            render('/');
+        }
+
+        // Dock logic
+        document.getElementById('dock-terminal').onclick = openTerminalWindow;
+        document.getElementById('dock-files').onclick = openFileExplorerWindow;
+        const dockItems = document.querySelectorAll('.dock-item');
+        dockItems.forEach(item => {
+            item.addEventListener('mousemove', e => {
+                const itemRect = item.getBoundingClientRect();
+                const dockRect = item.parentElement.getBoundingClientRect();
+                const offset = e.clientX - itemRect.left;
+                const center = itemRect.width / 2;
+                const distance = Math.abs(center - offset);
+                const scale = Math.max(1, 2 - (distance / center) * 1.2);
+                item.style.transform = `scale(${scale}) translateY(-10px)`;
+                
+                // Influence neighbors
+                const prev = item.previousElementSibling;
+                const next = item.nextElementSibling;
+                if (prev) {
+                    const prevScale = Math.max(1, 1.5 - (distance / center) * 1.2);
+                    prev.style.transform = `scale(${prevScale}) translateY(-5px)`;
+                }
+                if (next) {
+                    const nextScale = Math.max(1, 1.5 - (distance / center) * 1.2);
+                    next.style.transform = `scale(${nextScale}) translateY(-5px)`;
                 }
             });
+            item.addEventListener('mouseleave', () => {
+                dockItems.forEach(i => i.style.transform = 'scale(1) translateY(0)');
+            });
         });
+
+        // --- INITIALIZATION ---
+        function init() {
+            const savedEnv = localStorage.getItem('axun_env');
+            if (savedEnv) {
+                env = JSON.parse(savedEnv);
+            }
+            const rcPath = vfs.resolvePath('.axunrc', env.HOME);
+            const rcContent = vfs.read(rcPath);
+            if (rcContent) {
+                const commands = rcContent.split('\n');
+                commands.forEach(cmd => {
+                    if (cmd.trim()) executeCommand(cmd);
+                });
+            }
+            term.prompt();
+        }
+
+        init();
 
     </script>
 </body>
