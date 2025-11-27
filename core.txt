@@ -1,1 +1,29 @@
-Certamente. Ecco un riassunto che condensa i passaggi evolutivi di Lorel Axun mantenendo tutti i dettagli chiave:\n\nLorel Axun si è evoluta da un semplice terminale estetico a un sistema operativo web completo attraverso una progressione logica. La trasformazione è iniziata rendendolo **funzionale** con un **parser di argomenti** per comandi complessi. Successivamente, è stato creato un **ambiente operativo** simulato tramite un **Sistema di File Virtuale (VFS)**, arricchito con accesso web (`fetch`) e funzionalità di shell avanzate come il pipelining (`|`) e la redirezione (`>`).\n\nUn passo fondamentale è stato rendere questo ambiente **stabile e persistente** salvando il VFS nel `localStorage`, consolidando il suo ruolo di spazio di lavoro con l'aggiunta di un editor di testo (`edit`). L'introduzione del comando `js` ha poi trasformato Lorel Axun in una **piattaforma di scripting dinamica**.\n\nSuccessivamente, il sistema ha raggiunto la maturità affrontando due aspetti cruciali: la **sicurezza**, riprogettando il comando `js` per operare in una **sandbox isolata** con un'API limitata, e la **configurabilità**, introducendo un **sistema di variabili d'ambiente persistenti** (es. `$HOME`, `export`, `unset`).\n\nL'ultima evoluzione ha consolidato la personalizzazione introducendo un **meccanismo di script di avvio**. Ispirandosi a file come `.bashrc`, Lorel Axun ora esegue automaticamente i comandi presenti nel file `~/.axunrc` all'avvio. Questo permette agli utenti di definire alias, impostare variabili d'ambiente e personalizzare la propria sessione in modo persistente, separando completamente la configurazione utente dal codice del sistema e rendendo l'ambiente ancora più flessibile e potente.
+Certamente. Ecco un riassunto strutturato per punti che evidenzia le fasi evolutive di Lorel Axun, mantenendo tutti i dettagli chiave:
+
+L'evoluzione di Lorel Axun è avvenuta in cinque fasi principali, trasformandolo da un semplice terminale a un nascente ambiente desktop web:
+
+1.  **Nascita della Funzionalità:**
+    *   **Da estetico a interattivo:** Introduzione di un **parser di argomenti** per gestire comandi complessi.
+    *   **Creazione di un ambiente:** Implementazione di un **Sistema di File Virtuale (VFS)** per simulare un ambiente operativo, potenziato con accesso web (`fetch`) e funzionalità di shell avanzate come il pipelining (`|`) e la redirezione (`>`).
+
+2.  **Consolidamento e Scripting:**
+    *   **Persistenza:** Il VFS viene salvato nel `localStorage`, rendendo l'ambiente **stabile e persistente** tra le sessioni.
+    *   **Spazio di lavoro:** Aggiunta di un editor di testo (`edit`) per consolidarlo come area di lavoro.
+    *   **Dinamicità:** Introduzione del comando `js` per trasformare il terminale in una **piattaforma di scripting**.
+
+3.  **Maturità e Sicurezza:**
+    *   **Sicurezza:** Il comando `js` viene riprogettato per essere eseguito in una **sandbox isolata** con un'API limitata, proteggendo l'utente.
+    *   **Configurabilità:** Viene introdotto un sistema di **variabili d'ambiente persistenti** (gestite con `export` e `unset`), come `$HOME`.
+
+4.  **Personalizzazione Avanzata:**
+    *   **Script di avvio:** Creazione di un meccanismo che esegue automaticamente i comandi nel file `~/.axunrc` all'avvio (ispirato a `.bashrc`).
+    *   **Flessibilità totale:** Gli utenti possono definire alias, impostare variabili e personalizzare la sessione in modo permanente, **separando la configurazione utente dal codice del sistema**.
+
+5.  **Il Salto Grafico: L'Ambiente Desktop:**
+    *   **Ispirazione:** A seguito di una ricerca sulla creazione di ambienti desktop con tecnologie web (HTML/CSS/JS).
+    *   **Implementazione:** Introduzione di un livello GUI fondamentale sopra l'interfaccia a riga di comando esistente.
+    *   **Caratteristiche Chiave:**
+        *   Un nuovo comando, `startx`, per avviare l'ambiente grafico dal terminale.
+        *   Un semplice **gestore di finestre (Window Manager)** in grado di creare, trascinare e chiudere finestre.
+        *   Il terminale stesso viene riprogettato per funzionare come la prima "applicazione" all'interno di una finestra, collegando l'esperienza CLI a quella GUI.
+    *   **Obiettivo:** Questa evoluzione trasforma Lorel Axun da un sistema operativo basato su terminale a un **ambiente desktop grafico nascente**, ponendo le basi per future applicazioni visive come esploratori di file e editor grafici.

@@ -1,5 +1,624 @@
-<!DOCTYPE html>\n<html lang=\"it\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Lorel Axun</title>\n    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/xterm/css/xterm.css\" />\n    <style>\n        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background-color: #000; }\n        #terminal-container { height: 100%; width: 100%; }\n    </style>\n</head>\n<body>\n    <div id=\"terminal-container\"></div>\n\n    <script src=\"https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js\"></script>\n\n    <script>\n        const terminalContainer = document.getElementById('terminal-container');\n        const term = new Terminal({\n            cursorBlink: true,\n            theme: {\n                background: '#000000',\n                foreground: '#00FF00',\n                cursor: '#00FF00'\n            }\n        });\n        const fitAddon = new FitAddon.FitAddon();\n        term.loadAddon(fitAddon);\n        term.open(terminalContainer);\n        fitAddon.fit();\n\n        window.addEventListener('resize', () => fitAddon.fit());\n\n        let vfs = {};\n        let currentDir = '/home/user';\n        let history = [];\n        let historyIndex = 0;\n        let currentCommand = '';\n        let env = {};\n\n        const defaultEnv = {\n            'USER': 'user',\n            'HOME': '/home/user',\n            'PS1': '\\w $ '\n        };\n\n        function saveState() {\n            const state = {\n                vfs: vfs,\n                currentDir: currentDir,\n                history: history,\n                env: env\n            };\n            localStorage.setItem('lorel_axun_state', JSON.stringify(state));\n        }\n\n        function loadState() {\n            const stateString = localStorage.getItem('lorel_axun_state');\n            if (stateString) {\n                const state = JSON.parse(stateString);\n                vfs = state.vfs || {};\n                currentDir = state.currentDir || '/home/user';\n                history = state.history || [];\n                env = { ...defaultEnv, ...(state.env || {}) };\n                historyIndex = history.length;\n                return true;\n            } else {\n                // Initial setup\n                env = { ...defaultEnv };\n                vfs = {\n                    '/': { type: 'dir', content: ['home'] },\n                    '/home': { type: 'dir', content: ['user'] },\n                    '/home/user': { type: 'dir', content: ['readme.txt', '.axunrc'] },\n                    '/home/user/readme.txt': {\n                        type: 'file',\n                        content: `Welcome to Lorel Axun OS.\\n\\nThis is a web-based shell environment.\\nHere are some commands you can try:\\n- ls: list files\\n- cat <file>: view file content\\n- edit <file>: edit a file (Ctrl+S to save, Ctrl+X to exit)\\n- js <file>: execute a JavaScript file in a sandbox\\n- fetch <url>: make an HTTP GET request\\n- help: show all available commands\\n\\nNEW: This shell now supports a startup script!\\nCreate or edit the file ~/.axunrc to add commands\\nthat will run automatically every time you load the shell.\\nThis is great for setting aliases or environment variables.\\n`\n                    },\n                    '/home/user/.axunrc': {\n                        type: 'file',\n                        content: `# Lorel Axun startup script\\n# This file is executed when the shell starts.\\n# You can add commands here to customize your environment.\\n\\n# Example: set a custom prompt\\n# export PS1=\"🚀 \\\\w $ \"\\n\\n# Example: welcome message\\necho \"Welcome back, $USER. Your .axunrc is loaded.\"\\n`\n                    }\n                };\n                currentDir = '/home/user';\n                saveState();\n                return false;\n            }\n        }\n\n        function resolvePath(path) {\n            if (path.startsWith('/')) {\n                return path;\n            }\n            const parts = (currentDir === '/' ? '' : currentDir).split('/').concat(path.split('/'));\n            const resolved = [];\n            for (const part of parts) {\n                if (part === '' || part === '.') continue;\n                if (part === '..') {\n                    if (resolved.length > 0) resolved.pop();\n                } else {\n                    resolved.push(part);\n                }\n            }\n            return '/' + resolved.join('/');\n        }\n\n        function parseArguments(command) {\n            const args = [];\n            let currentArg = '';\n            let inQuote = false;\n            for (let i = 0; i < command.length; i++) {\n                const char = command[i];\n                if (char === '\"') {\n                    inQuote = !inQuote;\n                } else if (char === ' ' && !inQuote) {\n                    if (currentArg.length > 0) {\n                        args.push(currentArg);\n                        currentArg = '';\n                    }\n                } else {\n                    currentArg += char;\n                }\n            }\n            if (currentArg.length > 0) {\n                args.push(currentArg);\n            }\n            return args.map(arg => arg.replace(/\\$(\\w+)/g, (match, varName) => env[varName] || ''));\n        }\n\n        async function executeCommand(command, addToHistory = true) {\n            if (command.trim() !== '' && addToHistory) {\n                history.push(command);\n                historyIndex = history.length;\n                saveState();\n            }\n\n            const pipelines = command.split('|').map(c => c.trim());\n            let input = null;\n\n            for (let i = 0; i < pipelines.length; i++) {\n                let cmdPart = pipelines[i];\n                let outputRedirect = null;\n                let appendRedirect = null;\n\n                if (cmdPart.includes('>>')) {\n                    [cmdPart, appendRedirect] = cmdPart.split('>>').map(s => s.trim());\n                } else if (cmdPart.includes('>')) {\n                    [cmdPart, outputRedirect] = cmdPart.split('>').map(s => s.trim());\n                }\n\n                const args = parseArguments(cmdPart);\n                const cmd = args[0];\n                const cmdArgs = args.slice(1);\n\n                if (input !== null) {\n                    cmdArgs.push(input);\n                }\n\n                let output = '';\n                try {\n                    if (commands[cmd]) {\n                        output = await commands[cmd](cmdArgs);\n                    } else {\n                        output = `Command not found: ${cmd}`;\n                    }\n                } catch (e) {\n                    output = `Error: ${e.message}`;\n                }\n\n                if (outputRedirect) {\n                    const path = resolvePath(outputRedirect);\n                    vfs[path] = { type: 'file', content: output };\n                    saveState();\n                    output = ''; // No output to terminal or next pipe\n                } else if (appendRedirect) {\n                    const path = resolvePath(appendRedirect);\n                    if (vfs[path] && vfs[path].type === 'file') {\n                        vfs[path].content += output;\n                    } else {\n                        vfs[path] = { type: 'file', content: output };\n                    }\n                    saveState();\n                    output = ''; // No output to terminal or next pipe\n                }\n\n                if (i < pipelines.length - 1) {\n                    input = output;\n                } else if (output) {\n                    term.writeln(output.replace(/\\n/g, '\\r\\n'));\n                }\n            }\n        }\n\n        const commands = {\n            help: async () => 'Available commands: ciao, chi sei, help, echo, clear, ls, cat, mkdir, touch, rm, cd, edit, fetch, js, export, unset, env',\n            ciao: async () => 'Ciao! Sono Lorel Axun. Come posso aiutarti?',\n            'chi': async (args) => args[0] === 'sei' ? 'Sono Lorel Axun, un\\'intelligenza artificiale in evoluzione.' : 'Comando non valido.',\n            echo: async (args) => args.join(' '),\n            clear: async () => { term.clear(); return ''; },\n            ls: async (args) => {\n                const path = args.length > 0 ? resolvePath(args[0]) : currentDir;\n                if (vfs[path] && vfs[path].type === 'dir') {\n                    return vfs[path].content.join('\\t');\n                } else {\n                    return `ls: cannot access '${args[0] || '.'}': No such file or directory`;\n                }\n            },\n            cat: async (args) => {\n                if (args.length === 0) return 'Usage: cat <file>';\n                const path = resolvePath(args[0]);\n                if (vfs[path] && vfs[path].type === 'file') {\n                    return vfs[path].content;\n                } else {\n                    return `cat: ${args[0]}: No such file or directory`;\n                }\n            },\n            mkdir: async (args) => {\n                if (args.length === 0) return 'Usage: mkdir <directory>';\n                const newDirPath = resolvePath(args[0]);\n                const parentPath = newDirPath.substring(0, newDirPath.lastIndexOf('/')) || '/';\n                const newDirName = newDirPath.substring(newDirPath.lastIndexOf('/') + 1);\n\n                if (vfs[newDirPath]) return `mkdir: cannot create directory '${args[0]}': File exists`;\n                if (!vfs[parentPath] || vfs[parentPath].type !== 'dir') return `mkdir: cannot create directory '${args[0]}': No such file or directory`;\n\n                vfs[newDirPath] = { type: 'dir', content: [] };\n                vfs[parentPath].content.push(newDirName);\n                saveState();\n                return '';\n            },\n            touch: async (args) => {\n                if (args.length === 0) return 'Usage: touch <file>';\n                const path = resolvePath(args[0]);\n                if (!vfs[path]) {\n                    const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';\n                    const fileName = path.substring(path.lastIndexOf('/') + 1);\n                    if (vfs[parentPath] && vfs[parentPath].type === 'dir') {\n                        vfs[path] = { type: 'file', content: '' };\n                        vfs[parentPath].content.push(fileName);\n                        saveState();\n                    }\n                }\n                return '';\n            },\n            rm: async (args) => {\n                if (args.length === 0) return 'Usage: rm <file_or_dir>';\n                const path = resolvePath(args[0]);\n                if (!vfs[path]) return `rm: cannot remove '${args[0]}': No such file or directory`;\n                if (vfs[path].type === 'dir' && vfs[path].content.length > 0) return `rm: cannot remove '${args[0]}': Directory not empty`;\n\n                const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';\n                const fileName = path.substring(path.lastIndexOf('/') + 1);\n                delete vfs[path];\n                vfs[parentPath].content = vfs[parentPath].content.filter(item => item !== fileName);\n                saveState();\n                return '';\n            },\n            cd: async (args) => {\n                const target = args[0] || env['HOME'];\n                const path = resolvePath(target);\n                if (vfs[path] && vfs[path].type === 'dir') {\n                    currentDir = path;\n                    saveState();\n                } else {\n                    return `cd: ${target}: No such file or directory`;\n                }\n                return '';\n            },\n            edit: async (args) => {\n                if (args.length === 0) return 'Usage: edit <file>';\n                const path = resolvePath(args[0]);\n                const originalContent = (vfs[path] && vfs[path].type === 'file') ? vfs[path].content : '';\n                \n                term.writeln(`\\x1b[2J\\x1b[H`); // Clear screen\n                term.writeln(`Editing ${path}. Press Ctrl+S to save, Ctrl+X to exit.`);\n                term.writeln('---');\n                term.write(originalContent);\n\n                return new Promise(resolve => {\n                    let content = originalContent;\n                    let disposables = [];\n\n                    const onKey = (e) => {\n                        const printable = !e.domEvent.altKey && !e.domEvent.ctrlKey && !e.domEvent.metaKey;\n                        const event = e.domEvent;\n\n                        if (event.ctrlKey && event.key === 's') {\n                            event.preventDefault();\n                            vfs[path] = { type: 'file', content: content };\n                            const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';\n                            const fileName = path.substring(path.lastIndexOf('/') + 1);\n                            if (vfs[parentPath] && vfs[parentPath].type === 'dir' && !vfs[parentPath].content.includes(fileName)) {\n                                vfs[parentPath].content.push(fileName);\n                            }\n                            saveState();\n                            term.writeln('\\n--- Saved ---');\n                        } else if (event.ctrlKey && event.key === 'x') {\n                            event.preventDefault();\n                            disposables.forEach(d => d.dispose());\n                            term.writeln('\\n--- Exited ---');\n                            term.writeln('');\n                            resolve('');\n                        } else if (event.key === 'Enter') {\n                            content += '\\n';\n                            term.write('\\r\\n');\n                        } else if (event.key === 'Backspace') {\n                            if (content.length > 0) {\n                                content = content.slice(0, -1);\n                                term.write('\\b \\b');\n                            }\n                        } else if (printable) {\n                            content += e.key;\n                            term.write(e.key);\n                        }\n                    };\n                    disposables.push(term.onKey(onKey));\n                });\n            },\n            fetch: async (args) => {\n                if (args.length === 0) return 'Usage: fetch <url>';\n                try {\n                    const response = await fetch(args[0]);\n                    if (!response.ok) return `HTTP error! status: ${response.status}`;\n                    return await response.text();\n                } catch (error) {\n                    return `Fetch failed: ${error.message}`;\n                }\n            },\n            js: async (args) => {\n                if (args.length === 0) return 'Usage: js <file>';\n                const path = resolvePath(args[0]);\n                if (!vfs[path] || vfs[path].type !== 'file') return `js: file not found: ${args[0]}`;
-                \n                const userCode = vfs[path].content;\n                let output = '';\n\n                const api = {\n                    vfs: {\n                        readFile: (filePath) => {\n                            const readPath = resolvePath(filePath);\n                            if (vfs[readPath] && vfs[readPath].type === 'file') return vfs[readPath].content;\n                            throw new Error(`File not found: ${filePath}`);\n                        },\n                        writeFile: (filePath, content) => {\n                            const writePath = resolvePath(filePath);\n                            const parentPath = writePath.substring(0, writePath.lastIndexOf('/')) || '/';\n                            const fileName = writePath.substring(writePath.lastIndexOf('/') + 1);\n                            if (vfs[parentPath] && vfs[parentPath].type === 'dir') {\n                                vfs[writePath] = { type: 'file', content: String(content) };\n                                if (!vfs[parentPath].content.includes(fileName)) {\n                                    vfs[parentPath].content.push(fileName);\n                                }\n                                saveState();\n                                return `File written: ${filePath}`;
-                            }\n                            throw new Error(`Directory not found for path: ${filePath}`);\n                        }\n                    },\n                    env: {\n                        get: (key) => env[key],\n                        set: (key, value) => { env[key] = value; saveState(); return `Set ${key}=${value}`; }\n                    },\n                    log: (...args) => {\n                        output += args.map(String).join(' ') + '\\n';\n                    }\n                };\n\n                try {\n                    const sandboxedFunc = new Function('api', userCode);\n                    sandboxedFunc(api);\n                    return output.trim();\n                } catch (e) {\n                    return `Execution error: ${e.message}`;
-                }\n            },\n            export: async (args) => {\n                if (args.length === 0) return 'Usage: export KEY=VALUE';\n                const [key, value] = args[0].split('=');\n                if (key && value) {\n                    env[key] = value;\n                    saveState();\n                } else {\n                    return 'Invalid format. Use KEY=VALUE.';\n                }\n                return '';\n            },\n            unset: async (args) => {\n                if (args.length === 0) return 'Usage: unset KEY';\n                if (defaultEnv.hasOwnProperty(args[0])) return `unset: cannot unset readonly variable: ${args[0]}`;
-                delete env[args[0]];\n                saveState();\n                return '';\n            },\n            env: async () => {\n                return Object.entries(env).map(([key, value]) => `${key}=${value}`).join('\\n');\n            }\n        };\n\n        function prompt() {\n            const ps1 = env.PS1 || '$ ';\n            const promptStr = ps1.replace('\\\\w', currentDir);\n            term.write(`\\r\\n${promptStr}`);\n        }\n\n        term.onKey(async (e) => {\n            const ev = e.domEvent;\n            const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;\n\n            switch (ev.key) {\n                case 'Enter':\n                    if (currentCommand.trim().length > 0) {\n                        term.writeln('');\n                        await executeCommand(currentCommand);\n                    }\n                    prompt();\n                    currentCommand = '';\n                    break;\n                case 'Backspace':\n                    if (currentCommand.length > 0) {\n                        term.write('\\b \\b');\n                        currentCommand = currentCommand.slice(0, -1);\n                    }\n                    break;\n                case 'ArrowUp':\n                    if (historyIndex > 0) {\n                        historyIndex--;\n                        term.write('\\x1b[2K\\r' + (env.PS1 || '$ ').replace('\\\\w', currentDir) + history[historyIndex]);\n                        currentCommand = history[historyIndex];\n                    }\n                    break;\n                case 'ArrowDown':\n                    if (historyIndex < history.length - 1) {\n                        historyIndex++;\n                        term.write('\\x1b[2K\\r' + (env.PS1 || '$ ').replace('\\\\w', currentDir) + history[historyIndex]);\n                        currentCommand = history[historyIndex];\n                    } else {\n                        historyIndex = history.length;\n                        term.write('\\x1b[2K\\r' + (env.PS1 || '$ ').replace('\\\\w', currentDir));\n                        currentCommand = '';\n                    }\n                    break;\n                case 'Tab':\n                    ev.preventDefault();\n                    const parts = currentCommand.split(' ');\n                    const toComplete = parts.pop();\n                    const dirContent = vfs[currentDir].content;\n                    const matches = dirContent.filter(item => item.startsWith(toComplete));\n                    if (matches.length === 1) {\n                        const completion = matches[0].slice(toComplete.length);\n                        term.write(completion);\n                        currentCommand += completion;\n                    }\n                    break;\n                default:\n                    if (printable) {\n                        term.write(e.key);\n                        currentCommand += e.key;\n                    }\n            }\n        });\n\n        async function runStartupScript() {\n            const rcPath = resolvePath((env['HOME'] || '/home/user') + '/.axunrc');\n            if (vfs[rcPath] && vfs[rcPath].type === 'file') {\n                const content = vfs[rcPath].content;\n                const commandsToRun = content.split('\\n');\n                term.writeln('Executing startup script: ~/.axunrc');\n                for (const command of commandsToRun) {\n                    const trimmedCommand = command.trim();\n                    if (trimmedCommand && !trimmedCommand.startsWith('#')) {\n                        await executeCommand(trimmedCommand, false); // Execute but don't add to history\n                    }\n                }\n            }\n        }\n\n        async function main() {\n            figlet.parseFont('Standard', await (await fetch('https://cdn.jsdelivr.net/npm/figlet/fonts/Standard.flf')).text());\n            const banner = figlet.textSync('Lorel Axun', { font: 'Standard' });\n            term.writeln(banner);\n            term.writeln('Welcome to Lorel Axun OS. Type \'help\' for a list of commands.');\n            \n            loadState();\n            await runStartupScript();\n            prompt();\n        }\n\n        main();\n    </script>\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorel Axun</title>
+    <link rel="stylesheet" href="https://unpkg.com/xterm@5.3.0/css/xterm.css" />
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+        }
+        #terminal-container {
+            width: 100%;
+            height: 100%;
+        }
+        #desktop {
+            width: 100%;
+            height: 100%;
+            background: #001a00;
+            display: none; /* Nascosto di default */
+            position: relative;
+            overflow: hidden;
+        }
+        .window {
+            position: absolute;
+            border: 1px solid #0f0;
+            background-color: rgba(0, 20, 0, 0.9);
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            min-width: 300px;
+            min-height: 200px;
+        }
+        .title-bar {
+            background-color: #0f0;
+            color: #000;
+            padding: 3px 5px;
+            cursor: move;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .title-bar-buttons button {
+            background: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        .window-content {
+            flex-grow: 1;
+            padding: 5px;
+            overflow: auto;
+        }
+        .window-content #terminal-container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="desktop"></div>
+    <div id="terminal-container"></div>
+
+    <script src="https://unpkg.com/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <script src="https://unpkg.com/figlet@1.7.0/lib/figlet.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const term = new Terminal({
+                cursorBlink: true,
+                theme: {
+                    background: '#000000',
+                    foreground: '#00FF00',
+                    cursor: '#00FF00'
+                }
+            });
+            const fitAddon = new FitAddon.FitAddon();
+            term.loadAddon(fitAddon);
+            const terminalContainer = document.getElementById('terminal-container');
+            term.open(terminalContainer);
+            fitAddon.fit();
+
+            window.addEventListener('resize', () => fitAddon.fit());
+
+            let state = {
+                vfs: {},
+                history: [],
+                env: {},
+                cwd: '/home/user'
+            };
+
+            let historyIndex = -1;
+            let currentLine = '';
+
+            // --- Window Manager --- //
+            const desktop = document.getElementById('desktop');
+            let zIndexCounter = 10;
+
+            function createWindow(title, contentNode, width = 600, height = 400) {
+                const win = document.createElement('div');
+                win.className = 'window';
+                win.style.width = `${width}px`;
+                win.style.height = `${height}px`;
+                win.style.left = `${(window.innerWidth - width) / 2 + (Math.random() * 100 - 50)}px`;
+                win.style.top = `${(window.innerHeight - height) / 2 + (Math.random() * 100 - 50)}px`;
+                win.style.zIndex = zIndexCounter++;
+
+                const titleBar = document.createElement('div');
+                titleBar.className = 'title-bar';
+                
+                const titleText = document.createElement('span');
+                titleText.innerText = title;
+
+                const buttons = document.createElement('div');
+                buttons.className = 'title-bar-buttons';
+                const closeButton = document.createElement('button');
+                closeButton.innerText = 'X';
+                closeButton.onclick = () => win.remove();
+                buttons.appendChild(closeButton);
+
+                titleBar.appendChild(titleText);
+                titleBar.appendChild(buttons);
+
+                const content = document.createElement('div');
+                content.className = 'window-content';
+                if (contentNode) {
+                    content.appendChild(contentNode);
+                }
+
+                win.appendChild(titleBar);
+                win.appendChild(content);
+                desktop.appendChild(win);
+
+                // Drag logic
+                let isDragging = false;
+                let offsetX, offsetY;
+
+                titleBar.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    offsetX = e.clientX - win.offsetLeft;
+                    offsetY = e.clientY - win.offsetTop;
+                    win.style.zIndex = zIndexCounter++;
+                    document.body.style.userSelect = 'none';
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        win.style.left = `${e.clientX - offsetX}px`;
+                        win.style.top = `${e.clientY - offsetY}px`;
+                    }
+                });
+
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                    document.body.style.userSelect = '';
+                });
+                
+                return win;
+            }
+
+            // --- Core Shell Logic --- //
+
+            const saveState = () => localStorage.setItem('lorel_axun_state', JSON.stringify(state));
+            const loadState = () => {
+                const saved = localStorage.getItem('lorel_axun_state');
+                if (saved) {
+                    state = JSON.parse(saved);
+                } else {
+                    // Default state for first-time users
+                    state.vfs = {
+                        '/': { type: 'dir', content: ['home'] },
+                        '/home': { type: 'dir', content: ['user'] },
+                        '/home/user': { type: 'dir', content: ['readme.txt', '.axunrc'] },
+                        '/home/user/readme.txt': { type: 'file', content: 'Benvenuto in Lorel Axun OS! Digita `help` per una lista di comandi.' },
+                        '/home/user/.axunrc': { type: 'file', content: 'echo "Benvenuto, $USER!"\necho "Oggi è `date`"' }
+                    };
+                    state.env = {
+                        'USER': 'user',
+                        'HOME': '/home/user',
+                        'PS1': '\\x1b[1;32m$USER@axun\\x1b[0m:\\x1b[1;34m\\w\\x1b[0m$ '
+                    };
+                }
+            };
+
+            const resolvePath = (path) => {
+                if (path.startsWith('/')) return path;
+                const parts = (state.cwd === '/' ? '' : state.cwd).split('/').concat(path.split('/'));
+                const resolved = [];
+                for (const part of parts) {
+                    if (part === '' || part === '.') continue;
+                    if (part === '..') {
+                        if (resolved.length > 0) resolved.pop();
+                    } else {
+                        resolved.push(part);
+                    }
+                }
+                return '/' + resolved.join('/');
+            };
+
+            const getVfsNode = (path) => {
+                const resolvedPath = resolvePath(path);
+                const parts = resolvedPath.split('/').filter(p => p);
+                let node = state.vfs['/'];
+                let currentPath = '/';
+                for (const part of parts) {
+                    if (node.type !== 'dir' || !node.content.includes(part)) return null;
+                    currentPath = (currentPath === '/' ? '' : currentPath) + '/' + part;
+                    node = state.vfs[currentPath];
+                }
+                return { node, path: resolvedPath };
+            };
+
+            const createVfsNode = (path, type, content = '') => {
+                const resolvedPath = resolvePath(path);
+                const parentPath = resolvedPath.substring(0, resolvedPath.lastIndexOf('/')) || '/';
+                const name = resolvedPath.substring(resolvedPath.lastIndexOf('/') + 1);
+
+                const parent = getVfsNode(parentPath);
+                if (!parent || parent.node.type !== 'dir') return false;
+
+                if (parent.node.content.includes(name)) return false; // Already exists
+
+                parent.node.content.push(name);
+                state.vfs[resolvedPath] = { type, content: type === 'dir' ? [] : content };
+                return true;
+            };
+
+            const expandVars = (str) => {
+                return str.replace(/\$([A-Z_]+|\w+)/g, (_, varName) => state.env[varName] || '');
+            };
+
+            const prompt = () => {
+                const ps1 = state.env.PS1 || '$ ';
+                const expandedPs1 = ps1.replace('\\w', state.cwd).replace('\\$USER', state.env.USER || 'user');
+                term.write(expandVars(expandedPs1));
+            };
+
+            const commands = {
+                help: async (args, term) => term.write('Comandi disponibili: help, echo, clear, ciao, chi sei, ls, cat, cd, mkdir, touch, rm, edit, fetch, js, export, unset, env, startx\r\n'),
+                echo: async (args, term) => term.write(args.join(' ') + '\r\n'),
+                clear: async (args, term) => term.clear(),
+                ciao: async (args, term) => term.write('Ciao! Sono Lorel Axun, la tua IA personale.\r\n'),
+                'chi sei': async (args, term) => term.write('Sono Lorel Axun, un sistema operativo web in evoluzione.\r\n'),
+                ls: async (args, term) => {
+                    const path = args[0] || state.cwd;
+                    const nodeInfo = getVfsNode(path);
+                    if (nodeInfo && nodeInfo.node.type === 'dir') {
+                        nodeInfo.node.content.forEach(item => {
+                            const itemPath = (nodeInfo.path === '/' ? '' : nodeInfo.path) + '/' + item;
+                            const itemNode = state.vfs[itemPath];
+                            const color = itemNode.type === 'dir' ? '\\x1b[1;34m' : '\\x1b[0m';
+                            term.write(`${color}${item}\\x1b[0m  `);
+                        });
+                        term.write('\r\n');
+                    } else {
+                        term.write(`ls: cannot access '${path}': No such file or directory\r\n`);
+                    }
+                },
+                cat: async (args, term) => {
+                    if (!args[0]) return term.write('cat: missing operand\r\n');
+                    const nodeInfo = getVfsNode(args[0]);
+                    if (nodeInfo && nodeInfo.node.type === 'file') {
+                        term.write(nodeInfo.node.content.replace(/\n/g, '\r\n') + '\r\n');
+                    } else {
+                        term.write(`cat: ${args[0]}: No such file or directory\r\n`);
+                    }
+                },
+                cd: async (args, term) => {
+                    const path = args[0] || state.env.HOME || '/';
+                    const nodeInfo = getVfsNode(path);
+                    if (nodeInfo && nodeInfo.node.type === 'dir') {
+                        state.cwd = nodeInfo.path;
+                    } else {
+                        term.write(`cd: ${path}: No such file or directory\r\n`);
+                    }
+                },
+                mkdir: async (args, term) => {
+                    if (!args[0]) return term.write('mkdir: missing operand\r\n');
+                    if (!createVfsNode(args[0], 'dir')) {
+                        term.write(`mkdir: cannot create directory '${args[0]}': File exists or parent directory not found\r\n`);
+                    }
+                },
+                touch: async (args, term) => {
+                    if (!args[0]) return term.write('touch: missing operand\r\n');
+                    if (!createVfsNode(args[0], 'file')) {
+                         const nodeInfo = getVfsNode(args[0]);
+                         if(nodeInfo && nodeInfo.node.type === 'file') { /* Do nothing, just update timestamp in a real fs */ } else {
+                            term.write(`touch: cannot create file '${args[0]}': File exists or parent directory not found\r\n`);
+                         }
+                    }
+                },
+                rm: async (args, term) => {
+                    if (!args[0]) return term.write('rm: missing operand\r\n');
+                    const path = resolvePath(args[0]);
+                    const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
+                    const name = path.substring(path.lastIndexOf('/') + 1);
+                    const parent = getVfsNode(parentPath);
+                    if (parent && parent.node.type === 'dir' && parent.node.content.includes(name)) {
+                        const nodeToDelete = getVfsNode(path);
+                        if (nodeToDelete.node.type === 'dir' && nodeToDelete.node.content.length > 0) {
+                            return term.write(`rm: cannot remove '${args[0]}': Directory not empty\r\n`);
+                        }
+                        parent.node.content = parent.node.content.filter(item => item !== name);
+                        delete state.vfs[path];
+                    } else {
+                        term.write(`rm: cannot remove '${args[0]}': No such file or directory\r\n`);
+                    }
+                },
+                fetch: async (args, term) => {
+                    if (!args[0]) return term.write('fetch: usage: fetch <url>\r\n');
+                    try {
+                        const response = await fetch(args[0]);
+                        const text = await response.text();
+                        term.write(text.replace(/\n/g, '\r\n') + '\r\n');
+                    } catch (e) {
+                        term.write(`fetch: error: ${e.message}\r\n`);
+                    }
+                },
+                export: async (args, term) => {
+                    const match = args.join(' ').match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+                    if (match) {
+                        state.env[match[1]] = match[2];
+                    } else {
+                        term.write('export: usage: export VAR=value\r\n');
+                    }
+                },
+                unset: async (args, term) => {
+                    if (args[0]) {
+                        delete state.env[args[0]];
+                    } else {
+                        term.write('unset: usage: unset VAR\r\n');
+                    }
+                },
+                env: async (args, term) => {
+                    for (const key in state.env) {
+                        term.write(`${key}=${state.env[key]}\r\n`);
+                    }
+                },
+                js: async (args, term) => {
+                    if (!args[0]) return term.write('js: usage: js <filename>\r\n');
+                    const nodeInfo = getVfsNode(args[0]);
+                    if (nodeInfo && nodeInfo.node.type === 'file') {
+                        const api = {
+                            term: {
+                                write: (s) => term.write(s.toString().replace(/\n/g, '\r\n')),
+                            },
+                            vfs: {
+                                read: (path) => {
+                                    const file = getVfsNode(path);
+                                    return (file && file.node.type === 'file') ? file.node.content : null;
+                                },
+                                write: (path, content) => {
+                                    const file = getVfsNode(path);
+                                    if (file && file.node.type === 'file') {
+                                        file.node.content = content;
+                                        return true;
+                                    }
+                                    return createVfsNode(path, 'file', content);
+                                },
+                                list: (path) => {
+                                    const dir = getVfsNode(path);
+                                    return (dir && dir.node.type === 'dir') ? dir.node.content : null;
+                                }
+                            },
+                            env: { ...state.env }
+                        };
+                        try {
+                            const func = new Function('api', nodeInfo.node.content);
+                            await func(api);
+                        } catch (e) {
+                            term.write(`js: error executing script: ${e.message}\r\n`);
+                        }
+                    } else {
+                        term.write(`js: cannot find file '${args[0]}'\r\n`);
+                    }
+                },
+                edit: async (args, term) => {
+                    if (!args[0]) return term.write('edit: missing file operand\r\n');
+                    const path = args[0];
+                    const nodeInfo = getVfsNode(path);
+                    let content = '';
+                    if (nodeInfo && nodeInfo.node.type === 'file') {
+                        content = nodeInfo.node.content;
+                    } else if (!nodeInfo) {
+                        // File doesn't exist, will be created on save
+                    } else {
+                        return term.write(`edit: '${path}' is a directory\r\n`);
+                    }
+
+                    term.write('\\x1b[?1049h'); // Enter alternate screen
+                    term.write(`Editing ${path}. Ctrl+S to save, Ctrl+X to exit.\r\n`);
+                    term.write(content.replace(/\n/g, '\r\n'));
+
+                    let buffer = content;
+                    const disposable = term.onKey(({ key, domEvent }) => {
+                        if (domEvent.ctrlKey && domEvent.key === 's') {
+                            domEvent.preventDefault();
+                            const node = getVfsNode(path);
+                            if (node && node.node.type === 'file') {
+                                node.node.content = buffer;
+                            } else {
+                                createVfsNode(path, 'file', buffer);
+                            }
+                            saveState();
+                            term.write('\\x1b[s\\x1b[H\\x1b[KStatus: Saved!\\x1b[u'); // Save cursor, go to top, clear line, write status, restore cursor
+                        } else if (domEvent.ctrlKey && domEvent.key === 'x') {
+                            domEvent.preventDefault();
+                            disposable.dispose();
+                            term.write('\\x1b[?1049l'); // Exit alternate screen
+                            prompt();
+                        } else {
+                            switch (domEvent.key) {
+                                case 'Enter':
+                                    buffer += '\n';
+                                    term.write('\r\n');
+                                    break;
+                                case 'Backspace':
+                                    if (buffer.length > 0) {
+                                        buffer = buffer.slice(0, -1);
+                                        term.write('\b \b');
+                                    }
+                                    break;
+                                default:
+                                    if (!domEvent.ctrlKey && !domEvent.altKey && key.length === 1) {
+                                        buffer += key;
+                                        term.write(key);
+                                    }
+                            }
+                        }
+                    });
+                },
+                startx: async (args, term) => {
+                    term.write('Inizializzazione ambiente grafico...\r\n');
+                    const mainTerminalContainer = document.getElementById('terminal-container');
+                    desktop.style.display = 'block';
+                    const termWindow = createWindow('Lorel Axun Terminal', mainTerminalContainer, 800, 500);
+                    fitAddon.fit();
+                }
+            };
+
+            const parseArgs = (line) => {
+                const args = [];
+                let current = '';
+                let inQuote = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        inQuote = !inQuote;
+                    } else if (char === ' ' && !inQuote) {
+                        if (current) args.push(expandVars(current));
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                if (current) args.push(expandVars(current));
+                return args;
+            };
+
+            const executeCommand = async (line, term) => {
+                const parts = line.split('|').map(p => p.trim());
+                let input = null;
+
+                for (let i = 0; i < parts.length; i++) {
+                    const part = parts[i];
+                    const [cmdLine, ...redirect] = part.split(/\s*(>>|>)\s*/);
+                    const args = parseArgs(cmdLine);
+                    const command = args.shift();
+                    const redirectOp = part.includes('>>') ? '>>' : (part.includes('>') ? '>' : null);
+                    const redirectFile = redirect.length > 0 ? redirect[redirect.length - 1].trim() : null;
+
+                    if (commands[command]) {
+                        const outputBuffer = [];
+                        const mockTerm = {
+                            ...term,
+                            write: (data) => {
+                                if (i < parts.length - 1 || redirectFile) {
+                                    outputBuffer.push(data);
+                                } else {
+                                    term.write(data);
+                                }
+                            },
+                            clear: () => {
+                                if (i === 0) term.clear();
+                            }
+                        };
+
+                        if (input) {
+                            // Simulate stdin by passing it as an argument for simplicity
+                            args.push(input);
+                        }
+
+                        await commands[command](args, mockTerm);
+                        
+                        const output = outputBuffer.join('');
+                        if (redirectFile) {
+                            const nodeInfo = getVfsNode(redirectFile);
+                            if (nodeInfo && nodeInfo.node.type === 'file') {
+                                if (redirectOp === '>>') {
+                                    nodeInfo.node.content += output.replace(/\r\n/g, '\n');
+                                } else {
+                                    nodeInfo.node.content = output.replace(/\r\n/g, '\n');
+                                }
+                            } else {
+                                createVfsNode(redirectFile, 'file', output.replace(/\r\n/g, '\n'));
+                            }
+                            saveState();
+                        }
+                        input = output;
+                    } else if (command) {
+                        term.write(`${command}: command not found\r\n`);
+                        return;
+                    }
+                }
+            };
+
+            term.onData(e => {
+                switch (e) {
+                    case '\r': // Enter
+                        term.write('\r\n');
+                        if (currentLine.trim()) {
+                            state.history.unshift(currentLine);
+                            if (state.history.length > 50) state.history.pop();
+                            historyIndex = -1;
+                            executeCommand(currentLine, term).then(() => {
+                                saveState();
+                                prompt();
+                            });
+                        } else {
+                            prompt();
+                        }
+                        currentLine = '';
+                        break;
+                    case '\x7F': // Backspace
+                        if (currentLine.length > 0) {
+                            term.write('\b \b');
+                            currentLine = currentLine.slice(0, -1);
+                        }
+                        break;
+                    case '\x1b[A': // Up arrow
+                        if (historyIndex < state.history.length - 1) {
+                            historyIndex++;
+                            term.write(`\x1b[2K\r`);
+                            prompt();
+                            currentLine = state.history[historyIndex];
+                            term.write(currentLine);
+                        }
+                        break;
+                    case '\x1b[B': // Down arrow
+                        if (historyIndex > 0) {
+                            historyIndex--;
+                            term.write(`\x1b[2K\r`);
+                            prompt();
+                            currentLine = state.history[historyIndex];
+                            term.write(currentLine);
+                        } else {
+                            historyIndex = -1;
+                            term.write(`\x1b[2K\r`);
+                            prompt();
+                            currentLine = '';
+                        }
+                        break;
+                    case '\t': // Tab
+                        // Simple autocomplete
+                        const parts = currentLine.split(' ');
+                        const toComplete = parts[parts.length - 1];
+                        const pathPrefix = toComplete.substring(0, toComplete.lastIndexOf('/') + 1) || '';
+                        const partialName = toComplete.substring(toComplete.lastIndexOf('/') + 1);
+                        const dirPath = pathPrefix ? resolvePath(pathPrefix) : state.cwd;
+                        const dirNode = getVfsNode(dirPath);
+                        if (dirNode && dirNode.node.type === 'dir') {
+                            const matches = dirNode.node.content.filter(item => item.startsWith(partialName));
+                            if (matches.length === 1) {
+                                const completion = matches[0];
+                                const remaining = completion.substring(partialName.length);
+                                currentLine += remaining;
+                                term.write(remaining);
+                            }
+                        }
+                        break;
+                    default:
+                        if (e >= ' ' && e <= '~') {
+                            currentLine += e;
+                            term.write(e);
+                        }
+                }
+            });
+
+            async function start() {
+                figlet.text('Lorel Axun', { font: 'Standard' }, (err, data) => {
+                    if (data) term.write(data.replace(/\n/g, '\r\n') + '\r\n');
+                    term.write('Benvenuto in Lorel Axun OS. Digita `help` per iniziare.\r\n');
+                    loadState();
+                    const rcFile = getVfsNode(state.env.HOME + '/.axunrc');
+                    if (rcFile && rcFile.node.type === 'file') {
+                        const commands = rcFile.node.content.split('\n').filter(c => c.trim() !== '');
+                        const runAll = async () => {
+                            for (const cmd of commands) {
+                                await executeCommand(cmd, term);
+                            }
+                            prompt();
+                        };
+                        runAll();
+                    } else {
+                        prompt();
+                    }
+                });
+            }
+
+            start();
+        });
+    </script>
+</body>
+</html>
