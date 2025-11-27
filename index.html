@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lorel Axun</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
     <style>
         :root {
             --background: #1a1b26;
@@ -17,24 +17,16 @@
             --magenta: #bb9af7;
             --cyan: #7dcfff;
             --white: #a9b1d6;
-            --bright-black: #414868;
-            --bright-red: #f7768e;
-            --bright-green: #9ece6a;
-            --bright-yellow: #e0af68;
-            --bright-blue: #7aa2f7;
-            --bright-magenta: #bb9af7;
-            --bright-cyan: #7dcfff;
-            --bright-white: #c0caf5;
+            --comment: #565f89;
         }
 
         body, html {
+            height: 100%;
             margin: 0;
             padding: 0;
-            height: 100%;
-            width: 100%;
             background-color: var(--background);
             color: var(--foreground);
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Menlo', 'Consolas', 'monospace';
             overflow: hidden;
         }
 
@@ -49,7 +41,7 @@
             display: none;
             width: 100%;
             height: 100%;
-            background: var(--background) url('https://i.imgur.com/8bZ9Y8s.jpg') no-repeat center center;
+            background: var(--background) url('https://source.unsplash.com/random/1920x1080?technology,abstract') no-repeat center center;
             background-size: cover;
             position: relative;
         }
@@ -57,7 +49,7 @@
         .window {
             position: absolute;
             background-color: rgba(26, 27, 38, 0.9);
-            border: 1px solid var(--bright-black);
+            border: 1px solid var(--comment);
             border-radius: 5px;
             box-shadow: 0 0 15px rgba(0,0,0,0.5);
             display: flex;
@@ -71,22 +63,24 @@
             color: var(--foreground);
             padding: 5px 10px;
             cursor: move;
+            border-bottom: 1px solid var(--comment);
+            user-select: none;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
         }
 
-        .window-title {
+        .window-title { font-weight: bold; }
+
+        .window-controls button {
+            background: none;
+            border: none;
+            color: var(--foreground);
             font-weight: bold;
-        }
-
-        .window-close {
             cursor: pointer;
-            color: var(--red);
-            font-weight: bold;
+            padding: 2px 5px;
         }
+        .window-controls button:hover { background-color: var(--red); color: var(--black); }
 
         .window-body {
             padding: 10px;
@@ -100,144 +94,111 @@
             left: 50%;
             transform: translateX(-50%);
             background-color: rgba(40, 42, 54, 0.7);
-            border-radius: 10px;
-            padding: 5px;
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 8px;
             display: flex;
             gap: 10px;
-            backdrop-filter: blur(5px);
         }
 
-        .dock-item {
+        .dock-icon {
             width: 50px;
             height: 50px;
-            background-color: var(--bright-black);
+            background-color: var(--comment);
             border-radius: 8px;
             cursor: pointer;
-            transition: transform 0.2s, margin-bottom 0.2s;
+            transition: transform 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 24px;
         }
 
-        #dock:hover .dock-item:hover {
-            transform: scale(1.5);
-            margin-bottom: 20px;
-        }
+        .dock-icon:hover { transform: scale(1.2) translateY(-5px); }
 
         #editor {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; right: 0; bottom: 0;
             background-color: var(--background);
             z-index: 1000;
             flex-direction: column;
         }
-
         #editor-textarea {
-            width: 100%;
-            height: 100%;
-            background-color: var(--background);
-            color: var(--foreground);
+            flex-grow: 1;
+            background: transparent;
             border: none;
-            outline: none;
-            font-family: 'Courier New', Courier, monospace;
+            color: var(--foreground);
+            font-family: 'Menlo', 'Consolas', 'monospace';
             font-size: 14px;
             padding: 10px;
-            box-sizing: border-box;
             resize: none;
+            outline: none;
         }
-
         #editor-status {
-            background-color: var(--black);
-            color: var(--foreground);
+            background-color: var(--comment);
+            color: var(--background);
             padding: 5px 10px;
             font-size: 12px;
         }
-
-        .file-explorer-content {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        .file-explorer-item {
-            padding: 2px 5px;
-            cursor: pointer;
-        }
-
-        .file-explorer-item:hover {
-            background-color: var(--bright-black);
-        }
-
-        .file-explorer-item.directory {
-            color: var(--blue);
-        }
-
     </style>
 </head>
 <body>
 
     <div id="terminal-container"></div>
-
     <div id="desktop">
         <div id="dock">
-            <div class="dock-item" id="dock-terminal" title="Terminal">&#128187;</div>
-            <div class="dock-item" id="dock-files" title="File Explorer">&#128193;</div>
+            <div class="dock-icon" id="dock-terminal" title="Terminal">&#x1F4BB;</div>
+            <div class="dock-icon" id="dock-files" title="File Explorer">&#x1F4C1;</div>
         </div>
     </div>
-
     <div id="editor">
-        <div id="editor-status">File: | Ctrl+S to Save | Ctrl+Q to Quit</div>
         <textarea id="editor-textarea"></textarea>
+        <div id="editor-status"></div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/figlet@1.7.0/lib/figlet.js"></script>
 
     <script>
-        // --- VIRTUAL FILE SYSTEM ---
+        // --- VIRTUAL FILE SYSTEM --- //
         class VFS {
             constructor() {
-                this.fs = {
-                    '/': {
-                        type: 'directory',
-                        children: {
-                            'home': { type: 'directory', children: {} },
-                            'etc': { type: 'directory', children: {} },
-                            'bin': { type: 'directory', children: {} },
-                        }
-                    }
-                };
+                this.fs = {};
                 this.load();
+                if (!this.fs['/']) {
+                    this.fs['/'] = { type: 'dir', content: {} };
+                    this.mkdir('/home');
+                    this.mkdir('/home/user');
+                    this.mkdir('/bin');
+                    this.writeFile('/bin/test.js', 'console.log("Hello from JS file!");');
+                }
+                this.cwd = '/home/user';
             }
 
             save() {
-                localStorage.setItem('vfs', JSON.stringify(this.fs));
+                localStorage.setItem('axun_vfs', JSON.stringify(this.fs));
             }
 
             load() {
-                const savedFs = localStorage.getItem('vfs');
+                const savedFs = localStorage.getItem('axun_vfs');
                 if (savedFs) {
                     this.fs = JSON.parse(savedFs);
                 } else {
-                    // Create a default file if none exists
-                    this.create('/home/user/.axunrc', 'file', 'echo \"Welcome to your session.\"\n');
+                    this.fs = {};
                 }
             }
 
             _getNode(path) {
                 const parts = path.split('/').filter(p => p);
                 let current = this.fs['/'];
+                if (path === '/') return current;
+
                 for (const part of parts) {
-                    if (current && current.type === 'directory' && current.children[part]) {
-                        current = current.children[part];
-                    } else {
+                    if (!current || current.type !== 'dir' || !current.content[part]) {
                         return null;
                     }
+                    current = current.content[part];
                 }
                 return current;
             }
@@ -248,95 +209,98 @@
                 return this._getNode(parentPath);
             }
 
-            create(path, type, content = '') {
-                const parts = path.split('/').filter(p => p);
-                const name = parts.pop();
-                if (!name) return false;
-
-                const parentPath = '/' + parts.join('/');
-                const parent = this._getNode(parentPath);
-
-                if (parent && parent.type === 'directory') {
-                    if (type === 'directory') {
-                        parent.children[name] = { type: 'directory', children: {} };
-                    } else {
-                        parent.children[name] = { type: 'file', content: content };
-                    }
-                    this.save();
-                    return true;
-                }
-                return false;
-            }
-
-            read(path) {
-                const node = this._getNode(path);
-                if (node && node.type === 'file') {
-                    return node.content;
-                }
-                return null;
-            }
-
-            write(path, content, append = false) {
-                const node = this._getNode(path);
-                if (node && node.type === 'file') {
-                    node.content = append ? node.content + content : content;
-                    this.save();
-                    return true;
-                }
-                return false;
-            }
-
-            remove(path) {
-                const parts = path.split('/').filter(p => p);
-                const name = parts.pop();
-                if (!name) return false;
-
-                const parentPath = '/' + parts.join('/');
-                const parent = this._getNode(parentPath);
-
-                if (parent && parent.type === 'directory' && parent.children[name]) {
-                    delete parent.children[name];
-                    this.save();
-                    return true;
-                }
-                return false;
-            }
-
-            list(path) {
-                const node = this._getNode(path);
-                if (node && node.type === 'directory') {
-                    return node.children;
-                }
-                return null;
-            }
-
-            resolvePath(path, cwd) {
+            resolvePath(path) {
                 if (path.startsWith('/')) {
                     return path;
                 }
-                const newPath = (cwd === '/' ? '' : cwd) + '/' + path;
-                const parts = newPath.split('/').filter(p => p);
-                const resolvedParts = [];
-                for (const part of parts) {
+                const newPath = this.cwd.split('/').filter(p => p);
+                path.split('/').filter(p => p).forEach(part => {
                     if (part === '..') {
-                        resolvedParts.pop();
+                        newPath.pop();
                     } else if (part !== '.') {
-                        resolvedParts.push(part);
+                        newPath.push(part);
                     }
+                });
+                return '/' + newPath.join('/');
+            }
+
+            async list(path) {
+                const resolvedPath = this.resolvePath(path);
+                const node = this._getNode(resolvedPath);
+                if (!node || node.type !== 'dir') {
+                    throw new Error(`ls: cannot access '${path}': No such file or directory`);
                 }
-                return '/' + resolvedParts.join('/');
+                return Object.keys(node.content).map(name => {
+                    return node.content[name].type === 'dir' ? `${name}/` : name;
+                });
+            }
+
+            async mkdir(path) {
+                const resolvedPath = this.resolvePath(path);
+                if (this._getNode(resolvedPath)) {
+                    throw new Error(`mkdir: cannot create directory '${path}': File exists`);
+                }
+                const parent = this._getParentNode(resolvedPath);
+                const newDirName = resolvedPath.split('/').pop();
+                if (!parent || parent.type !== 'dir') {
+                    throw new Error(`mkdir: cannot create directory '${path}': No such file or directory`);
+                }
+                parent.content[newDirName] = { type: 'dir', content: {} };
+                this.save();
+            }
+
+            async writeFile(path, content) {
+                const resolvedPath = this.resolvePath(path);
+                const parent = this._getParentNode(resolvedPath);
+                const fileName = resolvedPath.split('/').pop();
+                if (!parent || parent.type !== 'dir') {
+                    throw new Error(`writeFile: cannot write to '${path}': No such file or directory`);
+                }
+                parent.content[fileName] = { type: 'file', content: content };
+                this.save();
+            }
+
+            async readFile(path) {
+                const resolvedPath = this.resolvePath(path);
+                const node = this._getNode(resolvedPath);
+                if (!node) {
+                    throw new Error(`cat: ${path}: No such file or directory`);
+                }
+                if (node.type === 'dir') {
+                    throw new Error(`cat: ${path}: Is a directory`);
+                }
+                return node.content;
+            }
+
+            async exists(path) {
+                const resolvedPath = this.resolvePath(path);
+                return !!this._getNode(resolvedPath);
+            }
+
+            async rm(path) {
+                const resolvedPath = this.resolvePath(path);
+                const node = this._getNode(resolvedPath);
+                if (!node) {
+                    throw new Error(`rm: cannot remove '${path}': No such file or directory`);
+                }
+                if (node.type === 'dir' && Object.keys(node.content).length > 0) {
+                    throw new Error(`rm: cannot remove '${path}': Directory not empty`);
+                }
+                const parent = this._getParentNode(resolvedPath);
+                const fileName = resolvedPath.split('/').pop();
+                delete parent.content[fileName];
+                this.save();
             }
         }
 
         const vfs = new VFS();
 
-        // --- SHELL & TERMINAL ---
+        // --- TERMINAL SETUP & SHELL LOGIC --- //
         const term = new Terminal({
             cursorBlink: true,
             theme: {
                 background: 'var(--background)',
                 foreground: 'var(--foreground)',
-                cursor: 'var(--foreground)',
                 black: 'var(--black)',
                 red: 'var(--red)',
                 green: 'var(--green)',
@@ -345,283 +309,275 @@
                 magenta: 'var(--magenta)',
                 cyan: 'var(--cyan)',
                 white: 'var(--white)',
-                brightBlack: 'var(--bright-black)',
-                brightRed: 'var(--bright-red)',
-                brightGreen: 'var(--bright-green)',
-                brightYellow: 'var(--bright-yellow)',
-                brightBlue: 'var(--bright-blue)',
-                brightMagenta: 'var(--bright-magenta)',
-                brightCyan: 'var(--bright-cyan)',
-                brightWhite: 'var(--bright-white)',
             }
         });
         term.open(document.getElementById('terminal-container'));
 
-        let currentLine = '';
         let commandHistory = [];
         let historyIndex = -1;
-        let cwd = '/home/user';
-        let env = {};
+        let currentCommand = '';
+        let env = JSON.parse(localStorage.getItem('axun_env')) || { USER: 'user', HOST: 'axun.os' };
 
-        const aliases = {
-            'll': 'ls -l'
-        };
-
-        function saveEnvironment() {
-            localStorage.setItem('env', JSON.stringify(env));
-        }
-
-        function loadEnvironment() {
-            const savedEnv = localStorage.getItem('env');
-            if (savedEnv) {
-                env = JSON.parse(savedEnv);
-            }
-            if (!env.HOME) env.HOME = '/home/user';
-            if (!env.USER) env.USER = 'user';
-            if (!env.PATH) env.PATH = '/bin';
-            cwd = env.HOME;
-        }
-
-        function getPrompt() {
-            const user = env.USER || 'user';
-            const host = 'axun.os';
-            const path = cwd.replace(env.HOME, '~');
-            return `\x1b[1;32m${user}@${host}\x1b[0m:\x1b[1;34m${path}\x1b[0m$ `;
+        function saveEnv() {
+            localStorage.setItem('axun_env', JSON.stringify(env));
         }
 
         function prompt() {
-            term.write(getPrompt());
+            const user = env.USER || 'user';
+            const host = env.HOST || 'axun.os';
+            const path = vfs.cwd.replace('/home/user', '~');
+            term.write(`\x1b[32m${user}@${host}\x1b[0m:\x1b[34m${path}\x1b[0m$ `);
         }
 
-        async function runCommand(command) {
-            const parts = command.trim().split(/\s+/);
-            let cmd = parts[0];
+        async function executeCommand(line) {
+            const parts = line.trim().split(/\s+/);
+            const command = parts[0];
             const args = parts.slice(1);
 
-            if (aliases[cmd]) {
-                command = aliases[cmd] + ' ' + args.join(' ');
-                return await executePipeline(command);
-            }
+            if (!command) return '';
 
             const commands = {
-                'help': () => term.writeln('Available commands: ls, cd, cat, mkdir, rm, pwd, clear, echo, help, startx, edit, fetch, js, env, export, unset'),
-                'ls': async () => {
-                    const children = vfs.list(cwd);
-                    if (children) {
-                        let output = '';
-                        Object.keys(children).forEach(name => {
-                            const type = children[name].type;
-                            const color = type === 'directory' ? '\x1b[1;34m' : '\x1b[0m';
-                            output += `${color}${name}${type === 'directory' ? '/' : ''}\x1b[0m  `;
-                        });
-                        return output.trim();
-                    }
-                    return 'ls: cannot access ' + cwd + ': No such file or directory';
-                },
+                'help': async () => 'Available commands: ls, cd, cat, mkdir, rm, pwd, echo, clear, help, fetch, js, edit, startx, env, export, unset',
+                'ls': async (args) => (await vfs.list(args[0] || '.')).join('\n'),
                 'cd': async (args) => {
-                    if (!args[0]) {
-                        cwd = env.HOME || '/home/user';
-                        return '';
-                    }
-                    const newPath = vfs.resolvePath(args[0], cwd);
+                    if (!args[0]) { vfs.cwd = '/home/user'; return ''; }
+                    const newPath = vfs.resolvePath(args[0]);
                     const node = vfs._getNode(newPath);
-                    if (node && node.type === 'directory') {
-                        cwd = newPath;
+                    if (node && node.type === 'dir') {
+                        vfs.cwd = newPath;
                         return '';
+                    } else {
+                        throw new Error(`cd: ${args[0]}: No such file or directory`);
                     }
-                    return `cd: ${args[0]}: No such file or directory`;
                 },
-                'cat': async (args) => {
-                    const path = vfs.resolvePath(args[0], cwd);
-                    const content = vfs.read(path);
-                    return content !== null ? content : `cat: ${args[0]}: No such file or directory`;
-                },
-                'mkdir': async (args) => {
-                    const path = vfs.resolvePath(args[0], cwd);
-                    return vfs.create(path, 'directory') ? '' : `mkdir: cannot create directory '${args[0]}': No such file or directory`;
-                },
-                'rm': async (args) => {
-                    const path = vfs.resolvePath(args[0], cwd);
-                    return vfs.remove(path) ? '' : `rm: cannot remove '${args[0]}': No such file or directory`;
-                },
-                'pwd': async () => cwd,
-                'clear': async () => { term.clear(); return ''; },
+                'cat': async (args) => vfs.readFile(args[0]),
+                'mkdir': async (args) => { await vfs.mkdir(args[0]); return ''; },
+                'rm': async (args) => { await vfs.rm(args[0]); return ''; },
+                'pwd': async () => vfs.cwd,
                 'echo': async (args) => args.join(' '),
-                'startx': async () => {
+                'clear': async () => { term.clear(); return ''; },
+                'startx': async () => { 
                     document.getElementById('terminal-container').style.display = 'none';
                     document.getElementById('desktop').style.display = 'block';
-                    return 'Starting GUI...';
+                    return 'Starting graphical environment...';
                 },
                 'edit': async (args) => {
-                    if (!args[0]) return 'edit: missing file operand';
-                    const path = vfs.resolvePath(args[0], cwd);
-                    openEditor(path);
-                    return ''; // Command returns immediately, editor handles the rest
+                    if (!args[0]) throw new Error('edit: filename required');
+                    await openEditor(args[0]);
+                    return '';
                 },
                 'fetch': async (args) => {
-                    if (!args[0]) return 'fetch: missing URL';
                     try {
                         const response = await fetch(args[0]);
-                        if (!response.ok) return `fetch: HTTP error! status: ${response.status}`;
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                         return await response.text();
                     } catch (e) {
-                        return `fetch: error: ${e.message}`;
+                        throw new Error(`fetch: failed to fetch ${args[0]}: ${e.message}`);
                     }
                 },
                 'js': async (args) => {
-                    if (!args[0]) return 'js: missing file operand';
-                    const path = vfs.resolvePath(args[0], cwd);
-                    const code = vfs.read(path);
-                    if (code === null) return `js: cannot read file '${args[0]}'`;
-                    return await runJsInSandbox(code);
+                    const path = args[0];
+                    if (!path) throw new Error('js: file path required');
+                    const code = await vfs.readFile(path);
+                    let output = '';
+                    const sandbox = {
+                        console: {
+                            log: (...args) => { output += args.map(String).join(' ') + '\n'; }
+                        }
+                    };
+                    try {
+                        const func = new Function(...Object.keys(sandbox), code);
+                        func(...Object.values(sandbox));
+                        return output.trim();
+                    } catch (e) {
+                        throw new Error(`js: error executing ${path}: ${e.message}`);
+                    }
                 },
                 'env': async () => Object.entries(env).map(([k, v]) => `${k}=${v}`).join('\n'),
                 'export': async (args) => {
-                    const [key, value] = args.join(' ').split('=');
-                    if (key && value) {
-                        env[key] = value;
-                        saveEnvironment();
-                        return '';
-                    }
-                    return 'export: invalid format. Use KEY=VALUE';
+                    args.forEach(arg => {
+                        const [key, ...value] = arg.split('=');
+                        if (key) env[key] = value.join('=');
+                    });
+                    saveEnv();
+                    return '';
                 },
                 'unset': async (args) => {
-                    if (args[0]) {
-                        delete env[args[0]];
-                        saveEnvironment();
-                    }
+                    args.forEach(key => delete env[key]);
+                    saveEnv();
                     return '';
                 }
             };
 
-            if (commands[cmd]) {
-                try {
-                    return await commands[cmd](args);
-                } catch (e) {
-                    return `Error executing ${cmd}: ${e.message}`;
-                }
+            if (commands[command]) {
+                return await commands[command](args);
+            } else {
+                throw new Error(`${command}: command not found`);
             }
-            return `command not found: ${cmd}`;
         }
 
-        async function executePipeline(line) {
-            const commands = line.split('|').map(c => c.trim());
-            let input = '';
+        async function handleLine(line) {
+            if (line.trim()) {
+                commandHistory.unshift(line);
+                if (commandHistory.length > 50) commandHistory.pop();
+            }
+            historyIndex = -1;
 
-            for (let i = 0; i < commands.length; i++) {
-                let command = commands[i];
-                let outputToFile = null;
-                let append = false;
+            try {
+                // Handle pipelines and redirections
+                let input = '';
+                const pipelineParts = line.split('|').map(p => p.trim());
 
-                if (command.includes('>>')) {
-                    [command, outputToFile] = command.split('>>').map(s => s.trim());
-                    append = true;
-                } else if (command.includes('>')) {
-                    [command, outputToFile] = command.split('>').map(s => s.trim());
-                    append = false;
-                }
+                for (let i = 0; i < pipelineParts.length; i++) {
+                    let part = pipelineParts[i];
+                    let outputToFile = null;
+                    let appendToFile = null;
 
-                const parts = command.split(/\s+/);
-                if (input) {
-                    parts.push(input);
-                }
-
-                const output = await runCommand(parts.join(' '));
-
-                if (outputToFile) {
-                    const path = vfs.resolvePath(outputToFile, cwd);
-                    if (!vfs.write(path, output + '\n', append)) {
-                         // If write fails, maybe the file doesn't exist. Try creating it.
-                        if (vfs.create(path, 'file', output + '\n')) {
-                            // success
-                        } else {
-                            term.writeln(`-bash: ${outputToFile}: Cannot write to file`);
-                            return; // Stop pipeline on error
-                        }
+                    if (part.includes('>>')) {
+                        [part, appendToFile] = part.split('>>').map(p => p.trim());
+                    } else if (part.includes('>')) {
+                        [part, outputToFile] = part.split('>').map(p => p.trim());
                     }
-                    input = ''; // Redirected, so no input for next command
-                } else {
-                    input = output;
-                }
-            }
 
-            if (input) {
-                term.writeln(input);
+                    // Inject input from previous command
+                    if (input) {
+                        part += ` ${input}`;
+                    }
+
+                    const result = await executeCommand(part);
+
+                    if (outputToFile) {
+                        await vfs.writeFile(outputToFile, result);
+                        input = ''; // Redirection consumes output
+                    } else if (appendToFile) {
+                        let content = '';
+                        try { content = await vfs.readFile(appendToFile); } catch (e) {}
+                        await vfs.writeFile(appendToFile, content + result);
+                        input = '';
+                    } else {
+                        input = result; // Pass to next command in pipeline
+                    }
+                }
+
+                if (input) {
+                    term.writeln(input);
+                }
+            } catch (e) {
+                term.writeln(`\x1b[31mError: ${e.message}\x1b[0m`);
             }
         }
 
-        term.onKey(async ({ key, domEvent }) => {
+        term.onKey(({ key, domEvent }) => {
+            const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
+
             if (domEvent.keyCode === 13) { // Enter
                 term.writeln('');
-                if (currentLine.trim()) {
-                    commandHistory.unshift(currentLine);
-                    if (commandHistory.length > 50) commandHistory.pop();
-                    historyIndex = -1;
-                    await executePipeline(currentLine);
-                }
-                prompt();
-                currentLine = '';
+                handleLine(currentCommand).then(() => {
+                    currentCommand = '';
+                    prompt();
+                });
             } else if (domEvent.keyCode === 8) { // Backspace
-                if (currentLine.length > 0) {
+                if (currentCommand.length > 0) {
                     term.write('\b \b');
-                    currentLine = currentLine.slice(0, -1);
+                    currentCommand = currentCommand.slice(0, -1);
                 }
             } else if (domEvent.keyCode === 38) { // Arrow Up
                 if (historyIndex < commandHistory.length - 1) {
                     historyIndex++;
-                    term.write('\x1b[2K\r' + getPrompt()); // Clear line and move to start
-                    currentLine = commandHistory[historyIndex];
-                    term.write(currentLine);
+                    term.write('\x1b[2K\r'); // Clear line
+                    prompt();
+                    currentCommand = commandHistory[historyIndex];
+                    term.write(currentCommand);
                 }
             } else if (domEvent.keyCode === 40) { // Arrow Down
                 if (historyIndex > 0) {
                     historyIndex--;
-                    term.write('\x1b[2K\r' + getPrompt());
-                    currentLine = commandHistory[historyIndex];
-                    term.write(currentLine);
+                    term.write('\x1b[2K\r');
+                    prompt();
+                    currentCommand = commandHistory[historyIndex];
+                    term.write(currentCommand);
                 } else {
                     historyIndex = -1;
-                    term.write('\x1b[2K\r' + getPrompt());
-                    currentLine = '';
+                    term.write('\x1b[2K\r');
+                    prompt();
+                    currentCommand = '';
                 }
-            } else if (!domEvent.ctrlKey && !domEvent.altKey && !domEvent.metaKey) {
+            } else if (printable) {
+                currentCommand += key;
                 term.write(key);
-                currentLine += key;
             }
         });
+        
+        function typewriter(text, terminal, callback) {
+            let i = 0;
+            const speed = 25; // milliseconds
+            function type() {
+                if (i < text.length) {
+                    const char = text.charAt(i);
+                    if (char === '\n') {
+                        terminal.writeln('');
+                    } else {
+                        terminal.write(char);
+                    }
+                    i++;
+                    setTimeout(type, speed);
+                } else if (callback) {
+                    callback();
+                }
+            }
+            type();
+        }
 
-        // --- EDITOR ---
-        const editorDiv = document.getElementById('editor');
+        figlet.text('Lorel Axun', { font: 'Standard' }, (err, data) => {
+            if (err) {
+                term.writeln('Something went wrong...');
+                console.dir(err);
+                prompt();
+                return;
+            }
+            const welcomeMessage = data + '\n\nWelcome to Axun.OS. Type "help" for a list of commands.\n';
+            
+            typewriter(welcomeMessage, term, () => {
+                vfs.exists('/home/user/.axunrc').then(exists => {
+                    if (exists) {
+                        handleLine('source /home/user/.axunrc').then(prompt);
+                    } else {
+                        prompt();
+                    }
+                });
+            });
+        });
+
+        // --- EDITOR LOGIC --- //
+        const editorElement = document.getElementById('editor');
         const editorTextarea = document.getElementById('editor-textarea');
         const editorStatus = document.getElementById('editor-status');
-        let currentEditingFile = null;
+        let editorFilePath = '';
 
-        function openEditor(filePath) {
-            currentEditingFile = filePath;
-            let content = vfs.read(filePath);
-            if (content === null) { // File doesn't exist, create it
-                vfs.create(filePath, 'file', '');
-                content = '';
+        async function openEditor(filePath) {
+            editorFilePath = vfs.resolvePath(filePath);
+            let content = '';
+            try {
+                content = await vfs.readFile(editorFilePath);
+            } catch (e) {
+                // File doesn't exist, which is fine
             }
             editorTextarea.value = content;
-            editorStatus.textContent = `File: ${filePath} | Ctrl+S to Save | Ctrl+Q to Quit`;
-            editorDiv.style.display = 'flex';
+            editorStatus.textContent = `File: ${editorFilePath} | Press Ctrl+S to Save, Ctrl+Q to Quit`;
+            editorElement.style.display = 'flex';
             editorTextarea.focus();
         }
 
         function closeEditor() {
-            editorDiv.style.display = 'none';
-            currentEditingFile = null;
+            editorElement.style.display = 'none';
             term.focus();
         }
 
-        editorTextarea.addEventListener('keydown', (e) => {
+        editorTextarea.addEventListener('keydown', async (e) => {
             if (e.ctrlKey && e.key === 's') {
                 e.preventDefault();
-                if (currentEditingFile) {
-                    vfs.write(currentEditingFile, editorTextarea.value);
-                    editorStatus.textContent = `File: ${currentEditingFile} | SAVED | Ctrl+Q to Quit`;
-                }
+                await vfs.writeFile(editorFilePath, editorTextarea.value);
+                editorStatus.textContent = `Saved ${editorFilePath} | Press Ctrl+S to Save, Ctrl+Q to Quit`;
             }
             if (e.ctrlKey && e.key === 'q') {
                 e.preventDefault();
@@ -629,166 +585,12 @@
             }
         });
 
-        // --- GUI / DESKTOP ---
-        const desktop = document.getElementById('desktop');
-
-        function createWindow(title, content) {
-            const win = document.createElement('div');
-            win.className = 'window';
-
-            const header = document.createElement('div');
-            header.className = 'window-header';
-
-            const titleEl = document.createElement('span');
-            titleEl.className = 'window-title';
-            titleEl.textContent = title;
-
-            const closeBtn = document.createElement('span');
-            closeBtn.className = 'window-close';
-            closeBtn.innerHTML = '&times;';
-            closeBtn.onclick = () => win.remove();
-
-            header.appendChild(titleEl);
-            header.appendChild(closeBtn);
-
-            const body = document.createElement('div');
-            body.className = 'window-body';
-            body.appendChild(content);
-
-            win.appendChild(header);
-            win.appendChild(body);
-
-            desktop.appendChild(win);
-
-            // Make window draggable
-            let isDragging = false;
-            let offsetX, offsetY;
-
-            header.onmousedown = (e) => {
-                isDragging = true;
-                offsetX = e.clientX - win.offsetLeft;
-                offsetY = e.clientY - win.offsetTop;
-                // Bring to front
-                document.querySelectorAll('.window').forEach(w => w.style.zIndex = '10');
-                win.style.zIndex = '11';
-            };
-
-            document.onmousemove = (e) => {
-                if (isDragging) {
-                    win.style.left = (e.clientX - offsetX) + 'px';
-                    win.style.top = (e.clientY - offsetY) + 'px';
-                }
-            };
-
-            document.onmouseup = () => {
-                isDragging = false;
-            };
-
-            win.style.left = `${Math.random() * 200 + 50}px`;
-            win.style.top = `${Math.random() * 200 + 50}px`;
-        }
-
-        function createFileManager() {
-            const content = document.createElement('div');
-            content.className = 'file-explorer-content';
-            let currentExplorerPath = cwd;
-
-            function renderFiles() {
-                content.innerHTML = '';
-                const parentPath = vfs.resolvePath('..', currentExplorerPath);
-                const upItem = document.createElement('div');
-                upItem.className = 'file-explorer-item directory';
-                upItem.textContent = '..';
-                upItem.onclick = () => {
-                    currentExplorerPath = parentPath;
-                    renderFiles();
-                };
-                content.appendChild(upItem);
-
-                const files = vfs.list(currentExplorerPath);
-                if (files) {
-                    for (const [name, node] of Object.entries(files)) {
-                        const item = document.createElement('div');
-                        item.className = 'file-explorer-item';
-                        item.textContent = name;
-                        if (node.type === 'directory') {
-                            item.classList.add('directory');
-                            item.textContent += '/';
-                            item.onclick = () => {
-                                currentExplorerPath = vfs.resolvePath(name, currentExplorerPath);
-                                renderFiles();
-                            };
-                        } else {
-                            item.ondblclick = () => openEditor(vfs.resolvePath(name, currentExplorerPath));
-                        }
-                        content.appendChild(item);
-                    }
-                }
-            }
-
-            renderFiles();
-            createWindow('File Explorer', content);
-        }
-
-        document.getElementById('dock-files').onclick = createFileManager;
-
-        // --- JS SANDBOX ---
-        async function runJsInSandbox(code) {
-            const sandboxApi = {
-                term: {
-                    writeln: (s) => term.writeln(s),
-                },
-                vfs: {
-                    read: (path) => vfs.read(vfs.resolvePath(path, cwd)),
-                    write: (path, content) => vfs.write(vfs.resolvePath(path, cwd), content),
-                    list: (path) => vfs.list(vfs.resolvePath(path, cwd)),
-                },
-                // Add more sandboxed functions here
-            };
-
-            try {
-                const func = new Function('api', `return (async () => { ${code} })();`);
-                const result = await func(sandboxApi);
-                return result !== undefined ? String(result) : '';
-            } catch (e) {
-                return `Sandbox Error: ${e.message}`;
-            }
-        }
-
-        // --- INITIALIZATION ---
-        async function main() {
-            // Load VFS and environment from localStorage
-            vfs.load();
-            loadEnvironment();
-
-            // Display welcome message
-            term.writeln('\r\n');
-            term.writeln(figlet.textSync('Lorel Axun', {
-                font: 'Standard',
-                horizontalLayout: 'default',
-                verticalLayout: 'default'
-            }));
-            term.writeln('\r\n');
-            term.writeln('Welcome to the Lorel Axun interface.');
-            term.writeln('Type "help" for a list of available commands.');
-            term.writeln('');
-
-            // Run startup script
-            const startupScriptPath = vfs.resolvePath('.axunrc', env.HOME);
-            const startupScript = vfs.read(startupScriptPath);
-            if (startupScript) {
-                const commands = startupScript.split('\n').filter(c => c.trim() !== '');
-                for (const command of commands) {
-                    term.writeln(getPrompt() + command);
-                    await executePipeline(command);
-                }
-            }
-
-            prompt();
+        // --- DESKTOP ENVIRONMENT --- //
+        document.getElementById('dock-terminal').addEventListener('click', () => {
+            document.getElementById('desktop').style.display = 'none';
+            document.getElementById('terminal-container').style.display = 'block';
             term.focus();
-        }
-
-        main();
+        });
 
     </script>
 </body>
