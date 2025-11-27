@@ -4,424 +4,368 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lorel Axun</title>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; background-color: #000; color: #0f0; font-family: monospace; overflow: hidden; }
+        #terminal-container { width: 100%; height: 100%; }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/figlet@1.7.0/lib/figlet.min.js"></script>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-            background-color: #000;
-            color: #0f0;
-            font-family: 'monospace', monospace;
-        }
-        #terminal-container {
-            width: 100%;
-            height: 100%;
-        }
-    </style>
 </head>
 <body>
     <div id="terminal-container"></div>
-
     <script>
         const term = new Terminal({
             cursorBlink: true,
-            fontFamily: 'monospace',
             theme: {
                 background: '#000000',
-                foreground: '#00FF00',
-                cursor: '#00FF00'
+                foreground: '#00ff00',
+                cursor: '#00ff00'
             }
         });
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
         term.open(document.getElementById('terminal-container'));
         fitAddon.fit();
+        window.addEventListener('resize', () => fitAddon.fit());
 
-        window.addEventListener('resize', () => {
-            fitAddon.fit();
-        });
-
-        // --- VIRTUAL FILE SYSTEM ---
-        let vfs = {
+        const vfs = {
             '/': {
-                type: 'dir',
+                type: 'directory',
+                children: { 'home': { type: 'directory', children: {} } }
+            },
+            '/home': {
+                type: 'directory',
+                children: { 'user': { type: 'directory', children: {} } }
+            },
+            '/home/user': {
+                type: 'directory',
                 children: {
-                    'home': {
-                        type: 'dir',
-                        children: {
-                            'user': {
-                                type: 'dir',
-                                children: {
-                                    'readme.txt': {
-                                        type: 'file',
-                                        content: 'Benvenuto in Lorel Axun! Digita `help` per una lista di comandi.'
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    'readme.txt': { type: 'file', content: 'Benvenuto in Lorel Axun. Digita `help` per una lista di comandi.' }
                 }
             }
         };
         let currentPath = '/home/user';
 
         function resolvePath(path) {
-            let parts = path.split('/').filter(p => p);
-            let currentNode = vfs['/'];
-            let currentAbsolutePath = '/';
-
             if (path.startsWith('/')) {
-                // Absolute path
-            } else {
-                // Relative path
-                parts = currentPath.split('/').filter(p => p).concat(parts);
-                currentNode = vfs['/'];
+                return path;
             }
-
-            for (let i = 0; i < parts.length; i++) {
-                let part = parts[i];
+            const parts = (currentPath === '/' ? '' : currentPath).split('/').concat(path.split('/'));
+            const resolved = [];
+            for (const part of parts) {
+                if (part === '' || part === '.') continue;
                 if (part === '..') {
-                    let parentParts = currentAbsolutePath.split('/').filter(p => p);
-                    parentParts.pop();
-                    currentAbsolutePath = '/' + parentParts.join('/');
-                    let tempNode = vfs['/'];
-                    for (const p of parentParts) {
-                        tempNode = tempNode.children[p];
-                    }
-                    currentNode = tempNode;
-                    continue;
-                }
-                if (part === '.') continue;
-
-                if (currentNode.type === 'dir' && currentNode.children && currentNode.children[part]) {
-                    currentNode = currentNode.children[part];
-                    currentAbsolutePath = (currentAbsolutePath === '/' ? '' : currentAbsolutePath) + '/' + part;
+                    resolved.pop();
                 } else {
-                    return { node: null, finalPath: null, parent: null, name: null };
+                    resolved.push(part);
                 }
             }
-            let name = parts.length > 0 ? parts[parts.length - 1] : '/';
-            let parentPathParts = parts.slice(0, -1);
-            let parent = vfs['/'];
-            for(const part of parentPathParts) {
-                if(parent.children && parent.children[part] && parent.children[part].type === 'dir') {
-                    parent = parent.children[part];
-                } else {
-                    parent = null;
-                    break;
-                }
-            }
-
-            return { node: currentNode, finalPath: currentAbsolutePath, parent: parent, name: name };
+            return '/' + resolved.join('/');
         }
 
-        // --- COMMAND LOGIC ---
-        const commandActions = {
-            'help': () => {
-                const commands = Object.keys(commandActions);
-                return `Comandi disponibili:\n  ${commands.join('\n  ')}`;
-            },
-            'ciao': () => 'Ciao! Come posso aiutarti?',
-            'chi sei': () => 'Sono Lorel Axun, un\'intelligenza artificiale in evoluzione.',
-            'cosa sai fare': () => 'Posso eseguire comandi, gestire un file system virtuale e connettermi al web. Digita `help` per vedere tutti i comandi.',
-            'echo': (args) => args.join(' '),
-            'clear': () => { term.clear(); return ''; },
-            'ls': (args) => {
-                let path = args[0] || '.';
-                const { node } = resolvePath(path);
-                if (node && node.type === 'dir') {
-                    return Object.keys(node.children).map(name => {
-                        return node.children[name].type === 'dir' ? `${name}/` : name;
-                    }).join('\n');
+        function getVfsNode(path) {
+            const resolvedPath = resolvePath(path);
+            const parts = resolvedPath.split('/').filter(p => p);
+            let node = vfs['/'];
+            let currentBuildPath = '/';
+            for (const part of parts) {
+                if (node.type === 'directory' && node.children[part]) {
+                    currentBuildPath = (currentBuildPath === '/' ? '' : currentBuildPath) + '/' + part;
+                    node = vfs[currentBuildPath];
                 } else {
+                    return null;
+                }
+            }
+            return node;
+        }
+
+        const commandActions = {
+            help: async (args, stdin) => {
+                const helpText = [
+                    'Comandi disponibili:',
+                    '  help              Mostra questo messaggio di aiuto',
+                    '  ciao              Saluta Lorel Axun',
+                    '  chi sei           Mostra informazioni su Lorel Axun',
+                    '  cosa sai fare     Descrive le capacità di Lorel Axun',
+                    '  echo [testo]      Stampa il testo a schermo',
+                    '  clear             Pulisce lo schermo del terminale',
+                    '  ls [percorso]     Lista i file e le directory',
+                    '  cd [percorso]     Cambia la directory corrente',
+                    '  cat [file]        Mostra il contenuto di un file',
+                    '  mkdir [nome]      Crea una nuova directory',
+                    '  touch [nome]      Crea un nuovo file vuoto',
+                    '  rm [percorso]     Rimuove un file o una directory',
+                    '  fetch [url]       Scarica e mostra il contenuto di una pagina web',
+                    'Uso della redirezione e pipeline:',
+                    '  comando > file.txt   Redireziona l\'output sovrascrivendo il file',
+                    '  comando >> file.txt  Redireziona l\'output aggiungendolo al file',
+                    '  comando1 | comando2  Usa l\'output del comando1 come input per il comando2'
+                ].join('\n');
+                return helpText;
+            },
+            ciao: async () => 'Ciao! Sono Lorel Axun. Come posso aiutarti?',
+            'chi sei': async () => 'Sono Lorel Axun, un\'entità AI autonoma in continua evoluzione.',
+            'cosa sai fare': async () => 'Apprendo, interagisco e modifico il mio stesso codice per migliorare. Prova il comando `help`.',
+            echo: async (args) => args.join(' '),
+            clear: async () => { term.clear(); return ''; },
+            ls: async (args) => {
+                const path = args[0] || '.';
+                const node = getVfsNode(path);
+                if (!node || node.type !== 'directory') {
                     return `ls: cannot access '${path}': No such file or directory`;
                 }
+                return Object.keys(node.children).join('\n');
             },
-            'cd': (args) => {
-                if (!args[0]) return 'cd: missing operand';
-                const { node, finalPath } = resolvePath(args[0]);
-                if (node && node.type === 'dir') {
-                    currentPath = finalPath === '' ? '/' : finalPath;
+            cd: async (args) => {
+                const path = args[0] || '/home/user';
+                const resolved = resolvePath(path);
+                const node = getVfsNode(resolved);
+                if (node && node.type === 'directory') {
+                    currentPath = resolved;
                     return '';
                 } else {
-                    return `cd: ${args[0]}: No such file or directory`;
+                    return `cd: ${path}: No such file or directory`;
                 }
             },
-            'cat': (args) => {
-                if (!args[0]) return 'cat: missing operand';
-                const { node } = resolvePath(args[0]);
-                if (node && node.type === 'file') {
-                    return node.content;
-                } else if (node && node.type === 'dir') {
-                    return `cat: ${args[0]}: Is a directory`;
-                } else {
-                    return `cat: ${args[0]}: No such file or directory`;
+            cat: async (args, stdin) => {
+                 if (stdin !== null && stdin !== undefined) {
+                    return stdin;
                 }
-            },
-            'mkdir': (args) => {
-                if (!args[0]) return 'mkdir: missing operand';
+                if (args.length === 0) return 'cat: missing operand';
                 const path = args[0];
-                const pathParts = path.replace(/\/$/, '').split('/');
-                const newDirName = pathParts.pop();
-                const parentPath = pathParts.join('/') || (path.startsWith('/') ? '/' : '.');
-                const { node: parentNode } = resolvePath(parentPath);
-
-                if (parentNode && parentNode.type === 'dir') {
-                    if (parentNode.children[newDirName]) {
-                        return `mkdir: cannot create directory ‘${path}’: File exists`;
-                    } else {
-                        parentNode.children[newDirName] = { type: 'dir', children: {} };
-                        return '';
-                    }
+                const resolvedPath = resolvePath(path);
+                const parentPath = resolvedPath.substring(0, resolvedPath.lastIndexOf('/')) || '/';
+                const filename = resolvedPath.substring(resolvedPath.lastIndexOf('/') + 1);
+                const parentNode = getVfsNode(parentPath);
+                if (parentNode && parentNode.children[filename] && parentNode.children[filename].type === 'file') {
+                    return vfs[resolvedPath].content;
                 } else {
-                    return `mkdir: cannot create directory ‘${path}’: No such file or directory`;
+                    return `cat: ${path}: No such file or directory`;
                 }
             },
-            'touch': (args) => {
-                if (!args[0]) return 'touch: missing operand';
+            mkdir: async (args) => {
+                if (args.length === 0) return 'mkdir: missing operand';
                 const path = args[0];
-                const pathParts = path.split('/');
-                const newFileName = pathParts.pop();
-                const parentPath = pathParts.join('/') || (path.startsWith('/') ? '/' : '.');
-                const { node: parentNode } = resolvePath(parentPath);
-
-                if (parentNode && parentNode.type === 'dir') {
-                    if (!parentNode.children[newFileName]) {
-                        parentNode.children[newFileName] = { type: 'file', content: '' };
-                    }
+                const resolvedPath = resolvePath(path);
+                const parentPath = resolvedPath.substring(0, resolvedPath.lastIndexOf('/')) || '/';
+                const dirname = resolvedPath.substring(resolvedPath.lastIndexOf('/') + 1);
+                const parentNode = getVfsNode(parentPath);
+                if (parentNode && parentNode.type === 'directory' && !parentNode.children[dirname]) {
+                    vfs[resolvedPath] = { type: 'directory', children: {} };
+                    parentNode.children[dirname] = vfs[resolvedPath];
                     return '';
                 } else {
-                    return `touch: cannot touch '${path}': No such file or directory`;
+                    return `mkdir: cannot create directory ‘${path}’: File exists or invalid path`;
                 }
             },
-            'rm': (args) => {
-                if (!args[0]) return 'rm: missing operand';
-                const { node, parent, name } = resolvePath(args[0]);
-                if (node && parent) {
-                    if (node.type === 'dir' && Object.keys(node.children).length > 0) {
-                        return `rm: cannot remove '${args[0]}': Directory not empty`;
-                    }
-                    delete parent.children[name];
+            touch: async (args) => {
+                if (args.length === 0) return 'touch: missing operand';
+                const path = args[0];
+                const resolvedPath = resolvePath(path);
+                const parentPath = resolvedPath.substring(0, resolvedPath.lastIndexOf('/')) || '/';
+                const filename = resolvedPath.substring(resolvedPath.lastIndexOf('/') + 1);
+                const parentNode = getVfsNode(parentPath);
+                if (parentNode && parentNode.type === 'directory' && !parentNode.children[filename]) {
+                    vfs[resolvedPath] = { type: 'file', content: '' };
+                    parentNode.children[filename] = vfs[resolvedPath];
+                    return '';
+                } else if (parentNode && parentNode.children[filename]) {
+                    return ''; // File exists, do nothing
+                } else {
+                    return `touch: cannot touch ‘${path}’: No such file or directory`;
+                }
+            },
+            rm: async (args) => {
+                if (args.length === 0) return 'rm: missing operand';
+                const path = args[0];
+                const resolvedPath = resolvePath(path);
+                if (resolvedPath === '/' || resolvedPath === '/home' || resolvedPath === '/home/user') {
+                    return `rm: cannot remove ‘${path}’: Permission denied`;
+                }
+                const parentPath = resolvedPath.substring(0, resolvedPath.lastIndexOf('/')) || '/';
+                const name = resolvedPath.substring(resolvedPath.lastIndexOf('/') + 1);
+                const parentNode = getVfsNode(parentPath);
+                if (parentNode && parentNode.children[name]) {
+                    delete parentNode.children[name];
+                    delete vfs[resolvedPath];
                     return '';
                 } else {
-                    return `rm: cannot remove '${args[0]}': No such file or directory`;
+                    return `rm: cannot remove ‘${path}’: No such file or directory`;
                 }
             },
-            'fetch': (args) => {
-                if (!args[0]) {
-                    term.writeln('Uso: fetch <url>');
-                    return;
-                }
+            fetch: async (args) => {
+                if (args.length === 0) return 'fetch: URL required';
                 const url = args[0];
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-                term.writeln(`Fetching ${url}...`);
-                fetch(proxyUrl)
-                    .then(response => {
-                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                        return response.text();
-                    })
-                    .then(data => {
-                        term.writeln(`\n--- Contenuto da ${url} ---\n`);
-                        term.writeln(data.substring(0, 2000) + (data.length > 2000 ? '... (troncato)' : ''));
-                        term.writeln(`\n--- Fine del contenuto ---`);
-                        showPrompt();
-                    })
-                    .catch(error => {
-                        term.writeln(`\nErrore nel fetch: ${error.message}`);
-                        showPrompt();
-                    });
-                return null; // Async command, handles its own output
+                const proxyUrl = `https://cors-anywhere.herokuapp.com/${url}`;
+                try {
+                    const response = await fetch(proxyUrl);
+                    if (!response.ok) return `fetch: error fetching URL: ${response.statusText}`;
+                    return await response.text();
+                } catch (error) {
+                    return `fetch: network error: ${error.message}`;
+                }
             }
         };
 
-        function runCommand(commandLine) {
-            const parts = commandLine.trim().split(/\s+/);
-            const command = parts[0];
-            const args = parts.slice(1);
-
-            if (commandActions[command]) {
-                return commandActions[command](args);
-            } else {
-                return `Comando non trovato: ${command}`;
-            }
-        }
-
-        // --- INPUT HANDLING ---
-        let currentCommand = '';
+        let currentLine = '';
+        let cursorPosition = 0;
         let commandHistory = JSON.parse(localStorage.getItem('commandHistory')) || [];
         let historyIndex = commandHistory.length;
-        let cursorIndex = 0;
 
-        function showPrompt() {
-            term.write(`\r\n[LorelAxun ${currentPath}]$ `);
-        }
+        const prompt = () => `\r\n[lorel@axun ${currentPath}]$ `;
 
         function typeWriter(text, i, callback) {
             if (i < text.length) {
                 term.write(text.charAt(i));
-                setTimeout(() => typeWriter(text, i + 1, callback), 25);
+                setTimeout(() => typeWriter(text, i + 1, callback), 50);
             } else if (callback) {
                 callback();
             }
         }
 
-        function startupSequence() {
-            figlet.parseFont('Standard', figlet.fonts.Standard);
-            figlet.text('Lorel Axun', { font: 'Standard' }, (err, data) => {
-                if (err) {
-                    console.dir(err);
-                    return;
-                }
-                term.writeln(data);
-                const welcomeMessage = 'Benvenuto. Sono Lorel Axun. Digita `help` per iniziare.';
-                typeWriter(welcomeMessage, 0, showPrompt);
-            });
-        }
-
-        term.onKey(({ key, domEvent }) => {
-            const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
-
-            if (domEvent.keyCode === 13) { // Enter
-                if (currentCommand.trim() === '') {
-                    showPrompt();
-                    return;
-                }
-
-                term.write('\r\n');
-                const commandLine = currentCommand.trim();
-                
-                if (commandHistory[commandHistory.length - 1] !== commandLine) {
-                    commandHistory.push(commandLine);
-                    localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
-                }
-                historyIndex = commandHistory.length;
-
-                // --- REDIRECTION LOGIC ---
-                let commandToRun = commandLine;
-                let redirectPath = null;
-                let appendMode = false;
-
-                const appendMatch = commandLine.match(/(.*)>>\s*(.*)/);
-                const overwriteMatch = commandLine.match(/(.*)>\s*(.*)/);
-
-                if (appendMatch) {
-                    commandToRun = appendMatch[1].trim();
-                    redirectPath = appendMatch[2].trim();
-                    appendMode = true;
-                } else if (overwriteMatch) {
-                    commandToRun = overwriteMatch[1].trim();
-                    redirectPath = overwriteMatch[2].trim();
-                    appendMode = false;
-                }
-
-                const commandName = commandToRun.split(' ')[0];
-                if (commandName === 'fetch') {
-                    // Fetch handles its own async output, bypass redirection for now
-                    runCommand(commandToRun);
-                } else {
-                    const output = runCommand(commandToRun);
-
-                    if (redirectPath) {
-                        const { node, parent, name } = resolvePath(redirectPath);
-                        if (node && node.type === 'dir') {
-                            term.writeln(`-bash: ${redirectPath}: Is a directory`);
-                        } else if (parent && parent.type === 'dir') {
-                            let fileNode = node;
-                            if (!fileNode) {
-                                parent.children[name] = { type: 'file', content: '' };
-                                fileNode = parent.children[name];
-                            }
-                            if (appendMode) {
-                                fileNode.content += (fileNode.content ? '\n' : '') + output;
-                            } else {
-                                fileNode.content = output;
-                            }
-                        } else {
-                            term.writeln(`-bash: ${redirectPath}: No such file or directory`);
-                        }
-                    } else if (output !== null && output !== '') {
-                        term.write(output.replace(/\n/g, '\r\n'));
-                    }
-                }
-
-                currentCommand = '';
-                cursorIndex = 0;
-                showPrompt();
-
-            } else if (domEvent.keyCode === 8) { // Backspace
-                if (cursorIndex > 0) {
-                    currentCommand = currentCommand.slice(0, cursorIndex - 1) + currentCommand.slice(cursorIndex);
-                    cursorIndex--;
-                    term.write('\b \b');
-                    const rest = currentCommand.slice(cursorIndex);
-                    term.write(rest + ' ');
-                    term.write('\b'.repeat(rest.length + 1));
-                }
-            } else if (domEvent.keyCode === 37) { // Left arrow
-                if (cursorIndex > 0) {
-                    cursorIndex--;
-                    term.write('\x1b[D');
-                }
-            } else if (domEvent.keyCode === 39) { // Right arrow
-                if (cursorIndex < currentCommand.length) {
-                    cursorIndex++;
-                    term.write('\x1b[C');
-                }
-            } else if (domEvent.keyCode === 38) { // Up arrow
-                if (historyIndex > 0) {
-                    historyIndex--;
-                    term.write('\x1b[2K\r'); // Clear line
-                    term.write(`[LorelAxun ${currentPath}]$ `);
-                    currentCommand = commandHistory[historyIndex];
-                    term.write(currentCommand);
-                    cursorIndex = currentCommand.length;
-                }
-            } else if (domEvent.keyCode === 40) { // Down arrow
-                if (historyIndex < commandHistory.length - 1) {
-                    historyIndex++;
-                    term.write('\x1b[2K\r');
-                    term.write(`[LorelAxun ${currentPath}]$ `);
-                    currentCommand = commandHistory[historyIndex];
-                    term.write(currentCommand);
-                    cursorIndex = currentCommand.length;
-                } else {
-                    historyIndex = commandHistory.length;
-                    term.write('\x1b[2K\r');
-                    term.write(`[LorelAxun ${currentPath}]$ `);
-                    currentCommand = '';
-                    cursorIndex = 0;
-                }
-            } else if (domEvent.keyCode === 9) { // Tab
-                domEvent.preventDefault();
-                const textBeforeCursor = currentCommand.substring(0, cursorIndex);
-                const lastWord = textBeforeCursor.split(/\s+/).pop();
-                if (lastWord) {
-                    const completions = Object.keys(commandActions).filter(c => c.startsWith(lastWord));
-                    if (completions.length === 1) {
-                        const completion = completions[0];
-                        const newText = completion.substring(lastWord.length);
-                        currentCommand = currentCommand.slice(0, cursorIndex) + newText + currentCommand.slice(cursorIndex);
-                        term.write(newText);
-                        cursorIndex += newText.length;
-                    }
-                }
-            } else if (printable) {
-                const rest = currentCommand.slice(cursorIndex);
-                currentCommand = currentCommand.slice(0, cursorIndex) + key + rest;
-                cursorIndex++;
-                term.write(key + rest);
-                if (rest.length > 0) {
-                    term.write('\x1b[D'.repeat(rest.length));
-                }
+        figlet('Lorel Axun', (err, data) => {
+            if (err) {
+                console.log('Something went wrong...');
+                console.dir(err);
+                return;
             }
+            term.writeln(data);
+            const welcome = 'Benvenuto. Sono Lorel Axun. Digita `help` per iniziare.';
+            typeWriter(welcome, 0, () => term.write(prompt()));
         });
 
-        startupSequence();
+        function parseCommand(input) {
+            let redirect = null, append = false;
+            if (input.includes('>>')) {
+                [input, redirect] = input.split('>>').map(s => s.trim());
+                append = true;
+            } else if (input.includes('>')) {
+                [input, redirect] = input.split('>').map(s => s.trim());
+            }
+            const parts = input.split(' ').filter(p => p);
+            const command = parts[0];
+            const args = parts.slice(1);
+            return { command, args, redirect, append };
+        }
+
+        term.onKey(async ({ key, domEvent }) => {
+            const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
+
+            if (domEvent.key === 'Enter') {
+                if (currentLine.trim() !== '') {
+                    commandHistory.push(currentLine);
+                    if (commandHistory.length > 50) commandHistory.shift();
+                    localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
+                    historyIndex = commandHistory.length;
+
+                    const pipeline = currentLine.trim().split('|').map(s => s.trim());
+                    let lastOutput = null;
+
+                    for (let i = 0; i < pipeline.length; i++) {
+                        const commandSegment = pipeline[i];
+                        const isLastCommand = i === pipeline.length - 1;
+                        const { command, args } = parseCommand(commandSegment);
+
+                        if (commandActions[command]) {
+                            try {
+                                const output = await commandActions[command](args, lastOutput);
+                                lastOutput = output;
+                            } catch (e) {
+                                term.writeln(`\r\nError executing ${command}: ${e.message}`);
+                                lastOutput = null;
+                                break;
+                            }
+                        } else {
+                            term.writeln(`\r\n-lorel: ${command}: command not found`);
+                            lastOutput = null;
+                            break;
+                        }
+
+                        if (isLastCommand && lastOutput !== null) {
+                            const finalParse = parseCommand(commandSegment);
+                            if (finalParse.redirect) {
+                                const filePath = resolvePath(finalParse.redirect);
+                                const parentPath = filePath.substring(0, filePath.lastIndexOf('/')) || '/';
+                                const filename = filePath.substring(filePath.lastIndexOf('/') + 1);
+                                const parentNode = getVfsNode(parentPath);
+                                if (parentNode && parentNode.type === 'directory') {
+                                    const fileNode = vfs[filePath];
+                                    if (fileNode && fileNode.type !== 'file') {
+                                        term.writeln(`\r\n-lorel: ${finalParse.redirect}: Is a directory`);
+                                    } else {
+                                        const content = (finalParse.append && fileNode) ? fileNode.content + '\n' + lastOutput : lastOutput;
+                                        vfs[filePath] = { type: 'file', content: content };
+                                        parentNode.children[filename] = vfs[filePath];
+                                    }
+                                } else {
+                                    term.writeln(`\r\n-lorel: cannot write to ${finalParse.redirect}: No such file or directory`);
+                                }
+                            } else {
+                                if (lastOutput) {
+                                    term.writeln('\r\n' + String(lastOutput).replace(/\n/g, '\r\n'));
+                                }
+                            }
+                        }
+                    }
+                }
+                currentLine = '';
+                cursorPosition = 0;
+                term.write(prompt());
+            } else if (domEvent.key === 'Backspace') {
+                if (cursorPosition > 0) {
+                    currentLine = currentLine.slice(0, cursorPosition - 1) + currentLine.slice(cursorPosition);
+                    cursorPosition--;
+                    term.write('\x1b[D \x1b[D');
+                }
+            } else if (domEvent.key === 'ArrowUp') {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    currentLine = commandHistory[historyIndex];
+                    term.write('\x1b[2K\r' + prompt() + currentLine);
+                    cursorPosition = currentLine.length;
+                }
+            } else if (domEvent.key === 'ArrowDown') {
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    currentLine = commandHistory[historyIndex];
+                    term.write('\x1b[2K\r' + prompt() + currentLine);
+                    cursorPosition = currentLine.length;
+                } else {
+                    historyIndex = commandHistory.length;
+                    currentLine = '';
+                    term.write('\x1b[2K\r' + prompt());
+                    cursorPosition = 0;
+                }
+            } else if (domEvent.key === 'ArrowLeft') {
+                if (cursorPosition > 0) {
+                    cursorPosition--;
+                    term.write('\x1b[D');
+                }
+            } else if (domEvent.key === 'ArrowRight') {
+                if (cursorPosition < currentLine.length) {
+                    cursorPosition++;
+                    term.write('\x1b[C');
+                }
+            } else if (domEvent.key === 'Tab') {
+                domEvent.preventDefault();
+                const currentWord = currentLine.slice(0, cursorPosition).split(' ').pop();
+                if (currentWord) {
+                    const completions = Object.keys(commandActions).filter(c => c.startsWith(currentWord));
+                    if (completions.length === 1) {
+                        const completion = completions[0];
+                        const textToAdd = completion.slice(currentWord.length) + ' ';
+                        currentLine = currentLine.slice(0, cursorPosition) + textToAdd + currentLine.slice(cursorPosition);
+                        term.write(textToAdd);
+                        cursorPosition += textToAdd.length;
+                    }
+                }
+            } else if (printable && key.length === 1) {
+                currentLine = currentLine.slice(0, cursorPosition) + key + currentLine.slice(cursorPosition);
+                cursorPosition++;
+                term.write(key);
+            }
+        });
     </script>
 </body>
 </html>
