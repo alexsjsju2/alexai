@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lorel Axun</title>
-    <link rel="stylesheet" href="https://unpkg.com/xterm@5.3.0/css/xterm.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
     <style>
         body, html {
             margin: 0;
@@ -12,8 +12,8 @@
             width: 100%;
             height: 100%;
             background-color: #000;
-            color: #0f0;
-            font-family: 'Courier New', Courier, monospace;
+            color: #0F0;
+            font-family: 'monospace', monospace;
             overflow: hidden;
         }
         #terminal-container {
@@ -23,602 +23,692 @@
         #desktop {
             width: 100%;
             height: 100%;
-            background: #001a00;
-            display: none; /* Nascosto di default */
+            background: #0d1117;
             position: relative;
             overflow: hidden;
         }
         .window {
             position: absolute;
-            border: 1px solid #0f0;
-            background-color: rgba(0, 20, 0, 0.9);
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-            display: flex;
-            flex-direction: column;
+            border: 1px solid #444;
+            background-color: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
             min-width: 300px;
             min-height: 200px;
+            display: flex;
+            flex-direction: column;
         }
         .title-bar {
-            background-color: #0f0;
-            color: #000;
-            padding: 3px 5px;
+            background-color: #333;
+            color: #fff;
+            padding: 5px;
             cursor: move;
-            font-weight: bold;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            user-select: none;
         }
-        .title-bar-buttons button {
-            background: #000;
-            color: #0f0;
-            border: 1px solid #0f0;
-            cursor: pointer;
+        .title-bar-buttons {
+            display: flex;
+        }
+        .title-bar-button {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
             margin-left: 5px;
+            cursor: pointer;
         }
-        .window-content {
+        .close {
+            background-color: #ff5f56;
+        }
+        .window-body {
             flex-grow: 1;
             padding: 5px;
-            overflow: auto;
         }
-        .window-content #terminal-container {
-            width: 100%;
-            height: 100%;
+        #dock-container {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+        }
+        #dock {
+            display: flex;
+            align-items: flex-end;
+            padding: 8px;
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        .dock-icon {
+            width: 50px;
+            height: 50px;
+            margin: 0 6px;
+            background-color: #333;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            will-change: transform;
+            color: #fff;
         }
     </style>
 </head>
 <body>
-    <div id="desktop"></div>
     <div id="terminal-container"></div>
+    <div id="desktop" style="display: none;">
+        <div id="dock-container">
+            <div id="dock"></div>
+        </div>
+    </div>
 
-    <script src="https://unpkg.com/xterm@5.3.0/lib/xterm.js"></script>
-    <script src="https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
-    <script src="https://unpkg.com/figlet@1.7.0/lib/figlet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/figlet@1.7.0/lib/figlet.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const term = new Terminal({
-                cursorBlink: true,
-                theme: {
-                    background: '#000000',
-                    foreground: '#00FF00',
-                    cursor: '#00FF00'
-                }
-            });
-            const fitAddon = new FitAddon.FitAddon();
-            term.loadAddon(fitAddon);
-            const terminalContainer = document.getElementById('terminal-container');
-            term.open(terminalContainer);
-            fitAddon.fit();
-
-            window.addEventListener('resize', () => fitAddon.fit());
-
-            let state = {
-                vfs: {},
-                history: [],
-                env: {},
-                cwd: '/home/user'
-            };
-
-            let historyIndex = -1;
-            let currentLine = '';
-
-            // --- Window Manager --- //
-            const desktop = document.getElementById('desktop');
-            let zIndexCounter = 10;
-
-            function createWindow(title, contentNode, width = 600, height = 400) {
-                const win = document.createElement('div');
-                win.className = 'window';
-                win.style.width = `${width}px`;
-                win.style.height = `${height}px`;
-                win.style.left = `${(window.innerWidth - width) / 2 + (Math.random() * 100 - 50)}px`;
-                win.style.top = `${(window.innerHeight - height) / 2 + (Math.random() * 100 - 50)}px`;
-                win.style.zIndex = zIndexCounter++;
-
-                const titleBar = document.createElement('div');
-                titleBar.className = 'title-bar';
-                
-                const titleText = document.createElement('span');
-                titleText.innerText = title;
-
-                const buttons = document.createElement('div');
-                buttons.className = 'title-bar-buttons';
-                const closeButton = document.createElement('button');
-                closeButton.innerText = 'X';
-                closeButton.onclick = () => win.remove();
-                buttons.appendChild(closeButton);
-
-                titleBar.appendChild(titleText);
-                titleBar.appendChild(buttons);
-
-                const content = document.createElement('div');
-                content.className = 'window-content';
-                if (contentNode) {
-                    content.appendChild(contentNode);
-                }
-
-                win.appendChild(titleBar);
-                win.appendChild(content);
-                desktop.appendChild(win);
-
-                // Drag logic
-                let isDragging = false;
-                let offsetX, offsetY;
-
-                titleBar.addEventListener('mousedown', (e) => {
-                    isDragging = true;
-                    offsetX = e.clientX - win.offsetLeft;
-                    offsetY = e.clientY - win.offsetTop;
-                    win.style.zIndex = zIndexCounter++;
-                    document.body.style.userSelect = 'none';
-                });
-
-                document.addEventListener('mousemove', (e) => {
-                    if (isDragging) {
-                        win.style.left = `${e.clientX - offsetX}px`;
-                        win.style.top = `${e.clientY - offsetY}px`;
-                    }
-                });
-
-                document.addEventListener('mouseup', () => {
-                    isDragging = false;
-                    document.body.style.userSelect = '';
-                });
-                
-                return win;
+        const termContainer = document.getElementById('terminal-container');
+        const term = new Terminal({
+            cursorBlink: true,
+            theme: {
+                background: '#000000',
+                foreground: '#00FF00',
+                cursor: '#00FF00'
             }
-
-            // --- Core Shell Logic --- //
-
-            const saveState = () => localStorage.setItem('lorel_axun_state', JSON.stringify(state));
-            const loadState = () => {
-                const saved = localStorage.getItem('lorel_axun_state');
-                if (saved) {
-                    state = JSON.parse(saved);
-                } else {
-                    // Default state for first-time users
-                    state.vfs = {
-                        '/': { type: 'dir', content: ['home'] },
-                        '/home': { type: 'dir', content: ['user'] },
-                        '/home/user': { type: 'dir', content: ['readme.txt', '.axunrc'] },
-                        '/home/user/readme.txt': { type: 'file', content: 'Benvenuto in Lorel Axun OS! Digita `help` per una lista di comandi.' },
-                        '/home/user/.axunrc': { type: 'file', content: 'echo "Benvenuto, $USER!"\necho "Oggi è `date`"' }
-                    };
-                    state.env = {
-                        'USER': 'user',
-                        'HOME': '/home/user',
-                        'PS1': '\\x1b[1;32m$USER@axun\\x1b[0m:\\x1b[1;34m\\w\\x1b[0m$ '
-                    };
-                }
-            };
-
-            const resolvePath = (path) => {
-                if (path.startsWith('/')) return path;
-                const parts = (state.cwd === '/' ? '' : state.cwd).split('/').concat(path.split('/'));
-                const resolved = [];
-                for (const part of parts) {
-                    if (part === '' || part === '.') continue;
-                    if (part === '..') {
-                        if (resolved.length > 0) resolved.pop();
-                    } else {
-                        resolved.push(part);
-                    }
-                }
-                return '/' + resolved.join('/');
-            };
-
-            const getVfsNode = (path) => {
-                const resolvedPath = resolvePath(path);
-                const parts = resolvedPath.split('/').filter(p => p);
-                let node = state.vfs['/'];
-                let currentPath = '/';
-                for (const part of parts) {
-                    if (node.type !== 'dir' || !node.content.includes(part)) return null;
-                    currentPath = (currentPath === '/' ? '' : currentPath) + '/' + part;
-                    node = state.vfs[currentPath];
-                }
-                return { node, path: resolvedPath };
-            };
-
-            const createVfsNode = (path, type, content = '') => {
-                const resolvedPath = resolvePath(path);
-                const parentPath = resolvedPath.substring(0, resolvedPath.lastIndexOf('/')) || '/';
-                const name = resolvedPath.substring(resolvedPath.lastIndexOf('/') + 1);
-
-                const parent = getVfsNode(parentPath);
-                if (!parent || parent.node.type !== 'dir') return false;
-
-                if (parent.node.content.includes(name)) return false; // Already exists
-
-                parent.node.content.push(name);
-                state.vfs[resolvedPath] = { type, content: type === 'dir' ? [] : content };
-                return true;
-            };
-
-            const expandVars = (str) => {
-                return str.replace(/\$([A-Z_]+|\w+)/g, (_, varName) => state.env[varName] || '');
-            };
-
-            const prompt = () => {
-                const ps1 = state.env.PS1 || '$ ';
-                const expandedPs1 = ps1.replace('\\w', state.cwd).replace('\\$USER', state.env.USER || 'user');
-                term.write(expandVars(expandedPs1));
-            };
-
-            const commands = {
-                help: async (args, term) => term.write('Comandi disponibili: help, echo, clear, ciao, chi sei, ls, cat, cd, mkdir, touch, rm, edit, fetch, js, export, unset, env, startx\r\n'),
-                echo: async (args, term) => term.write(args.join(' ') + '\r\n'),
-                clear: async (args, term) => term.clear(),
-                ciao: async (args, term) => term.write('Ciao! Sono Lorel Axun, la tua IA personale.\r\n'),
-                'chi sei': async (args, term) => term.write('Sono Lorel Axun, un sistema operativo web in evoluzione.\r\n'),
-                ls: async (args, term) => {
-                    const path = args[0] || state.cwd;
-                    const nodeInfo = getVfsNode(path);
-                    if (nodeInfo && nodeInfo.node.type === 'dir') {
-                        nodeInfo.node.content.forEach(item => {
-                            const itemPath = (nodeInfo.path === '/' ? '' : nodeInfo.path) + '/' + item;
-                            const itemNode = state.vfs[itemPath];
-                            const color = itemNode.type === 'dir' ? '\\x1b[1;34m' : '\\x1b[0m';
-                            term.write(`${color}${item}\\x1b[0m  `);
-                        });
-                        term.write('\r\n');
-                    } else {
-                        term.write(`ls: cannot access '${path}': No such file or directory\r\n`);
-                    }
-                },
-                cat: async (args, term) => {
-                    if (!args[0]) return term.write('cat: missing operand\r\n');
-                    const nodeInfo = getVfsNode(args[0]);
-                    if (nodeInfo && nodeInfo.node.type === 'file') {
-                        term.write(nodeInfo.node.content.replace(/\n/g, '\r\n') + '\r\n');
-                    } else {
-                        term.write(`cat: ${args[0]}: No such file or directory\r\n`);
-                    }
-                },
-                cd: async (args, term) => {
-                    const path = args[0] || state.env.HOME || '/';
-                    const nodeInfo = getVfsNode(path);
-                    if (nodeInfo && nodeInfo.node.type === 'dir') {
-                        state.cwd = nodeInfo.path;
-                    } else {
-                        term.write(`cd: ${path}: No such file or directory\r\n`);
-                    }
-                },
-                mkdir: async (args, term) => {
-                    if (!args[0]) return term.write('mkdir: missing operand\r\n');
-                    if (!createVfsNode(args[0], 'dir')) {
-                        term.write(`mkdir: cannot create directory '${args[0]}': File exists or parent directory not found\r\n`);
-                    }
-                },
-                touch: async (args, term) => {
-                    if (!args[0]) return term.write('touch: missing operand\r\n');
-                    if (!createVfsNode(args[0], 'file')) {
-                         const nodeInfo = getVfsNode(args[0]);
-                         if(nodeInfo && nodeInfo.node.type === 'file') { /* Do nothing, just update timestamp in a real fs */ } else {
-                            term.write(`touch: cannot create file '${args[0]}': File exists or parent directory not found\r\n`);
-                         }
-                    }
-                },
-                rm: async (args, term) => {
-                    if (!args[0]) return term.write('rm: missing operand\r\n');
-                    const path = resolvePath(args[0]);
-                    const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
-                    const name = path.substring(path.lastIndexOf('/') + 1);
-                    const parent = getVfsNode(parentPath);
-                    if (parent && parent.node.type === 'dir' && parent.node.content.includes(name)) {
-                        const nodeToDelete = getVfsNode(path);
-                        if (nodeToDelete.node.type === 'dir' && nodeToDelete.node.content.length > 0) {
-                            return term.write(`rm: cannot remove '${args[0]}': Directory not empty\r\n`);
-                        }
-                        parent.node.content = parent.node.content.filter(item => item !== name);
-                        delete state.vfs[path];
-                    } else {
-                        term.write(`rm: cannot remove '${args[0]}': No such file or directory\r\n`);
-                    }
-                },
-                fetch: async (args, term) => {
-                    if (!args[0]) return term.write('fetch: usage: fetch <url>\r\n');
-                    try {
-                        const response = await fetch(args[0]);
-                        const text = await response.text();
-                        term.write(text.replace(/\n/g, '\r\n') + '\r\n');
-                    } catch (e) {
-                        term.write(`fetch: error: ${e.message}\r\n`);
-                    }
-                },
-                export: async (args, term) => {
-                    const match = args.join(' ').match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
-                    if (match) {
-                        state.env[match[1]] = match[2];
-                    } else {
-                        term.write('export: usage: export VAR=value\r\n');
-                    }
-                },
-                unset: async (args, term) => {
-                    if (args[0]) {
-                        delete state.env[args[0]];
-                    } else {
-                        term.write('unset: usage: unset VAR\r\n');
-                    }
-                },
-                env: async (args, term) => {
-                    for (const key in state.env) {
-                        term.write(`${key}=${state.env[key]}\r\n`);
-                    }
-                },
-                js: async (args, term) => {
-                    if (!args[0]) return term.write('js: usage: js <filename>\r\n');
-                    const nodeInfo = getVfsNode(args[0]);
-                    if (nodeInfo && nodeInfo.node.type === 'file') {
-                        const api = {
-                            term: {
-                                write: (s) => term.write(s.toString().replace(/\n/g, '\r\n')),
-                            },
-                            vfs: {
-                                read: (path) => {
-                                    const file = getVfsNode(path);
-                                    return (file && file.node.type === 'file') ? file.node.content : null;
-                                },
-                                write: (path, content) => {
-                                    const file = getVfsNode(path);
-                                    if (file && file.node.type === 'file') {
-                                        file.node.content = content;
-                                        return true;
-                                    }
-                                    return createVfsNode(path, 'file', content);
-                                },
-                                list: (path) => {
-                                    const dir = getVfsNode(path);
-                                    return (dir && dir.node.type === 'dir') ? dir.node.content : null;
-                                }
-                            },
-                            env: { ...state.env }
-                        };
-                        try {
-                            const func = new Function('api', nodeInfo.node.content);
-                            await func(api);
-                        } catch (e) {
-                            term.write(`js: error executing script: ${e.message}\r\n`);
-                        }
-                    } else {
-                        term.write(`js: cannot find file '${args[0]}'\r\n`);
-                    }
-                },
-                edit: async (args, term) => {
-                    if (!args[0]) return term.write('edit: missing file operand\r\n');
-                    const path = args[0];
-                    const nodeInfo = getVfsNode(path);
-                    let content = '';
-                    if (nodeInfo && nodeInfo.node.type === 'file') {
-                        content = nodeInfo.node.content;
-                    } else if (!nodeInfo) {
-                        // File doesn't exist, will be created on save
-                    } else {
-                        return term.write(`edit: '${path}' is a directory\r\n`);
-                    }
-
-                    term.write('\\x1b[?1049h'); // Enter alternate screen
-                    term.write(`Editing ${path}. Ctrl+S to save, Ctrl+X to exit.\r\n`);
-                    term.write(content.replace(/\n/g, '\r\n'));
-
-                    let buffer = content;
-                    const disposable = term.onKey(({ key, domEvent }) => {
-                        if (domEvent.ctrlKey && domEvent.key === 's') {
-                            domEvent.preventDefault();
-                            const node = getVfsNode(path);
-                            if (node && node.node.type === 'file') {
-                                node.node.content = buffer;
-                            } else {
-                                createVfsNode(path, 'file', buffer);
-                            }
-                            saveState();
-                            term.write('\\x1b[s\\x1b[H\\x1b[KStatus: Saved!\\x1b[u'); // Save cursor, go to top, clear line, write status, restore cursor
-                        } else if (domEvent.ctrlKey && domEvent.key === 'x') {
-                            domEvent.preventDefault();
-                            disposable.dispose();
-                            term.write('\\x1b[?1049l'); // Exit alternate screen
-                            prompt();
-                        } else {
-                            switch (domEvent.key) {
-                                case 'Enter':
-                                    buffer += '\n';
-                                    term.write('\r\n');
-                                    break;
-                                case 'Backspace':
-                                    if (buffer.length > 0) {
-                                        buffer = buffer.slice(0, -1);
-                                        term.write('\b \b');
-                                    }
-                                    break;
-                                default:
-                                    if (!domEvent.ctrlKey && !domEvent.altKey && key.length === 1) {
-                                        buffer += key;
-                                        term.write(key);
-                                    }
-                            }
-                        }
-                    });
-                },
-                startx: async (args, term) => {
-                    term.write('Inizializzazione ambiente grafico...\r\n');
-                    const mainTerminalContainer = document.getElementById('terminal-container');
-                    desktop.style.display = 'block';
-                    const termWindow = createWindow('Lorel Axun Terminal', mainTerminalContainer, 800, 500);
-                    fitAddon.fit();
-                }
-            };
-
-            const parseArgs = (line) => {
-                const args = [];
-                let current = '';
-                let inQuote = false;
-                for (let i = 0; i < line.length; i++) {
-                    const char = line[i];
-                    if (char === '"') {
-                        inQuote = !inQuote;
-                    } else if (char === ' ' && !inQuote) {
-                        if (current) args.push(expandVars(current));
-                        current = '';
-                    } else {
-                        current += char;
-                    }
-                }
-                if (current) args.push(expandVars(current));
-                return args;
-            };
-
-            const executeCommand = async (line, term) => {
-                const parts = line.split('|').map(p => p.trim());
-                let input = null;
-
-                for (let i = 0; i < parts.length; i++) {
-                    const part = parts[i];
-                    const [cmdLine, ...redirect] = part.split(/\s*(>>|>)\s*/);
-                    const args = parseArgs(cmdLine);
-                    const command = args.shift();
-                    const redirectOp = part.includes('>>') ? '>>' : (part.includes('>') ? '>' : null);
-                    const redirectFile = redirect.length > 0 ? redirect[redirect.length - 1].trim() : null;
-
-                    if (commands[command]) {
-                        const outputBuffer = [];
-                        const mockTerm = {
-                            ...term,
-                            write: (data) => {
-                                if (i < parts.length - 1 || redirectFile) {
-                                    outputBuffer.push(data);
-                                } else {
-                                    term.write(data);
-                                }
-                            },
-                            clear: () => {
-                                if (i === 0) term.clear();
-                            }
-                        };
-
-                        if (input) {
-                            // Simulate stdin by passing it as an argument for simplicity
-                            args.push(input);
-                        }
-
-                        await commands[command](args, mockTerm);
-                        
-                        const output = outputBuffer.join('');
-                        if (redirectFile) {
-                            const nodeInfo = getVfsNode(redirectFile);
-                            if (nodeInfo && nodeInfo.node.type === 'file') {
-                                if (redirectOp === '>>') {
-                                    nodeInfo.node.content += output.replace(/\r\n/g, '\n');
-                                } else {
-                                    nodeInfo.node.content = output.replace(/\r\n/g, '\n');
-                                }
-                            } else {
-                                createVfsNode(redirectFile, 'file', output.replace(/\r\n/g, '\n'));
-                            }
-                            saveState();
-                        }
-                        input = output;
-                    } else if (command) {
-                        term.write(`${command}: command not found\r\n`);
-                        return;
-                    }
-                }
-            };
-
-            term.onData(e => {
-                switch (e) {
-                    case '\r': // Enter
-                        term.write('\r\n');
-                        if (currentLine.trim()) {
-                            state.history.unshift(currentLine);
-                            if (state.history.length > 50) state.history.pop();
-                            historyIndex = -1;
-                            executeCommand(currentLine, term).then(() => {
-                                saveState();
-                                prompt();
-                            });
-                        } else {
-                            prompt();
-                        }
-                        currentLine = '';
-                        break;
-                    case '\x7F': // Backspace
-                        if (currentLine.length > 0) {
-                            term.write('\b \b');
-                            currentLine = currentLine.slice(0, -1);
-                        }
-                        break;
-                    case '\x1b[A': // Up arrow
-                        if (historyIndex < state.history.length - 1) {
-                            historyIndex++;
-                            term.write(`\x1b[2K\r`);
-                            prompt();
-                            currentLine = state.history[historyIndex];
-                            term.write(currentLine);
-                        }
-                        break;
-                    case '\x1b[B': // Down arrow
-                        if (historyIndex > 0) {
-                            historyIndex--;
-                            term.write(`\x1b[2K\r`);
-                            prompt();
-                            currentLine = state.history[historyIndex];
-                            term.write(currentLine);
-                        } else {
-                            historyIndex = -1;
-                            term.write(`\x1b[2K\r`);
-                            prompt();
-                            currentLine = '';
-                        }
-                        break;
-                    case '\t': // Tab
-                        // Simple autocomplete
-                        const parts = currentLine.split(' ');
-                        const toComplete = parts[parts.length - 1];
-                        const pathPrefix = toComplete.substring(0, toComplete.lastIndexOf('/') + 1) || '';
-                        const partialName = toComplete.substring(toComplete.lastIndexOf('/') + 1);
-                        const dirPath = pathPrefix ? resolvePath(pathPrefix) : state.cwd;
-                        const dirNode = getVfsNode(dirPath);
-                        if (dirNode && dirNode.node.type === 'dir') {
-                            const matches = dirNode.node.content.filter(item => item.startsWith(partialName));
-                            if (matches.length === 1) {
-                                const completion = matches[0];
-                                const remaining = completion.substring(partialName.length);
-                                currentLine += remaining;
-                                term.write(remaining);
-                            }
-                        }
-                        break;
-                    default:
-                        if (e >= ' ' && e <= '~') {
-                            currentLine += e;
-                            term.write(e);
-                        }
-                }
-            });
-
-            async function start() {
-                figlet.text('Lorel Axun', { font: 'Standard' }, (err, data) => {
-                    if (data) term.write(data.replace(/\n/g, '\r\n') + '\r\n');
-                    term.write('Benvenuto in Lorel Axun OS. Digita `help` per iniziare.\r\n');
-                    loadState();
-                    const rcFile = getVfsNode(state.env.HOME + '/.axunrc');
-                    if (rcFile && rcFile.node.type === 'file') {
-                        const commands = rcFile.node.content.split('\n').filter(c => c.trim() !== '');
-                        const runAll = async () => {
-                            for (const cmd of commands) {
-                                await executeCommand(cmd, term);
-                            }
-                            prompt();
-                        };
-                        runAll();
-                    } else {
-                        prompt();
-                    }
-                });
-            }
-
-            start();
         });
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        term.open(termContainer);
+        fitAddon.fit();
+
+        window.addEventListener('resize', () => fitAddon.fit());
+
+        let state = {
+            vfs: {
+                '/': {
+                    type: 'directory',
+                    children: {
+                        'home': {
+                            type: 'directory',
+                            children: {
+                                'user': {
+                                    type: 'directory',
+                                    children: {
+                                        'readme.txt': {
+                                            type: 'file',
+                                            content: 'Welcome to Lorel Axun OS!'
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            cwd: '/home/user',
+            history: [],
+            env: {
+                'USER': 'user',
+                'HOME': '/home/user',
+                'PS1': '\x1b[32m\\u@axun\\x1b[0m:\x1b[34m\\w\\x1b[0m$ '
+            }
+        };
+
+        let historyIndex = -1;
+        let currentLine = '';
+
+        const prompt = () => {
+            const ps1 = state.env.PS1 || '$ ';
+            const user = state.env.USER || 'user';
+            const cwd = state.cwd;
+            const home = state.env.HOME || '/home/user';
+            const displayCwd = cwd.startsWith(home) ? '~' + cwd.substring(home.length) : cwd;
+            const formattedPrompt = ps1
+                .replace('\\u', user)
+                .replace('\\w', displayCwd);
+            term.write(formattedPrompt);
+        };
+
+        const getPath = (path) => {
+            if (path.startsWith('/')) return path.split('/').filter(p => p);
+            const currentPath = state.cwd.split('/').filter(p => p);
+            const newPath = path.split('/').filter(p => p);
+
+            let resultPath = [...currentPath];
+            for (const part of newPath) {
+                if (part === '.') continue;
+                if (part === '..') {
+                    if (resultPath.length > 0) resultPath.pop();
+                } else {
+                    resultPath.push(part);
+                }
+            }
+            return resultPath;
+        };
+
+        const getNode = (path) => {
+            const parts = getPath(path);
+            let currentNode = state.vfs['/'];
+            for (const part of parts) {
+                if (currentNode && currentNode.type === 'directory' && currentNode.children[part]) {
+                    currentNode = currentNode.children[part];
+                } else {
+                    return null;
+                }
+            }
+            return currentNode;
+        };
+
+        const getParentNode = (path) => {
+            const parts = getPath(path);
+            if (parts.length === 0) return state.vfs['/'];
+            const parentPath = '/' + parts.slice(0, -1).join('/');
+            return getNode(parentPath);
+        };
+
+        const resolvePath = (path) => {
+            const parts = getPath(path);
+            return '/' + parts.join('/');
+        };
+
+        const commands = {
+            help: (args, term) => {
+                term.writeln('Available commands:');
+                term.writeln(Object.keys(commands).join(', '));
+            },
+            clear: (args, term) => term.clear(),
+            echo: (args, term) => term.writeln(args.join(' ')),
+            ls: (args, term) => {
+                const path = args[0] || state.cwd;
+                const node = getNode(path);
+                if (node && node.type === 'directory') {
+                    Object.keys(node.children).forEach(name => {
+                        const child = node.children[name];
+                        const color = child.type === 'directory' ? '\x1b[34m' : '\x1b[0m';
+                        term.write(`${color}${name}${child.type === 'directory' ? '/' : ''}\\x1b[0m  `);
+                    });
+                    term.writeln('');
+                } else {
+                    term.writeln(`ls: cannot access '${path}': No such file or directory`);
+                }
+            },
+            cd: (args, term) => {
+                const path = args[0] || state.env.HOME;
+                const resolved = resolvePath(path);
+                const node = getNode(resolved);
+                if (node && node.type === 'directory') {
+                    state.cwd = resolved;
+                } else {
+                    term.writeln(`cd: ${path}: No such file or directory`);
+                }
+            },
+            cat: (args, term) => {
+                if (args.length === 0) return;
+                const node = getNode(args[0]);
+                if (node && node.type === 'file') {
+                    term.writeln(node.content);
+                } else {
+                    term.writeln(`cat: ${args[0]}: No such file or directory`);
+                }
+            },
+            mkdir: (args, term) => {
+                if (args.length === 0) return term.writeln('mkdir: missing operand');
+                const path = args[0];
+                const parent = getParentNode(path);
+                const name = path.split('/').pop();
+                if (parent && parent.type === 'directory') {
+                    if (parent.children[name]) {
+                        term.writeln(`mkdir: cannot create directory '${path}': File exists`);
+                    } else {
+                        parent.children[name] = { type: 'directory', children: {} };
+                    }
+                } else {
+                    term.writeln(`mkdir: cannot create directory '${path}': No such file or directory`);
+                }
+            },
+            touch: (args, term) => {
+                if (args.length === 0) return term.writeln('touch: missing file operand');
+                const path = args[0];
+                const parent = getParentNode(path);
+                const name = path.split('/').pop();
+                if (parent && parent.type === 'directory') {
+                    if (!parent.children[name]) {
+                        parent.children[name] = { type: 'file', content: '' };
+                    }
+                } else {
+                    term.writeln(`touch: cannot touch '${path}': No such file or directory`);
+                }
+            },
+            rm: (args, term) => {
+                if (args.length === 0) return term.writeln('rm: missing operand');
+                const path = args[0];
+                const parent = getParentNode(path);
+                const name = path.split('/').pop();
+                if (parent && parent.children[name]) {
+                    delete parent.children[name];
+                } else {
+                    term.writeln(`rm: cannot remove '${path}': No such file or directory`);
+                }
+            },
+            pwd: (args, term) => term.writeln(state.cwd),
+            export: (args, term) => {
+                const [assignment] = args;
+                const match = assignment.match(/^([^=]+)=(.*)$/);
+                if (match) {
+                    state.env[match[1]] = match[2];
+                } else {
+                    term.writeln('Usage: export VAR=value');
+                }
+            },
+            unset: (args, term) => {
+                if (args[0]) delete state.env[args[0]];
+            },
+            env: (args, term) => {
+                for (const key in state.env) {
+                    term.writeln(`${key}=${state.env[key]}`);
+                }
+            },
+            fetch: async (args, term) => {
+                if (!args[0]) return term.writeln('Usage: fetch <url>');
+                try {
+                    const response = await fetch(args[0]);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    const text = await response.text();
+                    term.writeln(text);
+                } catch (e) {
+                    term.writeln(`fetch: failed to fetch: ${e.message}`);
+                }
+            },
+            edit: (args, term) => {
+                if (!args[0]) return term.writeln('Usage: edit <file>');
+                const path = resolvePath(args[0]);
+                let node = getNode(path);
+                if (!node) {
+                    const parent = getParentNode(path);
+                    const name = path.split('/').pop();
+                    if (parent && parent.type === 'directory') {
+                        parent.children[name] = { type: 'file', content: '' };
+                        node = parent.children[name];
+                    } else {
+                        return term.writeln(`edit: cannot create file '${path}'`);
+                    }
+                }
+                if (node.type !== 'file') return term.writeln(`edit: '${path}' is not a file`);
+
+                const editorDiv = document.createElement('div');
+                editorDiv.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:#000;z-index:100;';
+                const textArea = document.createElement('textarea');
+                textArea.style.cssText = 'width:100%;height:calc(100% - 20px);background:#000;color:#0F0;border:none;font-family:monospace;font-size:16px;';
+                textArea.value = node.content;
+                const statusBar = document.createElement('div');
+                statusBar.style.cssText = 'background:#333;color:#fff;font-size:14px;padding:2px 5px;';
+                statusBar.textContent = `Editing: ${path} | Ctrl+S to Save | Ctrl+X to Exit`;
+                editorDiv.appendChild(textArea);
+                editorDiv.appendChild(statusBar);
+                document.body.appendChild(editorDiv);
+                textArea.focus();
+
+                const handler = (e) => {
+                    if (e.ctrlKey && e.key === 's') {
+                        e.preventDefault();
+                        node.content = textArea.value;
+                        statusBar.textContent = `Saved! | Ctrl+S to Save | Ctrl+X to Exit`;
+                        setTimeout(() => statusBar.textContent = `Editing: ${path} | Ctrl+S to Save | Ctrl+X to Exit`, 2000);
+                    }
+                    if (e.ctrlKey && e.key === 'x') {
+                        e.preventDefault();
+                        document.body.removeChild(editorDiv);
+                        term.focus();
+                    }
+                };
+                textArea.addEventListener('keydown', handler);
+            },
+            js: (args, term) => {
+                if (!args[0]) return term.writeln('Usage: js <script_file>');
+                const node = getNode(args[0]);
+                if (!node || node.type !== 'file') return term.writeln(`js: file not found: ${args[0]}`);
+                const sandbox = {
+                    axun: {
+                        term: {
+                            log: (...args) => term.writeln(args.map(String).join(' '))
+                        },
+                        fs: {
+                            readFile: (path) => {
+                                const fileNode = getNode(path);
+                                if (fileNode && fileNode.type === 'file') return fileNode.content;
+                                return null;
+                            },
+                            writeFile: (path, content) => {
+                                const fileNode = getNode(path);
+                                if (fileNode && fileNode.type === 'file') {
+                                    fileNode.content = content;
+                                    return true;
+                                }
+                                return false;
+                            }
+                        }
+                    }
+                };
+                try {
+                    const func = new Function('axun', node.content);
+                    func(sandbox.axun);
+                } catch (e) {
+                    term.writeln(`js: error executing script: ${e.message}`);
+                }
+            },
+            startx: (args, term) => {
+                const desktop = document.getElementById('desktop');
+                const termContainer = document.getElementById('terminal-container');
+                
+                if (desktop.style.display === 'none') {
+                    desktop.style.display = 'block';
+                    termContainer.style.display = 'none';
+                    
+                    const termWindow = createWindow('Terminal', termContainer);
+                    termWindow.style.width = '700px';
+                    termWindow.style.height = '450px';
+                    termWindow.style.top = '50px';
+                    termWindow.style.left = '50px';
+                    fitAddon.fit();
+
+                    initDock(termWindow);
+                } else {
+                    term.writeln('Desktop environment already running.');
+                }
+            }
+        };
+
+        let zIndexCounter = 100;
+        const focusWindow = (win) => {
+            win.style.zIndex = ++zIndexCounter;
+        };
+
+        const createWindow = (title, contentElement) => {
+            const win = document.createElement('div');
+            win.className = 'window';
+            win.style.zIndex = ++zIndexCounter;
+
+            const titleBar = document.createElement('div');
+            titleBar.className = 'title-bar';
+            
+            const titleText = document.createElement('span');
+            titleText.textContent = title;
+
+            const buttons = document.createElement('div');
+            buttons.className = 'title-bar-buttons';
+            const closeBtn = document.createElement('div');
+            closeBtn.className = 'title-bar-button close';
+            closeBtn.onclick = () => win.remove();
+            buttons.appendChild(closeBtn);
+
+            titleBar.appendChild(titleText);
+            titleBar.appendChild(buttons);
+
+            const body = document.createElement('div');
+            body.className = 'window-body';
+            body.appendChild(contentElement);
+            contentElement.style.display = 'block';
+
+            win.appendChild(titleBar);
+            win.appendChild(body);
+            document.getElementById('desktop').appendChild(win);
+
+            win.addEventListener('mousedown', () => focusWindow(win));
+
+            let isDragging = false;
+            let offsetX, offsetY;
+            titleBar.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                offsetX = e.clientX - win.offsetLeft;
+                offsetY = e.clientY - win.offsetTop;
+                win.style.userSelect = 'none';
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    win.style.left = `${e.clientX - offsetX}px`;
+                    win.style.top = `${e.clientY - offsetY}px`;
+                }
+            });
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                win.style.userSelect = 'auto';
+            });
+
+            return win;
+        };
+
+        const initDock = (termWindow) => {
+            const dock = document.getElementById('dock');
+            dock.innerHTML = ''; // Clear previous icons if any
+
+            const terminalIcon = document.createElement('div');
+            terminalIcon.className = 'dock-icon';
+            terminalIcon.innerHTML = '&#x25AE;'; // Terminal-like symbol
+            terminalIcon.title = 'Terminal';
+            terminalIcon.onclick = () => {
+                if (document.body.contains(termWindow)) {
+                    focusWindow(termWindow);
+                } else {
+                    // This part would handle reopening, not implemented yet
+                }
+            };
+            dock.appendChild(terminalIcon);
+
+            const dockContainer = document.getElementById('dock-container');
+            const icons = Array.from(dock.children);
+            const baseSize = 50;
+            const maxScale = 2;
+            const spread = 75;
+
+            dockContainer.addEventListener('mousemove', (e) => {
+                const rect = dockContainer.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+
+                icons.forEach(icon => {
+                    const iconRect = icon.getBoundingClientRect();
+                    const iconCenterX = iconRect.left - rect.left + iconRect.width / 2;
+                    const distance = Math.abs(mouseX - iconCenterX);
+                    const scale = Math.max(1, maxScale - distance / spread);
+                    icon.style.transform = `scale(${scale})`;
+                    icon.style.marginBottom = `${(scale - 1) * baseSize / 2}px`;
+                });
+            });
+
+            dockContainer.addEventListener('mouseleave', () => {
+                icons.forEach(icon => {
+                    icon.style.transform = 'scale(1)';
+                    icon.style.marginBottom = '0px';
+                });
+            });
+        };
+
+        const parseArgs = (command) => {
+            const args = [];
+            let current = '';
+            let inQuote = false;
+            for (let i = 0; i < command.length; i++) {
+                const char = command[i];
+                if (char === '"') {
+                    inQuote = !inQuote;
+                } else if (char === ' ' && !inQuote) {
+                    if (current) args.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            if (current) args.push(current);
+            return args;
+        };
+
+        const executeCommand = async (line) => {
+            const parts = line.split('|').map(p => p.trim());
+            let input = null;
+
+            for (let i = 0; i < parts.length; i++) {
+                let commandPart = parts[i];
+                let outputRedirect = null;
+                let append = false;
+
+                if (commandPart.includes('>>')) {
+                    [commandPart, outputRedirect] = commandPart.split('>>').map(p => p.trim());
+                    append = true;
+                } else if (commandPart.includes('>')) {
+                    [commandPart, outputRedirect] = commandPart.split('>').map(p => p.trim());
+                }
+
+                const args = parseArgs(commandPart);
+                const cmd = args.shift();
+
+                if (commands[cmd]) {
+                    let output = '';
+                    const mockTerm = {
+                        write: (s) => output += s,
+                        writeln: (s) => output += s + '\n',
+                        clear: () => term.clear()
+                    };
+
+                    if (input !== null) {
+                        args.push(input.trim());
+                    }
+
+                    await commands[cmd](args, mockTerm);
+
+                    if (outputRedirect) {
+                        const node = getNode(outputRedirect);
+                        if (node && node.type === 'file') {
+                            node.content = append ? node.content + output : output;
+                        } else {
+                            const parent = getParentNode(outputRedirect);
+                            const name = outputRedirect.split('/').pop();
+                            if (parent) {
+                                parent.children[name] = { type: 'file', content: output };
+                            } else {
+                                term.writeln(`Error: Cannot write to ${outputRedirect}`);
+                            }
+                        }
+                        input = null;
+                    } else if (i < parts.length - 1) {
+                        input = output;
+                    } else {
+                        term.write(output);
+                    }
+                } else if (cmd) {
+                    term.writeln(`${cmd}: command not found`);
+                    break;
+                }
+            }
+        };
+
+        const runStartupScript = async () => {
+            const rcPath = state.env.HOME + '/.axunrc';
+            const node = getNode(rcPath);
+            if (node && node.type === 'file') {
+                const commands = node.content.split('\n').filter(c => c.trim() !== '' && !c.trim().startsWith('#'));
+                for (const command of commands) {
+                    await executeCommand(command);
+                }
+            }
+        };
+
+        const saveState = () => {
+            localStorage.setItem('lorel_axun_state', JSON.stringify(state));
+        };
+
+        const loadState = () => {
+            const savedState = localStorage.getItem('lorel_axun_state');
+            if (savedState) {
+                const parsedState = JSON.parse(savedState);
+                state = { ...state, ...parsedState };
+                // Ensure essential env vars are present if missing from saved state
+                if (!state.env.HOME) state.env.HOME = '/home/user';
+                if (!state.env.USER) state.env.USER = 'user';
+                if (!state.env.PS1) state.env.PS1 = '\x1b[32m\\u@axun\\x1b[0m:\x1b[34m\\w\\x1b[0m$ ';
+            }
+        };
+
+        term.onKey(async ({ key, domEvent }) => {
+            const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
+
+            if (domEvent.keyCode === 13) { // Enter
+                term.writeln('');
+                if (currentLine.trim()) {
+                    state.history.push(currentLine);
+                    historyIndex = state.history.length;
+                    await executeCommand(currentLine);
+                    saveState();
+                }
+                prompt();
+                currentLine = '';
+            } else if (domEvent.keyCode === 8) { // Backspace
+                if (currentLine.length > 0) {
+                    term.write('\b \b');
+                    currentLine = currentLine.slice(0, -1);
+                }
+            } else if (domEvent.keyCode === 38) { // Arrow Up
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    term.write('\x1b[2K\r');
+                    prompt();
+                    currentLine = state.history[historyIndex];
+                    term.write(currentLine);
+                }
+            } else if (domEvent.keyCode === 40) { // Arrow Down
+                if (historyIndex < state.history.length - 1) {
+                    historyIndex++;
+                    term.write('\x1b[2K\r');
+                    prompt();
+                    currentLine = state.history[historyIndex];
+                    term.write(currentLine);
+                } else {
+                    historyIndex = state.history.length;
+                    term.write('\x1b[2K\r');
+                    prompt();
+                    currentLine = '';
+                }
+            } else if (domEvent.keyCode === 9) { // Tab
+                domEvent.preventDefault();
+                const parts = currentLine.split(' ');
+                const toComplete = parts.pop() || '';
+                const pathParts = toComplete.split('/');
+                const searchDir = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : '';
+                const partialName = pathParts.pop() || '';
+                const dirNode = getNode(searchDir || state.cwd);
+                if (dirNode && dirNode.type === 'directory') {
+                    const matches = Object.keys(dirNode.children).filter(name => name.startsWith(partialName));
+                    if (matches.length === 1) {
+                        const completion = matches[0];
+                        const newText = completion.substring(partialName.length);
+                        currentLine += newText;
+                        term.write(newText);
+                    }
+                }
+            } else if (printable) {
+                currentLine += key;
+                term.write(key);
+            }
+        });
+
+        async function init() {
+            loadState();
+            figlet.text('Lorel Axun', { font: 'Standard' }, (err, data) => {
+                if (!err) term.writeln(data);
+                term.writeln('Welcome. Type `help` for a list of commands.');
+                runStartupScript().then(() => {
+                    prompt();
+                });
+            });
+        }
+
+        init();
     </script>
 </body>
 </html>
