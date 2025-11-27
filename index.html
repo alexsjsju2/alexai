@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lorel Axun</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <link rel="stylesheet" href="https://unpkg.com/xterm@5.3.0/css/xterm.css" />
     <style>
         body, html {
             margin: 0;
@@ -12,703 +12,780 @@
             width: 100%;
             height: 100%;
             background-color: #000;
-            color: #0F0;
+            color: #0f0;
             font-family: 'monospace', monospace;
             overflow: hidden;
         }
+
         #terminal-container {
             width: 100%;
             height: 100%;
+            padding: 10px;
+            box-sizing: border-box;
         }
+
         #desktop {
             width: 100%;
             height: 100%;
-            background: #0d1117;
+            background: url('https://i.imgur.com/xIIiL5d.jpg') no-repeat center center fixed;
+            background-size: cover;
             position: relative;
             overflow: hidden;
         }
+
         .window {
             position: absolute;
-            border: 1px solid #444;
-            background-color: rgba(20, 20, 20, 0.85);
-            backdrop-filter: blur(10px);
-            border-radius: 8px;
+            border: 1px solid #555;
+            background-color: rgba(20, 20, 20, 0.8);
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
             min-width: 300px;
             min-height: 200px;
             display: flex;
             flex-direction: column;
+            backdrop-filter: blur(10px);
         }
+
         .title-bar {
             background-color: #333;
             color: #fff;
             padding: 5px;
             cursor: move;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
+            user-select: none;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            user-select: none;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
         }
-        .title-bar-buttons {
-            display: flex;
+        
+        .title-bar .title { 
+            font-weight: bold;
+            padding-left: 5px;
         }
-        .title-bar-button {
+
+        .close-btn {
+            background: #ff5f56;
+            border: 1px solid #e0443e;
+            border-radius: 50%;
             width: 12px;
             height: 12px;
-            border-radius: 50%;
-            margin-left: 5px;
             cursor: pointer;
+            padding: 0;
         }
-        .close {
-            background-color: #ff5f56;
-        }
+
         .window-body {
             flex-grow: 1;
             padding: 5px;
+            box-sizing: border-box;
+            overflow: auto;
         }
-        #dock-container {
+        
+        #terminal-window-body {
+            padding: 0 10px;
+        }
+
+        #editor {
             position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #0d0d0d;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+        }
+        #editor-textarea {
+            flex-grow: 1;
+            background: #0d0d0d;
+            color: #0f0;
+            border: none;
+            outline: none;
+            font-family: 'monospace', monospace;
+            font-size: 14px;
+            padding: 10px;
+        }
+        #editor-status {
+            padding: 5px;
+            background: #333;
+            font-size: 12px;
+        }
+
+        #dock {
+            position: absolute;
             bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 10000;
-        }
-        #dock {
-            display: flex;
-            align-items: flex-end;
-            padding: 8px;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(50, 50, 50, 0.7);
             backdrop-filter: blur(10px);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 5px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            z-index: 100;
         }
-        .dock-icon {
+
+        .dock-item {
             width: 50px;
             height: 50px;
-            margin: 0 6px;
-            background-color: #333;
-            border-radius: 12px;
+            font-size: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
             cursor: pointer;
-            transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            will-change: transform;
-            color: #fff;
+            transition: transform 0.1s ease-out, margin-bottom 0.1s ease-out;
+            position: relative;
         }
+
+        .dock-item .tooltip {
+            visibility: hidden;
+            background-color: #222;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+        }
+
+        .dock-item:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        #explorer-body {
+            padding: 5px;
+            height: calc(100% - 35px);
+            overflow-y: auto;
+            background: #111;
+            color: #eee;
+        }
+        #explorer-path {
+            padding: 2px 5px;
+            background: #222;
+            border-bottom: 1px solid #444;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow-x: auto;
+        }
+        .explorer-item {
+            padding: 3px 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 3px;
+        }
+        .explorer-item:hover {
+            background-color: #333;
+        }
+        .explorer-item .icon::before {
+            font-family: monospace;
+            display: inline-block;
+            width: 1em;
+            text-align: center;
+        }
+        .explorer-item.directory .icon::before {
+            content: '📁';
+        }
+        .explorer-item.file .icon::before {
+            content: '📄';
+        }
+
     </style>
 </head>
 <body>
     <div id="terminal-container"></div>
     <div id="desktop" style="display: none;">
-        <div id="dock-container">
-            <div id="dock"></div>
+        <div id="terminal-window" class="window" style="width: 600px; height: 400px; top: 50px; left: 50px;">
+            <div class="title-bar">
+                <span class="title">Terminal</span>
+                <button class="close-btn" data-window="terminal-window">×</button>
+            </div>
+            <div class="window-body" id="terminal-window-body"></div>
         </div>
+
+        <div id="explorer-window" class="window" style="display: none; width: 400px; height: 300px; top: 150px; left: 150px;">
+            <div class="title-bar">
+                <span class="title">Explorer</span>
+                <button class="close-btn" data-window="explorer-window">×</button>
+            </div>
+            <div class="window-body" id="explorer-body">
+                <div id="explorer-path">/home/user</div>
+                <div id="explorer-content"></div>
+            </div>
+        </div>
+
+        <div id="dock"></div>
+    </div>
+    <div id="editor">
+        <textarea id="editor-textarea"></textarea>
+        <div id="editor-status">File: | Press Ctrl+S to Save, Ctrl+Q to Quit</div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/figlet@1.7.0/lib/figlet.js"></script>
+    <script src="https://unpkg.com/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://unpkg.com/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js"></script>
 
     <script>
         const termContainer = document.getElementById('terminal-container');
-        const term = new Terminal({
-            cursorBlink: true,
-            theme: {
-                background: '#000000',
-                foreground: '#00FF00',
-                cursor: '#00FF00'
-            }
-        });
+        const term = new Xterm.Terminal({ cursorBlink: true, theme: { background: '#000', foreground: '#0f0' } });
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
         term.open(termContainer);
         fitAddon.fit();
-
         window.addEventListener('resize', () => fitAddon.fit());
 
         let state = {
             vfs: {
                 '/': {
                     type: 'directory',
-                    children: {
+                    content: {
                         'home': {
                             type: 'directory',
-                            children: {
+                            content: {
                                 'user': {
                                     type: 'directory',
-                                    children: {
-                                        'readme.txt': {
+                                    content: {
+                                        '.axunrc': {
                                             type: 'file',
-                                            content: 'Welcome to Lorel Axun OS!'
+                                            content: 'echo "Welcome to Lorel Axun OS"\nalias ll="ls -l"'
                                         }
                                     }
                                 }
                             }
-                        }
+                        },
+                        'bin': { type: 'directory', content: {} },
+                        'etc': { type: 'directory', content: {} },
                     }
                 }
             },
-            cwd: '/home/user',
-            history: [],
             env: {
                 'USER': 'user',
                 'HOME': '/home/user',
-                'PS1': '\x1b[32m\\u@axun\\x1b[0m:\x1b[34m\\w\\x1b[0m$ '
+                'PS1': 'guest@axun:[~]$ '
+            },
+            cwd: '/home/user',
+            history: [],
+            aliases: {}
+        };
+
+        function saveState() {
+            localStorage.setItem('lorel_axun_state', JSON.stringify(state));
+        }
+
+        function loadState() {
+            const savedState = localStorage.getItem('lorel_axun_state');
+            if (savedState) {
+                state = JSON.parse(savedState);
             }
-        };
+        }
 
-        let historyIndex = -1;
-        let currentLine = '';
-
-        const prompt = () => {
-            const ps1 = state.env.PS1 || '$ ';
-            const user = state.env.USER || 'user';
-            const cwd = state.cwd;
-            const home = state.env.HOME || '/home/user';
-            const displayCwd = cwd.startsWith(home) ? '~' + cwd.substring(home.length) : cwd;
-            const formattedPrompt = ps1
-                .replace('\\u', user)
-                .replace('\\w', displayCwd);
-            term.write(formattedPrompt);
-        };
-
-        const getPath = (path) => {
-            if (path.startsWith('/')) return path.split('/').filter(p => p);
-            const currentPath = state.cwd.split('/').filter(p => p);
-            const newPath = path.split('/').filter(p => p);
-
-            let resultPath = [...currentPath];
-            for (const part of newPath) {
+        function resolvePath(path) {
+            if (!path.startsWith('/')) {
+                path = state.cwd === '/' ? `/${path}` : `${state.cwd}/${path}`;
+            }
+            const parts = path.split('/').filter(p => p);
+            const resolved = [];
+            for (const part of parts) {
                 if (part === '.') continue;
                 if (part === '..') {
-                    if (resultPath.length > 0) resultPath.pop();
+                    resolved.pop();
                 } else {
-                    resultPath.push(part);
+                    resolved.push(part);
                 }
             }
-            return resultPath;
-        };
+            return '/' + resolved.join('/');
+        }
 
-        const getNode = (path) => {
-            const parts = getPath(path);
-            let currentNode = state.vfs['/'];
+        function getNode(path) {
+            const resolvedPath = resolvePath(path);
+            let current = state.vfs['/'];
+            if (resolvedPath === '/') return current;
+            const parts = resolvedPath.split('/').filter(p => p);
             for (const part of parts) {
-                if (currentNode && currentNode.type === 'directory' && currentNode.children[part]) {
-                    currentNode = currentNode.children[part];
+                if (current && current.type === 'directory' && current.content[part]) {
+                    current = current.content[part];
                 } else {
                     return null;
                 }
             }
-            return currentNode;
-        };
+            return current;
+        }
 
-        const getParentNode = (path) => {
-            const parts = getPath(path);
-            if (parts.length === 0) return state.vfs['/'];
-            const parentPath = '/' + parts.slice(0, -1).join('/');
+        function getParentNode(path) {
+            const resolvedPath = resolvePath(path);
+            const parentPath = resolvedPath.substring(0, resolvedPath.lastIndexOf('/')) || '/';
             return getNode(parentPath);
-        };
+        }
 
-        const resolvePath = (path) => {
-            const parts = getPath(path);
-            return '/' + parts.join('/');
-        };
+        function getEnv(key) {
+            return state.env[key] || '';
+        }
 
-        const commands = {
-            help: (args, term) => {
-                term.writeln('Available commands:');
-                term.writeln(Object.keys(commands).join(', '));
-            },
-            clear: (args, term) => term.clear(),
-            echo: (args, term) => term.writeln(args.join(' ')),
-            ls: (args, term) => {
-                const path = args[0] || state.cwd;
-                const node = getNode(path);
-                if (node && node.type === 'directory') {
-                    Object.keys(node.children).forEach(name => {
-                        const child = node.children[name];
-                        const color = child.type === 'directory' ? '\x1b[34m' : '\x1b[0m';
-                        term.write(`${color}${name}${child.type === 'directory' ? '/' : ''}\\x1b[0m  `);
-                    });
-                    term.writeln('');
-                } else {
-                    term.writeln(`ls: cannot access '${path}': No such file or directory`);
+        let command = '';
+        let historyIndex = -1;
+
+        function printPrompt() {
+            const ps1 = getEnv('PS1').replace('~', getEnv('HOME'));
+            term.write(`\r\n${ps1}`);
+        }
+
+        async function runCommand(fullCommand) {
+            state.history.push(fullCommand);
+            historyIndex = state.history.length;
+
+            const pipelines = fullCommand.split('|').map(s => s.trim());
+            let input = '';
+
+            for (let i = 0; i < pipelines.length; i++) {
+                let cmdPart = pipelines[i];
+                let output = '';
+                let error = '';
+
+                const redirectionMatch = cmdPart.match(/(.*?)(\s*(>>?)\s*(.*))$/);
+                let redirectOp = null;
+                let redirectFile = null;
+
+                if (redirectionMatch) {
+                    cmdPart = redirectionMatch[1].trim();
+                    redirectOp = redirectionMatch[3];
+                    redirectFile = redirectionMatch[4].trim();
                 }
-            },
-            cd: (args, term) => {
-                const path = args[0] || state.env.HOME;
-                const resolved = resolvePath(path);
-                const node = getNode(resolved);
-                if (node && node.type === 'directory') {
-                    state.cwd = resolved;
-                } else {
-                    term.writeln(`cd: ${path}: No such file or directory`);
-                }
-            },
-            cat: (args, term) => {
-                if (args.length === 0) return;
-                const node = getNode(args[0]);
-                if (node && node.type === 'file') {
-                    term.writeln(node.content);
-                } else {
-                    term.writeln(`cat: ${args[0]}: No such file or directory`);
-                }
-            },
-            mkdir: (args, term) => {
-                if (args.length === 0) return term.writeln('mkdir: missing operand');
-                const path = args[0];
-                const parent = getParentNode(path);
-                const name = path.split('/').pop();
-                if (parent && parent.type === 'directory') {
-                    if (parent.children[name]) {
-                        term.writeln(`mkdir: cannot create directory '${path}': File exists`);
-                    } else {
-                        parent.children[name] = { type: 'directory', children: {} };
+
+                const [cmd, ...args] = cmdPart.split(' ').filter(Boolean);
+                const aliasedCmd = state.aliases[cmd] || cmd;
+                const [finalCmd, ...finalArgs] = [...aliasedCmd.split(' '), ...args];
+
+                if (commands[finalCmd]) {
+                    try {
+                        output = await commands[finalCmd](finalArgs, input);
+                    } catch (e) {
+                        error = e.message;
                     }
                 } else {
-                    term.writeln(`mkdir: cannot create directory '${path}': No such file or directory`);
-                }
-            },
-            touch: (args, term) => {
-                if (args.length === 0) return term.writeln('touch: missing file operand');
-                const path = args[0];
-                const parent = getParentNode(path);
-                const name = path.split('/').pop();
-                if (parent && parent.type === 'directory') {
-                    if (!parent.children[name]) {
-                        parent.children[name] = { type: 'file', content: '' };
-                    }
-                } else {
-                    term.writeln(`touch: cannot touch '${path}': No such file or directory`);
-                }
-            },
-            rm: (args, term) => {
-                if (args.length === 0) return term.writeln('rm: missing operand');
-                const path = args[0];
-                const parent = getParentNode(path);
-                const name = path.split('/').pop();
-                if (parent && parent.children[name]) {
-                    delete parent.children[name];
-                } else {
-                    term.writeln(`rm: cannot remove '${path}': No such file or directory`);
-                }
-            },
-            pwd: (args, term) => term.writeln(state.cwd),
-            export: (args, term) => {
-                const [assignment] = args;
-                const match = assignment.match(/^([^=]+)=(.*)$/);
-                if (match) {
-                    state.env[match[1]] = match[2];
-                } else {
-                    term.writeln('Usage: export VAR=value');
-                }
-            },
-            unset: (args, term) => {
-                if (args[0]) delete state.env[args[0]];
-            },
-            env: (args, term) => {
-                for (const key in state.env) {
-                    term.writeln(`${key}=${state.env[key]}`);
-                }
-            },
-            fetch: async (args, term) => {
-                if (!args[0]) return term.writeln('Usage: fetch <url>');
-                try {
-                    const response = await fetch(args[0]);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const text = await response.text();
-                    term.writeln(text);
-                } catch (e) {
-                    term.writeln(`fetch: failed to fetch: ${e.message}`);
-                }
-            },
-            edit: (args, term) => {
-                if (!args[0]) return term.writeln('Usage: edit <file>');
-                const path = resolvePath(args[0]);
-                let node = getNode(path);
-                if (!node) {
-                    const parent = getParentNode(path);
-                    const name = path.split('/').pop();
-                    if (parent && parent.type === 'directory') {
-                        parent.children[name] = { type: 'file', content: '' };
-                        node = parent.children[name];
-                    } else {
-                        return term.writeln(`edit: cannot create file '${path}'`);
-                    }
-                }
-                if (node.type !== 'file') return term.writeln(`edit: '${path}' is not a file`);
-
-                const editorDiv = document.createElement('div');
-                editorDiv.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background:#000;z-index:100;';
-                const textArea = document.createElement('textarea');
-                textArea.style.cssText = 'width:100%;height:calc(100% - 20px);background:#000;color:#0F0;border:none;font-family:monospace;font-size:16px;';
-                textArea.value = node.content;
-                const statusBar = document.createElement('div');
-                statusBar.style.cssText = 'background:#333;color:#fff;font-size:14px;padding:2px 5px;';
-                statusBar.textContent = `Editing: ${path} | Ctrl+S to Save | Ctrl+X to Exit`;
-                editorDiv.appendChild(textArea);
-                editorDiv.appendChild(statusBar);
-                document.body.appendChild(editorDiv);
-                textArea.focus();
-
-                const handler = (e) => {
-                    if (e.ctrlKey && e.key === 's') {
-                        e.preventDefault();
-                        node.content = textArea.value;
-                        statusBar.textContent = `Saved! | Ctrl+S to Save | Ctrl+X to Exit`;
-                        setTimeout(() => statusBar.textContent = `Editing: ${path} | Ctrl+S to Save | Ctrl+X to Exit`, 2000);
-                    }
-                    if (e.ctrlKey && e.key === 'x') {
-                        e.preventDefault();
-                        document.body.removeChild(editorDiv);
-                        term.focus();
-                    }
-                };
-                textArea.addEventListener('keydown', handler);
-            },
-            js: (args, term) => {
-                if (!args[0]) return term.writeln('Usage: js <script_file>');
-                const node = getNode(args[0]);
-                if (!node || node.type !== 'file') return term.writeln(`js: file not found: ${args[0]}`);
-                const sandbox = {
-                    axun: {
-                        term: {
-                            log: (...args) => term.writeln(args.map(String).join(' '))
-                        },
-                        fs: {
-                            readFile: (path) => {
-                                const fileNode = getNode(path);
-                                if (fileNode && fileNode.type === 'file') return fileNode.content;
-                                return null;
-                            },
-                            writeFile: (path, content) => {
-                                const fileNode = getNode(path);
-                                if (fileNode && fileNode.type === 'file') {
-                                    fileNode.content = content;
-                                    return true;
-                                }
-                                return false;
-                            }
-                        }
-                    }
-                };
-                try {
-                    const func = new Function('axun', node.content);
-                    func(sandbox.axun);
-                } catch (e) {
-                    term.writeln(`js: error executing script: ${e.message}`);
-                }
-            },
-            startx: (args, term) => {
-                const desktop = document.getElementById('desktop');
-                const termContainer = document.getElementById('terminal-container');
-                
-                if (desktop.style.display === 'none') {
-                    desktop.style.display = 'block';
-                    termContainer.style.display = 'none';
-                    
-                    const termWindow = createWindow('Terminal', termContainer);
-                    termWindow.style.width = '700px';
-                    termWindow.style.height = '450px';
-                    termWindow.style.top = '50px';
-                    termWindow.style.left = '50px';
-                    fitAddon.fit();
-
-                    initDock(termWindow);
-                } else {
-                    term.writeln('Desktop environment already running.');
-                }
-            }
-        };
-
-        let zIndexCounter = 100;
-        const focusWindow = (win) => {
-            win.style.zIndex = ++zIndexCounter;
-        };
-
-        const createWindow = (title, contentElement) => {
-            const win = document.createElement('div');
-            win.className = 'window';
-            win.style.zIndex = ++zIndexCounter;
-
-            const titleBar = document.createElement('div');
-            titleBar.className = 'title-bar';
-            
-            const titleText = document.createElement('span');
-            titleText.textContent = title;
-
-            const buttons = document.createElement('div');
-            buttons.className = 'title-bar-buttons';
-            const closeBtn = document.createElement('div');
-            closeBtn.className = 'title-bar-button close';
-            closeBtn.onclick = () => win.remove();
-            buttons.appendChild(closeBtn);
-
-            titleBar.appendChild(titleText);
-            titleBar.appendChild(buttons);
-
-            const body = document.createElement('div');
-            body.className = 'window-body';
-            body.appendChild(contentElement);
-            contentElement.style.display = 'block';
-
-            win.appendChild(titleBar);
-            win.appendChild(body);
-            document.getElementById('desktop').appendChild(win);
-
-            win.addEventListener('mousedown', () => focusWindow(win));
-
-            let isDragging = false;
-            let offsetX, offsetY;
-            titleBar.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                offsetX = e.clientX - win.offsetLeft;
-                offsetY = e.clientY - win.offsetTop;
-                win.style.userSelect = 'none';
-            });
-            document.addEventListener('mousemove', (e) => {
-                if (isDragging) {
-                    win.style.left = `${e.clientX - offsetX}px`;
-                    win.style.top = `${e.clientY - offsetY}px`;
-                }
-            });
-            document.addEventListener('mouseup', () => {
-                isDragging = false;
-                win.style.userSelect = 'auto';
-            });
-
-            return win;
-        };
-
-        const initDock = (termWindow) => {
-            const dock = document.getElementById('dock');
-            dock.innerHTML = ''; // Clear previous icons if any
-
-            const terminalIcon = document.createElement('div');
-            terminalIcon.className = 'dock-icon';
-            terminalIcon.innerHTML = '&#x25AE;'; // Terminal-like symbol
-            terminalIcon.title = 'Terminal';
-            terminalIcon.onclick = () => {
-                if (document.body.contains(termWindow)) {
-                    focusWindow(termWindow);
-                } else {
-                    // This part would handle reopening, not implemented yet
-                }
-            };
-            dock.appendChild(terminalIcon);
-
-            const dockContainer = document.getElementById('dock-container');
-            const icons = Array.from(dock.children);
-            const baseSize = 50;
-            const maxScale = 2;
-            const spread = 75;
-
-            dockContainer.addEventListener('mousemove', (e) => {
-                const rect = dockContainer.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-
-                icons.forEach(icon => {
-                    const iconRect = icon.getBoundingClientRect();
-                    const iconCenterX = iconRect.left - rect.left + iconRect.width / 2;
-                    const distance = Math.abs(mouseX - iconCenterX);
-                    const scale = Math.max(1, maxScale - distance / spread);
-                    icon.style.transform = `scale(${scale})`;
-                    icon.style.marginBottom = `${(scale - 1) * baseSize / 2}px`;
-                });
-            });
-
-            dockContainer.addEventListener('mouseleave', () => {
-                icons.forEach(icon => {
-                    icon.style.transform = 'scale(1)';
-                    icon.style.marginBottom = '0px';
-                });
-            });
-        };
-
-        const parseArgs = (command) => {
-            const args = [];
-            let current = '';
-            let inQuote = false;
-            for (let i = 0; i < command.length; i++) {
-                const char = command[i];
-                if (char === '"') {
-                    inQuote = !inQuote;
-                } else if (char === ' ' && !inQuote) {
-                    if (current) args.push(current);
-                    current = '';
-                } else {
-                    current += char;
-                }
-            }
-            if (current) args.push(current);
-            return args;
-        };
-
-        const executeCommand = async (line) => {
-            const parts = line.split('|').map(p => p.trim());
-            let input = null;
-
-            for (let i = 0; i < parts.length; i++) {
-                let commandPart = parts[i];
-                let outputRedirect = null;
-                let append = false;
-
-                if (commandPart.includes('>>')) {
-                    [commandPart, outputRedirect] = commandPart.split('>>').map(p => p.trim());
-                    append = true;
-                } else if (commandPart.includes('>')) {
-                    [commandPart, outputRedirect] = commandPart.split('>').map(p => p.trim());
+                    error = `command not found: ${cmd}`;
                 }
 
-                const args = parseArgs(commandPart);
-                const cmd = args.shift();
-
-                if (commands[cmd]) {
-                    let output = '';
-                    const mockTerm = {
-                        write: (s) => output += s,
-                        writeln: (s) => output += s + '\n',
-                        clear: () => term.clear()
-                    };
-
-                    if (input !== null) {
-                        args.push(input.trim());
-                    }
-
-                    await commands[cmd](args, mockTerm);
-
-                    if (outputRedirect) {
-                        const node = getNode(outputRedirect);
-                        if (node && node.type === 'file') {
-                            node.content = append ? node.content + output : output;
-                        } else {
-                            const parent = getParentNode(outputRedirect);
-                            const name = outputRedirect.split('/').pop();
-                            if (parent) {
-                                parent.children[name] = { type: 'file', content: output };
-                            } else {
-                                term.writeln(`Error: Cannot write to ${outputRedirect}`);
-                            }
-                        }
-                        input = null;
-                    } else if (i < parts.length - 1) {
-                        input = output;
-                    } else {
-                        term.write(output);
-                    }
-                } else if (cmd) {
-                    term.writeln(`${cmd}: command not found`);
+                if (error) {
+                    term.write(`\r\n${error}`);
                     break;
                 }
-            }
-        };
 
-        const runStartupScript = async () => {
-            const rcPath = state.env.HOME + '/.axunrc';
-            const node = getNode(rcPath);
-            if (node && node.type === 'file') {
-                const commands = node.content.split('\n').filter(c => c.trim() !== '' && !c.trim().startsWith('#'));
-                for (const command of commands) {
-                    await executeCommand(command);
+                if (redirectFile) {
+                    const filePath = resolvePath(redirectFile);
+                    const parent = getParentNode(filePath);
+                    const fileName = filePath.split('/').pop();
+                    if (!parent || parent.type !== 'directory') {
+                        term.write(`\r\nError: Cannot write to ${redirectFile}: No such directory`);
+                    } else {
+                        const existingNode = parent.content[fileName];
+                        if (redirectOp === '>') {
+                            parent.content[fileName] = { type: 'file', content: output };
+                        } else if (redirectOp === '>>') {
+                            if (existingNode && existingNode.type === 'file') {
+                                existingNode.content += output;
+                            } else {
+                                parent.content[fileName] = { type: 'file', content: output };
+                            }
+                        }
+                    }
+                } else if (i < pipelines.length - 1) {
+                    input = output;
+                } else if (output) {
+                    term.write(`\r\n${output.replace(/\n/g, '\r\n')}`);
                 }
             }
-        };
+            printPrompt();
+            saveState();
+        }
 
-        const saveState = () => {
-            localStorage.setItem('lorel_axun_state', JSON.stringify(state));
-        };
-
-        const loadState = () => {
-            const savedState = localStorage.getItem('lorel_axun_state');
-            if (savedState) {
-                const parsedState = JSON.parse(savedState);
-                state = { ...state, ...parsedState };
-                // Ensure essential env vars are present if missing from saved state
-                if (!state.env.HOME) state.env.HOME = '/home/user';
-                if (!state.env.USER) state.env.USER = 'user';
-                if (!state.env.PS1) state.env.PS1 = '\x1b[32m\\u@axun\\x1b[0m:\x1b[34m\\w\\x1b[0m$ ';
-            }
-        };
-
-        term.onKey(async ({ key, domEvent }) => {
+        term.onKey(({ key, domEvent }) => {
             const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;
 
             if (domEvent.keyCode === 13) { // Enter
-                term.writeln('');
-                if (currentLine.trim()) {
-                    state.history.push(currentLine);
-                    historyIndex = state.history.length;
-                    await executeCommand(currentLine);
-                    saveState();
+                if (command.trim()) {
+                    runCommand(command);
                 }
-                prompt();
-                currentLine = '';
+                command = '';
+                if (!command) printPrompt();
             } else if (domEvent.keyCode === 8) { // Backspace
-                if (currentLine.length > 0) {
+                if (command.length > 0) {
                     term.write('\b \b');
-                    currentLine = currentLine.slice(0, -1);
+                    command = command.slice(0, -1);
                 }
             } else if (domEvent.keyCode === 38) { // Arrow Up
                 if (historyIndex > 0) {
                     historyIndex--;
-                    term.write('\x1b[2K\r');
-                    prompt();
-                    currentLine = state.history[historyIndex];
-                    term.write(currentLine);
+                    term.write(`\r${' '.repeat(getEnv('PS1').length + command.length)}`);
+                    command = state.history[historyIndex];
+                    printPrompt();
+                    term.write(command);
                 }
             } else if (domEvent.keyCode === 40) { // Arrow Down
                 if (historyIndex < state.history.length - 1) {
                     historyIndex++;
-                    term.write('\x1b[2K\r');
-                    prompt();
-                    currentLine = state.history[historyIndex];
-                    term.write(currentLine);
+                    term.write(`\r${' '.repeat(getEnv('PS1').length + command.length)}`);
+                    command = state.history[historyIndex];
+                    printPrompt();
+                    term.write(command);
                 } else {
                     historyIndex = state.history.length;
-                    term.write('\x1b[2K\r');
-                    prompt();
-                    currentLine = '';
-                }
-            } else if (domEvent.keyCode === 9) { // Tab
-                domEvent.preventDefault();
-                const parts = currentLine.split(' ');
-                const toComplete = parts.pop() || '';
-                const pathParts = toComplete.split('/');
-                const searchDir = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : '';
-                const partialName = pathParts.pop() || '';
-                const dirNode = getNode(searchDir || state.cwd);
-                if (dirNode && dirNode.type === 'directory') {
-                    const matches = Object.keys(dirNode.children).filter(name => name.startsWith(partialName));
-                    if (matches.length === 1) {
-                        const completion = matches[0];
-                        const newText = completion.substring(partialName.length);
-                        currentLine += newText;
-                        term.write(newText);
-                    }
+                    term.write(`\r${' '.repeat(getEnv('PS1').length + command.length)}`);
+                    command = '';
+                    printPrompt();
                 }
             } else if (printable) {
-                currentLine += key;
+                command += key;
                 term.write(key);
             }
         });
 
-        async function init() {
-            loadState();
-            figlet.text('Lorel Axun', { font: 'Standard' }, (err, data) => {
-                if (!err) term.writeln(data);
-                term.writeln('Welcome. Type `help` for a list of commands.');
-                runStartupScript().then(() => {
-                    prompt();
+        const commands = {
+            help: () => 'Available commands: ls, cd, pwd, cat, mkdir, touch, rm, echo, clear, help, fetch, edit, js, startx, env, export, unset',
+            ls: (args) => {
+                const path = args[0] || state.cwd;
+                const node = getNode(path);
+                if (!node || node.type !== 'directory') return `ls: cannot access '${path}': No such file or directory`;
+                return Object.keys(node.content).map(name => node.content[name].type === 'directory' ? `${name}/` : name).join('\n');
+            },
+            cd: (args) => {
+                if (!args[0]) return '';
+                const newPath = resolvePath(args[0]);
+                const node = getNode(newPath);
+                if (node && node.type === 'directory') {
+                    state.cwd = newPath;
+                } else {
+                    return `cd: no such file or directory: ${args[0]}`;
+                }
+                return '';
+            },
+            pwd: () => state.cwd,
+            cat: (args) => {
+                const node = getNode(args[0]);
+                if (!node) return `cat: ${args[0]}: No such file or directory`;
+                if (node.type === 'directory') return `cat: ${args[0]}: Is a directory`;
+                return node.content;
+            },
+            mkdir: (args) => {
+                const newDirPath = resolvePath(args[0]);
+                const parent = getParentNode(newDirPath);
+                const dirName = newDirPath.split('/').pop();
+                if (parent && parent.type === 'directory' && !parent.content[dirName]) {
+                    parent.content[dirName] = { type: 'directory', content: {} };
+                } else {
+                    return `mkdir: cannot create directory ‘${args[0]}’: File exists or invalid path`;
+                }
+                return '';
+            },
+            touch: (args) => {
+                const newFilePath = resolvePath(args[0]);
+                const parent = getParentNode(newFilePath);
+                const fileName = newFilePath.split('/').pop();
+                if (parent && parent.type === 'directory' && !parent.content[fileName]) {
+                    parent.content[fileName] = { type: 'file', content: '' };
+                } else if (!parent || parent.type !== 'directory') {
+                     return `touch: cannot touch '${args[0]}': No such file or directory`;
+                }
+                return '';
+            },
+            rm: (args) => {
+                const path = resolvePath(args[0]);
+                const parent = getParentNode(path);
+                const name = path.split('/').pop();
+                if (parent && parent.content[name]) {
+                    delete parent.content[name];
+                } else {
+                    return `rm: cannot remove '${args[0]}': No such file or directory`;
+                }
+                return '';
+            },
+            echo: (args, input) => input ? input : args.join(' '),
+            clear: () => { term.clear(); return ''; },
+            fetch: async (args) => {
+                try {
+                    const response = await fetch(args[0]);
+                    if (!response.ok) return `HTTP error! status: ${response.status}`;
+                    return await response.text();
+                } catch (e) {
+                    return `Fetch error: ${e.message}`;
+                }
+            },
+            edit: (args) => {
+                return new Promise(resolve => {
+                    const filePath = resolvePath(args[0]);
+                    const node = getNode(filePath);
+                    if (!node || node.type !== 'file') {
+                        resolve(`edit: cannot open ${args[0]}`);
+                        return;
+                    }
+                    const editor = document.getElementById('editor');
+                    const textarea = document.getElementById('editor-textarea');
+                    const status = document.getElementById('editor-status');
+                    textarea.value = node.content;
+                    status.textContent = `File: ${filePath} | Press Ctrl+S to Save, Ctrl+Q to Quit`;
+                    editor.style.display = 'flex';
+                    textarea.focus();
+
+                    const keydownHandler = (e) => {
+                        if (e.ctrlKey && e.key === 's') {
+                            e.preventDefault();
+                            node.content = textarea.value;
+                            saveState();
+                            status.textContent = `File: ${filePath} | Saved! | Press Ctrl+Q to Quit`;
+                        } else if (e.ctrlKey && e.key === 'q') {
+                            e.preventDefault();
+                            editor.style.display = 'none';
+                            document.removeEventListener('keydown', keydownHandler);
+                            term.focus();
+                            resolve('');
+                        }
+                    };
+                    document.addEventListener('keydown', keydownHandler);
+                });
+            },
+            js: (args) => {
+                const fileNode = getNode(args[0]);
+                if (!fileNode || fileNode.type !== 'file') return `js: file not found: ${args[0]}`;
+                let output = '';
+                const sandbox = {
+                    axun: {
+                        log: (...args) => { output += args.map(String).join(' ') + '\n'; },
+                        vfs: {
+                            read: (path) => {
+                                const node = getNode(path);
+                                return (node && node.type === 'file') ? node.content : null;
+                            },
+                            write: (path, content) => {
+                                const resolvedPath = resolvePath(path);
+                                const parent = getParentNode(resolvedPath);
+                                const name = resolvedPath.split('/').pop();
+                                if (parent && parent.type === 'directory') {
+                                    parent.content[name] = { type: 'file', content: String(content) };
+                                    return true;
+                                } return false;
+                            },
+                            list: (path) => {
+                                const node = getNode(path);
+                                return (node && node.type === 'directory') ? Object.keys(node.content) : null;
+                            }
+                        },
+                        env: {
+                            get: (key) => state.env[key],
+                            set: (key, value) => { state.env[key] = value; }
+                        }
+                    }
+                };
+                try {
+                    const func = new Function('axun', fileNode.content);
+                    func(sandbox.axun);
+                } catch (e) {
+                    return `js error: ${e.message}`;
+                }
+                return output.trim();
+            },
+            startx: () => {
+                document.getElementById('terminal-container').style.display = 'none';
+                const desktop = document.getElementById('desktop');
+                desktop.style.display = 'block';
+                const termWindowBody = document.getElementById('terminal-window-body');
+                termWindowBody.appendChild(term.element);
+                fitAddon.fit();
+                initDock();
+                return 'Starting graphical environment...';
+            },
+            env: () => Object.entries(state.env).map(([k, v]) => `${k}=${v}`).join('\n'),
+            export: (args) => {
+                args.forEach(arg => {
+                    const [key, ...valueParts] = arg.split('=');
+                    if (key) state.env[key] = valueParts.join('=');
+                });
+                return '';
+            },
+            unset: (args) => {
+                args.forEach(key => delete state.env[key]);
+                return '';
+            }
+        };
+
+        function processAliases(rcContent) {
+            state.aliases = {};
+            rcContent.split('\n').forEach(line => {
+                const match = line.match(/^alias\s+([^=]+)='([^']*)'$/);
+                if (match) {
+                    state.aliases[match[1]] = match[2];
+                }
+            });
+        }
+
+        async function runStartupScript() {
+            const rcPath = resolvePath('~/.axunrc');
+            const rcNode = getNode(rcPath);
+            if (rcNode && rcNode.type === 'file') {
+                processAliases(rcNode.content);
+                const commandsToRun = rcNode.content.split('\n').filter(line => !line.trim().startsWith('alias') && line.trim() !== '');
+                for (const cmd of commandsToRun) {
+                    await runCommand(cmd);
+                }
+            }
+        }
+        
+        // --- GUI Logic ---
+        function makeDraggable(elmnt) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            const titleBar = elmnt.querySelector(".title-bar");
+            
+            const dragMouseDown = (e) => {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+                bringToFront(elmnt);
+            }
+
+            if (titleBar) {
+                titleBar.onmousedown = dragMouseDown;
+            } else {
+                elmnt.onmousedown = dragMouseDown;
+            }
+
+            const elementDrag = (e) => {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+            }
+
+            const closeDragElement = () => {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+            
+            elmnt.addEventListener('mousedown', () => bringToFront(elmnt));
+        }
+
+        let zIndexCounter = 10;
+        function bringToFront(elmnt) {
+            elmnt.style.zIndex = ++zIndexCounter;
+        }
+
+        function openTerminal() {
+            const termWindow = document.getElementById('terminal-window');
+            termWindow.style.display = 'block';
+            bringToFront(termWindow);
+        }
+
+        const explorerWindow = document.getElementById('explorer-window');
+        const explorerContent = document.getElementById('explorer-content');
+        const explorerPath = document.getElementById('explorer-path');
+        let currentExplorerPath = getEnv('HOME');
+
+        function openExplorer() {
+            explorerWindow.style.display = 'block';
+            bringToFront(explorerWindow);
+            renderExplorer(currentExplorerPath);
+        }
+
+        function renderExplorer(path) {
+            currentExplorerPath = resolvePath(path);
+            explorerPath.textContent = currentExplorerPath;
+            explorerContent.innerHTML = '';
+
+            const node = getNode(currentExplorerPath);
+            if (!node || node.type !== 'directory') {
+                explorerContent.textContent = 'Error: Path not found or not a directory.';
+                return;
+            }
+
+            if (currentExplorerPath !== '/') {
+                const parentPath = currentExplorerPath.substring(0, currentExplorerPath.lastIndexOf('/')) || '/';
+                const parentDiv = document.createElement('div');
+                parentDiv.className = 'explorer-item directory';
+                parentDiv.innerHTML = `<span class="icon"></span><span>..</span>`;
+                parentDiv.onclick = () => renderExplorer(parentPath);
+                explorerContent.appendChild(parentDiv);
+            }
+
+            const entries = Object.keys(node.content).sort();
+            for (const entry of entries) {
+                const childNode = node.content[entry];
+                const div = document.createElement('div');
+                div.className = `explorer-item ${childNode.type}`;
+                div.innerHTML = `<span class="icon"></span><span>${entry}</span>`;
+                if (childNode.type === 'directory') {
+                    const newPath = currentExplorerPath === '/' ? `/${entry}` : `${currentExplorerPath}/${entry}`;
+                    div.onclick = () => renderExplorer(newPath);
+                }
+                explorerContent.appendChild(div);
+            }
+        }
+
+        const dockApps = [
+            { name: 'Terminal', icon: '❯_', action: openTerminal },
+            { name: 'Explorer', icon: '📁', action: openExplorer }
+        ];
+
+        function initDock() {
+            const dock = document.getElementById('dock');
+            dock.innerHTML = '';
+            dockApps.forEach(app => {
+                const item = document.createElement('div');
+                item.className = 'dock-item';
+                item.innerHTML = `${app.icon}<span class="tooltip">${app.name}</span>`;
+                item.onclick = app.action;
+                dock.appendChild(item);
+            });
+
+            const dockItems = dock.querySelectorAll('.dock-item');
+            dock.addEventListener('mousemove', (e) => {
+                const dockRect = dock.getBoundingClientRect();
+                dockItems.forEach(item => {
+                    const itemRect = item.getBoundingClientRect();
+                    const offset = Math.abs(e.clientX - (itemRect.left + itemRect.width / 2));
+                    const scale = Math.max(1, 1.8 - offset / 100);
+                    item.style.transform = `scale(${scale})`;
+                    item.style.marginBottom = `${(scale - 1) * 20}px`;
+                });
+            });
+
+            dock.addEventListener('mouseleave', () => {
+                dockItems.forEach(item => {
+                    item.style.transform = 'scale(1)';
+                    item.style.marginBottom = '0px';
                 });
             });
         }
 
-        init();
+        // --- Init --- 
+        figlet.parseFont('Standard', figlet.fonts.Standard);
+        figlet.text('Lorel Axun', { font: 'Standard' }, (err, data) => {
+            if (data) term.write(data.replace(/\n/g, '\r\n'));
+            term.write('\r\nType "help" for a list of commands.');
+            loadState();
+            runStartupScript().then(printPrompt);
+        });
+        
+        makeDraggable(document.getElementById('terminal-window'));
+        makeDraggable(document.getElementById('explorer-window'));
+
+        document.querySelectorAll('.close-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const windowId = e.target.dataset.window;
+                if (windowId) {
+                    document.getElementById(windowId).style.display = 'none';
+                }
+            });
+        });
+
     </script>
 </body>
 </html>
