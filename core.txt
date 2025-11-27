@@ -1,9 +1,1 @@
-Certamente. Ecco un riassunto conciso che collega le fasi in un'unica narrazione evolutiva, mantenendo tutti i dettagli chiave:
-
-L'evoluzione di Lorel Axun descrive la sua trasformazione da un terminale web estetico a un ambiente desktop grafico completo. Il percorso è iniziato rendendo il terminale interattivo con un **parser di comandi** e un **Sistema di File Virtuale (VFS)**. Successivamente, l'ambiente è diventato uno spazio di lavoro stabile e dinamico grazie alla **persistenza** del VFS (tramite `localStorage`) e all'introduzione di un editor e un interprete di script.
-
-La maturità del sistema è stata raggiunta attraverso misure di sicurezza, come una **sandbox** per l'esecuzione di codice, e una maggiore configurabilità con **variabili d'ambiente persistenti** e uno **script di avvio** (`.axunrc`) per la personalizzazione utente.
-
-La svolta fondamentale è stata la transizione a un'**interfaccia grafica (GUI)**, che ha trasformato il terminale nella prima applicazione in finestra. L'esperienza è stata poi raffinata con un **dock interattivo** per il lancio delle applicazioni e un **esploratore di file grafico**, consolidando il passaggio da un'interfaccia a riga di comando a un paradigma desktop completo.
-
-Infine, l'usabilità dell'ambiente grafico è stata potenziata rendendo le **finestre completamente trascinabili**. Implementando la gestione degli eventi del mouse (`mousedown`, `mousemove`, `mouseup`), ogni finestra può ora essere riposizionata liberamente sullo schermo, un passo fondamentale per offrire un'esperienza utente fluida e intuitiva, tipica dei moderni sistemi operativi.
+Inizio della memoria:
