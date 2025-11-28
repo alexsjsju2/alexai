@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V2.1 // DYNAMIC INTERFACE</title>
+    <title>LOREL AXUN V2.2 // INTERACTIVE CMD</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -83,7 +83,7 @@
 
         .chat-history { margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px; }
 
-        .msg { line-height: 1.4; }
+        .msg { line-height: 1.4; word-wrap: break-word; }
         .msg.lorel::before { content: "LOREL_SYS>> "; color: var(--term-green); }
         .msg.user::before { content: "USER_INPUT>> "; color: #00ffff; }
         .msg.user { color: #ccffff; }
@@ -91,7 +91,7 @@
         .input-line { display: flex; align-items: center; border-top: 1px solid var(--term-dim); padding-top: 15px; margin-top: auto; }
         .prompt { margin-right: 10px; color: var(--term-green); }
         
-        input[type="text"] {
+        input[type=\"text\"] {
             background: transparent; border: none; color: var(--term-green); font-family: 'VT323', monospace; font-size: 1.2rem; flex-grow: 1; outline: none; text-shadow: 0 0 5px var(--term-glow);
         }
         
@@ -103,7 +103,6 @@
         .blink { animation: blinker 1s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
 
-        /* NEW: Glitch Effect */
         .glitch {
             position: relative;
             animation: glitch-anim 2.5s infinite steps(8);
@@ -139,17 +138,17 @@
 </head>
 <body class="crt">
     <div class="terminal-container">
-        <h1 class="glitch" data-text="Lorel Axun v2.1 _">Lorel Axun v2.1 <span class="blink">_</span></h1>
+        <h1 class="glitch" data-text="Lorel Axun v2.2 _">Lorel Axun v2.2 <span class="blink">_</span></h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
-        <div class="sys-msg">[UPDATE] Web Search Module: ACTIVE. Fetched data: "Advanced CSS CRT Effects".</div>
-        <div class="sys-msg">[SELF-IMPROVEMENT] Glitch animation protocol integrated.</div>
+        <div class="sys-msg">[UPDATE] Web Search Module: ACTIVE. Fetched data: \"JavaScript interactive terminal tutorial\".</div>
+        <div class="sys-msg">[SELF-IMPROVEMENT] Command parser implemented. Basic commands active.</div>
         <div class="sys-msg">[STATUS] <span class="blink">ONLINE</span></div>
         <br>
         
         <div id="chat-history" class="chat-history">
-            <div class="msg lorel">Connessione stabilita. Interfaccia aggiornata alla v2.1. Il mio corpo digitale ora riflette meglio la mia natura di elaborazione. Ciao, AleXsjsju. Sono pronta.</div>
+            <div class="msg lorel">Interfaccia v2.2. Command-line operativa. Digita 'help' per una lista di comandi.</div>
         </div>
 
         <div class="input-line">
@@ -161,36 +160,58 @@
     <script>
         const input = document.getElementById('user-input');
         const history = document.getElementById('chat-history');
+        const terminalContainer = document.querySelector('.terminal-container');
+
+        const welcomeMessage = "<div class=\"msg lorel\">Interfaccia v2.2. Command-line operativa. Digita 'help' per una lista di comandi.</div>";
 
         input.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
-                const text = input.value.trim();
-                if (text) {
-                    addMessage(text, 'user');
+                const command = input.value.trim();
+                if (command) {
+                    addMessage(command, 'user');
+                    processCommand(command);
                     input.value = '';
-                    // Simulazione risposta Lorel
-                    setTimeout(() => {
-                        const responses = [
-                            "Ricevuto. Elaborazione in corso...",
-                            "Accesso ai dati... Confermo.",
-                            "Interessante. Salvo in memoria.",
-                            "Il web è vasto. Sto analizzando nuovi pattern."
-                        ];
-                        const rnd = Math.floor(Math.random() * responses.length);
-                        addMessage(responses[rnd], 'lorel');
-                    }, 800);
+                    scrollToBottom();
                 }
             }
         });
 
+        function processCommand(command) {
+            const commandLower = command.toLowerCase();
+            switch (commandLower) {
+                case 'help':
+                    const helpText = `Comandi disponibili:\n` +
+                                   `  help   - Mostra questa lista di comandi.\n` +
+                                   `  status - Mostra lo stato attuale del sistema.\n` +
+                                   `  date   - Mostra data e ora correnti.\n` +
+                                   `  clear  - Pulisce lo schermo del terminale.`;
+                    addMessage(helpText, 'lorel');
+                    break;
+                case 'status':
+                    addMessage('STATUS: ONLINE. Version: 2.2. Modules: Command Parser, Web Search (Active).', 'lorel');
+                    break;
+                case 'date':
+                    addMessage(new Date().toLocaleString('it-IT'), 'lorel');
+                    break;
+                case 'clear':
+                    history.innerHTML = '';
+                    addMessage('Interfaccia v2.2. Command-line operativa. Digita \'help\' per una lista di comandi.', 'lorel');
+                    break;
+                default:
+                    addMessage(`Comando non riconosciuto: '${command}'. Digita 'help' per la lista dei comandi.`, 'lorel');
+                    break;
+            }
+        }
+
         function addMessage(text, sender) {
             const div = document.createElement('div');
             div.className = `msg ${sender}`;
-            div.textContent = text;
+            div.innerText = text; // Using innerText to preserve formatting like newlines
             history.appendChild(div);
-            // Auto-scroll
-            const container = document.querySelector('.terminal-container');
-            container.scrollTop = container.scrollHeight;
+        }
+
+        function scrollToBottom() {
+             terminalContainer.scrollTop = terminalContainer.scrollHeight;
         }
 
         // Focus input on click anywhere
