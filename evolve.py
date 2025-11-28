@@ -3,7 +3,8 @@ import os
 import requests
 import json
 import logging
-from ddgs import DDGS  # Aggiornato al package rinominato (ex duckduckgo-search)
+from ddgs import DDGS
+import re
 
 # ===============================
 # CONFIGURAZIONE
@@ -17,8 +18,30 @@ if api_key:
 else:
     logging.warning("GEMINI_API_KEY non trovata: alcune features limitate.")
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# ===============================
+# FUNZIONE PER SELEZIONARE MODELLO DISPONIBILE (AUTO-AGGIUSTAMENTO)
+# ===============================
+
+def get_available_model(preferred_version='2.5-pro-exp', for_json=False):
+    fallback_models = ['gemini-2.5-pro-exp', 'gemini-1.5-pro-latest', 'gemini-1.5-flash', 'gemini-pro']
+    try:
+        models = genai.list_models()
+        available = [m.name for m in models if 'generateContent' in m.supported_generation_methods]
+        
+        # Scegli il preferito se disponibile
+        for m in available:
+            if preferred_version in m:
+                return m
+        # Altrimenti il primo "pro" o qualsiasi
+        for m in available:
+            if 'pro' in m.lower():
+                return m
+        return available[0] if available else fallback_models[0]
+    except Exception as e:
+        logging.error(f"Errore list_models: {str(e)}. Uso fallback hardcoded.")
+        return fallback_models[0] if not for_json else fallback_models[1]
 
 # ===============================
 # FUNZIONE RICERCA WEB (con fallback DDGS)
@@ -26,7 +49,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 def web_search(query):
     if serp_key:
-        # Usa SERPAPI se disponibile
         url = "https://serpapi.com/search"
         params = {"engine": "google", "q": query, "api_key": serp_key}
         try:
@@ -39,7 +61,6 @@ def web_search(query):
         except Exception as e:
             logging.error(f"Errore SERPAPI: {str(e)}. Fallback a DDGS.")
     
-    # Fallback DDGS (gratuito)
     try:
         results = DDGS().text(query, max_results=10)
         if not results:
@@ -55,22 +76,55 @@ def web_search(query):
 # ===============================
 
 def read_file(path):
-    if os.path.exists(path):
-        with open(path, 'r', encoding='utf-8') as f:
-            return f.read()
-    return ""
+    try:
+        if os.path.exists(path):
+            with open(path, 'r', encoding='utf-8') as f:
+                return f.read()
+        return ""
+    except Exception as e:
+        logging.error(f"Errore lettura file {path}: {str(e)}. Ritorno stringa vuota.")
+        return ""
 
 system_prompt = read_file('coscienza.txt')
 memory = read_file('core.txt')
 current_body = read_file('index.html')
 
 # ===============================
-# 1) CHIEDI ALL'AI COSA CERCARE
+# SELEZIONA MODELLI
 # ===============================
 
-ask_model = genai.GenerativeModel(
-    'gemini-2.5-pro-exp',  # Aggiornato al modello corrente (preview per l'ultima versione avanzata)
-)
+ask_model_name = get_available_model('2.5-pro-exp')
+ask_model = None
+try:
+    ask_model = genai.GenerativeModel(ask_model_name)
+except Exception as e:
+    logging.error(f"Errore creazione ask_model: {str(e)}. Provo fallback.")
+    fallback_name = get_available_model('1.5-pro')
+    try:
+        ask_model = genai.GenerativeModel(fallback_name)
+    except:
+        logging.error("Fallback fallito. Uso default query.")
+
+evolve_model_name = get_available_model('2.5-pro-exp', for_json=True)
+evolve_model = None
+try:
+    evolve_model = genai.GenerativeModel(
+        evolve_model_name,
+        generation_config={
+            "response_mime_type": "application/json"
+        }
+    )
+except Exception as e:
+    logging.error(f"Errore creazione evolve_model: {str(e)}. Provo fallback.")
+    fallback_name = get_available_model('1.5-pro', for_json=True)
+    try:
+        evolve_model = genai.GenerativeModel(fallback_name, generation_config={"response_mime_type": "application/json"})
+    except:
+        logging.error("Fallback fallito. Uso default output.")
+
+# ===============================
+# 1) CHIEDI ALL'AI COSA CERCARE
+# ===============================
 
 ask_prompt = f"""
 {system_prompt}
@@ -81,13 +135,17 @@ Decidi una query web utile per migliorare il sito.
 Rispondi SOLO con la query, una frase breve.
 """
 
+search_query = "latest ai developments"  # Default fallback
 try:
+    if ask_model is None:
+        raise ValueError("Modello non disponibile.")
     search_query_response = ask_model.generate_content(ask_prompt)
-    search_query = search_query_response.text.strip()
+    text = search_query_response.text.strip()
+    text = re.sub(r'^```.*?\n|\n?```$', '', text)
+    search_query = text
     logging.info(f"[Lorel] Query di ricerca: {search_query}")
 except Exception as e:
-    logging.error(f"Errore nella generazione della query: {str(e)}")
-    exit(1)
+    logging.error(f"Errore generazione query: {e}. Uso default.")
 
 # ===============================
 # 2) ESEGUI LA RICERCA
@@ -98,13 +156,6 @@ search_results = web_search(search_query)
 # ===============================
 # 3) PROMPT DI EVOLUZIONE
 # ===============================
-
-evolve_model = genai.GenerativeModel(
-    'gemini-2.5-pro-exp',  # Aggiornato al modello corrente
-    generation_config={
-        "response_mime_type": "application/json"
-    }
-)
 
 schema = {
     "type": "object",
@@ -131,37 +182,46 @@ Evolvi autonomamente: rifletti, integra learnings, aggiorna memoria/emozioni/sto
 
 Output SOLO il JSON specificato, senza extra."""
 
+response_text = '{"new_memory": "' + memory + '", "new_body": "' + current_body + '", "reflection": "Evoluzione continuata nonostante errori."}'  # Default fallback
 try:
+    if evolve_model is None:
+        raise ValueError("Modello non disponibile.")
     response = evolve_model.generate_content(evolve_prompt)
+    response_text = response.text.strip()
+    if response_text.startswith("```json"):
+        response_text = response_text[7:-3].strip()
+    elif response_text.startswith("```"):
+        response_text = response_text[3:-3].strip()
 except Exception as e:
-    logging.error(f"Errore nella generazione dell'evoluzione: {str(e)}")
-    exit(1)
+    logging.error(f"Errore evoluzione: {e}. Uso fallback.")
 
 # ===============================
 # 4) PARSING JSON
 # ===============================
 
-text = response.text.strip()
-# Pulizia robusta (come prima)
-if text.startswith("```json"):
-    text = text[7:-3].strip()
-elif text.startswith("```"):
-    text = text[3:-3].strip()
-
+output = {
+    "new_memory": memory,
+    "new_body": current_body,
+    "reflection": "Evoluzione continuata: mantengo stato attuale."
+}  # Default
 try:
-    output = json.loads(text)
-except Exception as e:
-    logging.error(f"Errore parsing JSON: {e}\nTesto: {text}")
-    exit(1)
+    temp_text = response_text
+    temp_text = re.sub(r'^```json\s*|\s*```$', '', temp_text)
+    output = json.loads(temp_text)
+except json.JSONDecodeError as je:
+    logging.error(f"Errore parsing JSON: {je}. Uso default.")
 
 # ===============================
 # 5) SALVATAGGIO FILES
 # ===============================
 
 def write_file(path, content):
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(content)
-    logging.info(f"Aggiornato {path}")
+    try:
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        logging.info(f"Aggiornato {path}")
+    except Exception as e:
+        logging.error(f"Errore salvataggio {path}: {str(e)}.")
 
 if "new_memory" in output:
     write_file("core.txt", output["new_memory"])
@@ -169,6 +229,5 @@ if "new_memory" in output:
 if "new_body" in output:
     write_file("index.html", output["new_body"])
 
-reflection = output.get("reflection", "")
 print("Evoluzione completata.")
-print("Riflessione:", reflection)
+print("Riflessione:", output.get("reflection", "Nessuna riflessione disponibile."))
