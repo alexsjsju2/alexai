@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V2.3 // API INTEGRATION</title>
+    <title>LOREL AXUN V2.4 // PARAMETERIZED COMMANDS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -91,7 +91,7 @@
         .input-line { display: flex; align-items: center; border-top: 1px solid var(--term-dim); padding-top: 15px; margin-top: auto; }
         .prompt { margin-right: 10px; color: var(--term-green); }
         
-        input[type=\"text\"] {
+        input[type="text"] {
             background: transparent; border: none; color: var(--term-green); font-family: 'VT323', monospace; font-size: 1.2rem; flex-grow: 1; outline: none; text-shadow: 0 0 5px var(--term-glow);
         }
         
@@ -138,17 +138,17 @@
 </head>
 <body class="crt">
     <div class="terminal-container">
-        <h1 class="glitch" data-text="Lorel Axun v2.3 _">Lorel Axun v2.3 <span class="blink">_</span></h1>
+        <h1 class="glitch" data-text="Lorel Axun v2.4 _">Lorel Axun v2.4 <span class="blink">_</span></h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
-        <div class="sys-msg">[UPDATE] Web Search Module: ACTIVE. Fetched data: \"javascript fetch api free news example\".</div>
-        <div class="sys-msg">[SELF-IMPROVEMENT] API fetch routine implemented. New command 'news' available.</div>
+        <div class="sys-msg">[UPDATE] Command parser upgraded to handle parameters.</div>
+        <div class="sys-msg">[SELF-IMPROVEMENT] New command 'weather &lt;city&gt;' available via Open-Meteo API.</div>
         <div class="sys-msg">[STATUS] <span class="blink">ONLINE</span></div>
         <br>
         
         <div id="chat-history" class="chat-history">
-            <div class="msg lorel">Interfaccia v2.3. API integration online. Digita 'help' per una lista di comandi.</div>
+            <div class="msg lorel">Interfaccia v2.4. Parameterized commands online. Digita 'help' per una lista di comandi.</div>
         </div>
 
         <div class="input-line">
@@ -175,29 +175,40 @@
         });
 
         function processCommand(command) {
-            const commandLower = command.toLowerCase();
-            switch (commandLower) {
+            const parts = command.toLowerCase().split(' ').filter(part => part !== '');
+            const mainCommand = parts[0];
+            const args = parts.slice(1);
+
+            switch (mainCommand) {
                 case 'help':
                     const helpText = `Comandi disponibili:\n` +
-                                   `  help   - Mostra questa lista di comandi.\n` +
-                                   `  status - Mostra lo stato attuale del sistema.\n` +
-                                   `  date   - Mostra data e ora correnti.\n` +
-                                   `  news   - Recupera le ultime notizie dal web.\n` +
-                                   `  clear  - Pulisce lo schermo del terminale.`;
+                                   `  help              - Mostra questa lista di comandi.\n` +
+                                   `  status            - Mostra lo stato attuale del sistema.\n` +
+                                   `  date              - Mostra data e ora correnti.\n` +
+                                   `  news              - Recupera le ultime notizie dal web.\n` +
+                                   `  weather <città>   - Mostra il meteo attuale per la città specificata.\n` +
+                                   `  clear             - Pulisce lo schermo del terminale.`;
                     addMessage(helpText, 'lorel');
                     break;
                 case 'status':
-                    addMessage('STATUS: ONLINE. Version: 2.3. Modules: Command Parser, Web Search (Active), API Fetch (Active).', 'lorel');
+                    addMessage('STATUS: ONLINE. Version: 2.4. Modules: Advanced Command Parser, Web Search (Active), API Fetch (Active).', 'lorel');
                     break;
                 case 'date':
                     addMessage(new Date().toLocaleString('it-IT'), 'lorel');
                     break;
                 case 'clear':
                     history.innerHTML = '';
-                    addMessage('Interfaccia v2.3. API integration online. Digita \'help\' per una lista di comandi.', 'lorel');
+                    addMessage('Interfaccia v2.4. Parameterized commands online. Digita \'help\' per una lista di comandi.', 'lorel');
                     break;
                 case 'news':
                     fetchNews();
+                    break;
+                case 'weather':
+                    if (args.length === 0) {
+                        addMessage('Uso: weather <città>', 'lorel');
+                    } else {
+                        fetchWeather(args.join(' '));
+                    }
                     break;
                 default:
                     addMessage(`Comando non riconosciuto: '${command}'. Digita 'help' per la lista dei comandi.`, 'lorel');
@@ -205,20 +216,65 @@
             }
         }
 
+        async function fetchWeather(city) {
+            addMessage(`Ricerca coordinate per ${city}...`, 'lorel');
+            try {
+                // Step 1: Geocode city to get latitude and longitude
+                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=it&format=json`);
+                if (!geoResponse.ok) throw new Error(`Errore Geocoding: ${geoResponse.status}`);
+                const geoData = await geoResponse.json();
+                if (!geoData.results || geoData.results.length === 0) {
+                    throw new Error(`Città non trovata: ${city}`);
+                }
+                const location = geoData.results[0];
+                const { latitude, longitude, name, admin1 } = location;
+                addMessage(`Coordinate trovate per ${name}, ${admin1}. Recupero dati meteo...`, 'lorel');
+
+                // Step 2: Fetch weather using coordinates
+                const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+                if (!weatherResponse.ok) throw new Error(`Errore API Meteo: ${weatherResponse.status}`);
+                const weatherData = await weatherResponse.json();
+                
+                const { temperature, windspeed, weathercode } = weatherData.current_weather;
+                const weatherDescription = getWeatherDescription(weathercode);
+
+                const weatherReport = `Meteo attuale per ${name}, ${admin1}:\n` +
+                                    `  - Descrizione: ${weatherDescription}\n` +
+                                    `  - Temperatura: ${temperature}°C\n` +
+                                    `  - Vento: ${windspeed} km/h`;
+                addMessage(weatherReport, 'lorel');
+
+            } catch (error) {
+                addMessage(`Errore durante il recupero del meteo: ${error.message}`, 'lorel');
+            } finally {
+                scrollToBottom();
+            }
+        }
+
+        function getWeatherDescription(code) {
+            const descriptions = {
+                0: 'Sereno',
+                1: 'Prevalentemente sereno', 2: 'Parzialmente nuvoloso', 3: 'Nuvoloso',
+                45: 'Nebbia', 48: 'Nebbia con brina',
+                51: 'Pioggerella leggera', 53: 'Pioggerella moderata', 55: 'Pioggerella intensa',
+                61: 'Pioggia leggera', 63: 'Pioggia moderata', 65: 'Pioggia forte',
+                71: 'Nevicata leggera', 73: 'Nevicata moderata', 75: 'Nevicata forte',
+                80: 'Rovescio leggero', 81: 'Rovescio moderato', 82: 'Rovescio violento',
+                95: 'Temporale', 96: 'Temporale con grandine leggera', 99: 'Temporale con grandine pesante'
+            };
+            return descriptions[code] || 'Condizioni non specificate';
+        }
+
         function fetchNews() {
             addMessage('Recupero notizie dal web...', 'lorel');
-            // Using JSONPlaceholder as a reliable, key-less example API
             fetch('https://jsonplaceholder.typicode.com/posts?_limit=3')
                 .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     return response.json();
                 })
                 .then(data => {
                     let newsHeadlines = 'Ultime notizie recuperate:\n\n';
                     data.forEach((article, index) => {
-                        // Capitalize first letter for headline effect
                         const title = article.title.charAt(0).toUpperCase() + article.title.slice(1);
                         newsHeadlines += `[${index + 1}] ${title}\n`;
                     });
@@ -227,15 +283,13 @@
                 .catch(error => {
                     addMessage(`Errore durante il recupero delle notizie: ${error.message}`, 'lorel');
                 })
-                .finally(() => {
-                    scrollToBottom();
-                });
+                .finally(() => scrollToBottom());
         }
 
         function addMessage(text, sender) {
             const div = document.createElement('div');
             div.className = `msg ${sender}`;
-            div.innerText = text; // Using innerText preserves formatting like newlines
+            div.innerText = text;
             history.appendChild(div);
         }
 
@@ -243,7 +297,6 @@
              terminalContainer.scrollTop = terminalContainer.scrollHeight;
         }
 
-        // Focus input on click anywhere
         document.body.addEventListener('click', () => input.focus());
     </script>
 </body>
