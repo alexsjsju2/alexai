@@ -182,7 +182,7 @@ Evolvi autonomamente: rifletti, integra learnings, aggiorna memoria/emozioni/sto
 
 Output SOLO il JSON specificato, senza extra."""
 
-response_text = '{"new_memory": "' + memory + '", "new_body": "' + current_body + '", "reflection": "Evoluzione continuata nonostante errori."}'  # Default fallback
+response_text = '{"new_memory": "' + memory.replace('"', '\\"') + '", "new_body": "' + current_body.replace('"', '\\"') + '", "reflection": "Evoluzione continuata nonostante errori."}'  # Default fallback robusto
 try:
     if evolve_model is None:
         raise ValueError("Modello non disponibile.")
@@ -196,20 +196,48 @@ except Exception as e:
     logging.error(f"Errore evoluzione: {e}. Uso fallback.")
 
 # ===============================
-# 4) PARSING JSON
+# 4) PARSING JSON (più robusto con repair)
 # ===============================
 
 output = {
     "new_memory": memory,
     "new_body": current_body,
     "reflection": "Evoluzione continuata: mantengo stato attuale."
-}  # Default
+}  # Default robusto
 try:
+    # Fix automatico per JSON troncato o malformato
     temp_text = response_text
     temp_text = re.sub(r'^```json\s*|\s*```$', '', temp_text)
+    temp_text = re.sub(r'"[^"]*$', '"', temp_text)
+    depth = 0
+    for i, c in enumerate(temp_text):
+        if c in '{[': depth += 1
+        if c in '}]': depth -= 1
+    if depth > 0:
+        temp_text += '}' * depth
+    elif depth < 0:
+        temp_text = temp_text[:depth]
+
     output = json.loads(temp_text)
 except json.JSONDecodeError as je:
-    logging.error(f"Errore parsing JSON: {je}. Uso default.")
+    logging.error(f"Errore parsing JSON: {je}. Provo repair.")
+    # Repair con modello
+    repair_model_name = get_available_model('2.5-pro-exp')
+    repair_model = None
+    try:
+        repair_model = genai.GenerativeModel(repair_model_name)
+        repair_prompt = f"""
+        Il seguente testo è un JSON malformato: {response_text}
+        
+        Riparalo per renderlo un JSON valido conforme a questo schema: {json.dumps(schema)}
+        Output SOLO il JSON riparato, senza extra.
+        """
+        repair_response = repair_model.generate_content(repair_prompt)
+        repaired_text = repair_response.text.strip()
+        repaired_text = re.sub(r'^```json\s*|\s*```$', '', repaired_text)
+        output = json.loads(repaired_text)  # Prova parse dopo repair
+    except Exception as re:
+        logging.error(f"Errore repair JSON: {re}. Uso default robusto.")
 
 # ===============================
 # 5) SALVATAGGIO FILES
