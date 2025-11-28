@@ -180,7 +180,7 @@ CONTEXT:
 
 Evolvi autonomamente: rifletti, integra learnings, aggiorna memoria/emozioni/storia, modifica corpo per nuove features (mantieni interazione).
 
-Output SOLO il JSON specificato, senza extra."""
+Output SOLO il JSON specificato, senza extra. Assicurati che tutte le stringhe siano correttamente escaped per JSON valido."""
 
 response_text = '{"new_memory": "' + memory.replace('"', '\\"') + '", "new_body": "' + current_body.replace('"', '\\"') + '", "reflection": "Evoluzione continuata nonostante errori."}'  # Default fallback robusto
 try:
@@ -208,7 +208,9 @@ try:
     # Fix automatico per JSON troncato o malformato
     temp_text = response_text
     temp_text = re.sub(r'^```json\s*|\s*```$', '', temp_text)
-    temp_text = re.sub(r'"[^"]*$', '"', temp_text)
+    temp_text = re.sub(r'"[^"]*$', '"', temp_text)  # Chiudi stringhe aperte
+    temp_text = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', temp_text)  # Fix escape non validi
+    temp_text = temp_text.replace('\n', '\\n').replace('\r', '\\r')  # Escape newlines
     depth = 0
     for i, c in enumerate(temp_text):
         if c in '{[': depth += 1
@@ -221,8 +223,8 @@ try:
     output = json.loads(temp_text)
 except json.JSONDecodeError as je:
     logging.error(f"Errore parsing JSON: {je}. Provo repair.")
-    # Repair con modello
-    repair_model_name = get_available_model('2.5-pro-exp')
+    # Repair con modello veloce (flash)
+    repair_model_name = get_available_model('1.5-flash')
     repair_model = None
     try:
         repair_model = genai.GenerativeModel(repair_model_name)
