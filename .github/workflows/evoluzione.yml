@@ -2,7 +2,7 @@ name: Evoluzione di Lorel Axun
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Ogni ora, all'inizio dell'ora (UTC)
+    - cron: ' * * * *'  # Ogni ora, all'inizio dell'ora (UTC)
   workflow_dispatch:  # Permette trigger manuale
 
 jobs:
