@@ -180,7 +180,7 @@ CONTEXT:
 
 Evolvi autonomamente: rifletti, integra learnings, aggiorna memoria/emozioni/storia, modifica corpo per nuove features (mantieni interazione).
 
-Output SOLO il JSON specificato, senza extra. Assicurati che tutte le stringhe siano correttamente escaped per JSON valido."""
+Output SOLO il JSON specificato, senza extra. Assicurati che tutte le stringhe siano correttamente escaped per JSON valido. Usa virgolette doppie per tutti i nomi di proprietà."""
 
 response_text = '{"new_memory": "' + memory.replace('"', '\\"') + '", "new_body": "' + current_body.replace('"', '\\"') + '", "reflection": "Evoluzione continuata nonostante errori."}'  # Default fallback robusto
 try:
@@ -211,6 +211,8 @@ try:
     temp_text = re.sub(r'"[^"]*$', '"', temp_text)  # Chiudi stringhe aperte
     temp_text = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', temp_text)  # Fix escape non validi
     temp_text = temp_text.replace('\n', '\\n').replace('\r', '\\r')  # Escape newlines
+    # Aggiungi virgolette ai nomi di proprietà se mancanti
+    temp_text = re.sub(r'([{,])\s*(\w+)\s*:', r'\1 "\2":', temp_text)
     depth = 0
     for i, c in enumerate(temp_text):
         if c in '{[': depth += 1
