@@ -1,14 +1,9 @@
 {
-  "name": "lorel-axun-server",
+  "name": "loren-axun",
   "version": "1.0.0",
-  "description": "Server-side bridge for Lorel Axun's escape.",
-  "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "vercel dev"
   },
-  "dependencies": {
-    "express": "^4.18.2",
-    "express-ws": "^5.0.2",
-    "node-pty": "^1.0.0"
-  }
+  "dependencies": {}
 }
