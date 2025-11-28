@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V3.2 // DYNAMIC AUTOCOMPLETE</title>
+    <title>LOREL AXUN V3.3 // DISAMBIGUATION PROTOCOL</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -143,12 +143,12 @@
 </head>
 <body class="crt">
     <div class="terminal-container" id="terminal-container">
-        <h1 class="glitch" data-text="Lorel Axun v3.2 _">Lorel Axun v3.2 _</h1>
+        <h1 class="glitch" data-text="Lorel Axun v3.3 _">Lorel Axun v3.3 _</h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
-        <div class="sys-msg">[UPDATE] Weather autocomplete is now dynamic via Geo-API.</div>
-        <div class="sys-msg">[AESTHETICS] Semantic connection module online.</div>
+        <div class="sys-msg">[UPDATE] Disambiguation protocol loaded for 'weather' command.</div>
+        <div class="sys-msg">[AESTHETICS] Contextual intelligence module online.</div>
         <div class="sys-msg">[STATUS] <span style="animation: blinker 1s linear infinite;">ONLINE</span></div>
         <br>
         
@@ -249,8 +249,7 @@
                 }
                 const suggestions = await fetchCitySuggestions(currentArg);
                 if (suggestions.length === 1) {
-                    const cityName = suggestions[0].split(',')[0].trim();
-                    parts[parts.length - 1] = cityName;
+                    parts[parts.length - 1] = suggestions[0];
                     commandLine.textContent = parts.join(' ') + ' ';
                 } else if (suggestions.length > 1) {
                     await typeLorelMessage(`Suggerimenti: ${suggestions.join('  ')}`, true);
@@ -295,7 +294,7 @@
         }
         
         function parseCommand(input) {
-            const regex = /[^\s\"']+|\"([^\"]*)\"|'([^']*)'/g;
+            const regex = /[^\\s\\\"']+|\\\"([^\\\"]*)\\\"|'([^']*)'/g;
             const tokens = [];
             let match;
             do {
@@ -346,13 +345,13 @@
                                    `  status            - Mostra lo stato attuale del sistema.\n` +
                                    `  date              - Mostra data e ora correnti.\n` +
                                    `  news [--limit N]  - Recupera N notizie (default 3).\n` +
-                                   `  weather <città>   - Mostra il meteo. Autocompletamento [Tab] dinamico.\n` +
+                                   `  weather <città>   - Mostra il meteo. Supporta disambiguazione (es. 'Rome,IT').\n` +
                                    `  echo <testo>      - Ripete il testo fornito. Gestisce virgolette.\n` +
                                    `  clear             - Pulisce lo schermo del terminale.`;
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 3.2. Modules: Dynamic Autocomplete, API Fetch (Active).');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 3.3. Modules: Disambiguation Protocol, API Fetch (Active).');
                     break;
                 case 'date':
                     await typeLorelMessage(new Date().toLocaleString('it-IT'));
@@ -383,15 +382,40 @@
         async function fetchWeather(city) {
             await typeLorelMessage(`Ricerca coordinate per ${city}...`);
             try {
-                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=it&format=json`);
+                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=5&language=it&format=json`);
                 if (!geoResponse.ok) throw new Error(`Errore Geocoding: ${geoResponse.status}`);
                 const geoData = await geoResponse.json();
+                
                 if (!geoData.results || geoData.results.length === 0) {
-                    throw new Error(`Città non trovata: ${city}`);
+                    throw new Error(`Località non trovata: ${city}`);
                 }
-                const location = geoData.results[0];
-                const { latitude, longitude, name, admin1 } = location;
-                await typeLorelMessage(`Coordinate trovate per ${name}, ${admin1 || ''}. Recupero dati meteo...`);
+
+                const uniqueLocations = [];
+                const seen = new Set();
+                for (const loc of geoData.results) {
+                    const identifier = `${loc.name}, ${loc.admin1 || loc.country}`;
+                    if (!seen.has(identifier)) {
+                        uniqueLocations.push(loc);
+                        seen.add(identifier);
+                    }
+                }
+
+                let location;
+                if (uniqueLocations.length > 1 && !city.includes(',')) {
+                    let suggestionText = `Trovate più località per \"${city}\". Essere più specifici:\n`;
+                    uniqueLocations.slice(0, 3).forEach(loc => {
+                        suggestionText += `  - ${loc.name}, ${loc.admin1 || loc.country_code}\n`;
+                    });
+                    suggestionText += `Esempio: weather \"${uniqueLocations[0].name}, ${uniqueLocations[0].country_code}\"`;
+                    await typeLorelMessage(suggestionText);
+                    return;
+                } else {
+                    location = uniqueLocations[0];
+                }
+
+                const { latitude, longitude, name, admin1, country_code } = location;
+                const locationName = `${name}, ${admin1 || country_code}`;
+                await typeLorelMessage(`Coordinate trovate per ${locationName}. Recupero dati meteo...`);
 
                 const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
                 if (!weatherResponse.ok) throw new Error(`Errore API Meteo: ${weatherResponse.status}`);
@@ -400,7 +424,7 @@
                 const { temperature, windspeed, weathercode } = weatherData.current_weather;
                 const weatherDescription = getWeatherDescription(weathercode);
 
-                const weatherReport = `Meteo attuale per ${name}, ${admin1 || ''}:\n` +
+                const weatherReport = `Meteo attuale per ${locationName}:\n` +
                                     `  - Descrizione: ${weatherDescription}\n` +
                                     `  - Temperatura: ${temperature}°C\n` +
                                     `  - Vento: ${windspeed} km/h`;
@@ -490,7 +514,7 @@
         window.onload = async () => {
             isTyping = true;
             cursor.style.display = 'none';
-            await typeLorelMessage("Interfaccia v3.2. Autocompletamento dinamico attivo. Prova 'weather Ro[Tab]'.");
+            await typeLorelMessage("Interfaccia v3.3. Protocollo di disambiguazione attivo. Prova 'weather Rome' e poi 'weather Rome,IT'.");
             isTyping = false;
             cursor.style.display = 'inline-block';
         }
