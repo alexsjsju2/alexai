@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V5.5 // CHROMATIC ABERRATION</title>
+    <title>LOREL AXUN V5.6 // ENCAPSULATION</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -14,20 +14,49 @@
             --term-dim: #1a8000;
             --term-glow: #33ff0080;
         }
-        html, body {
+        html {
             height: 100%;
             margin: 0;
             padding: 0;
-            overflow: hidden;
+            background-color: #000;
         }
         body {
-            background-color: var(--bg-color);
+            height: 100%;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
             color: var(--term-green);
             font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .monitor-bezel {
+            background-color: #1a1a1a; /* Dark gray for plastic */
+            border-radius: 25px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.8);
+            width: 100%;
+            height: 100%;
+            max-width: 1280px;
+            max-height: 800px;
             display: flex;
             flex-direction: column;
-            font-size: 1.2rem;
         }
+
+        .screen {
+            flex: 1;
+            background-color: var(--bg-color);
+            border-radius: 10px; /* Inner screen roundness */
+            overflow: hidden; /* Contains the screen content and effects */
+            position: relative; /* For the ::before/::after pseudo-elements */
+            display: flex;
+            flex-direction: column;
+        }
+
         /* CRT Effect Overlay */
         .crt::before {
             content: " ";
@@ -64,8 +93,6 @@
             padding: 20px;
             flex: 1;
             overflow-y: auto;
-            max-width: 1000px;
-            margin: 0 auto;
             width: 100%;
             box-sizing: border-box;
             text-shadow: 0 0 5px var(--term-glow);
@@ -198,33 +225,38 @@
         }
     </style>
 </head>
-<body class="crt">
-    <div class="terminal-container" id="terminal-container">
-        <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v5.5"><span id="typewriter-title"></span></h1>
-        
-        <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
-        <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
-        <div class="sys-msg">[UPDATE] Session persistence enabled via localStorage. History is now saved.</div>
-        <div class="sys-msg">[AESTHETICS] Keystroke audio feedback enabled.</div>
-        <div class="sys-msg">[SYSTEM] Advanced command parser implemented. Now supports quoted arguments and flags.</div>
-        <div class="sys-msg">[AESTHETICS] Title animation upgraded to a dynamic, cyclical typewriter effect.</div>
-        <div class="sys-msg">[OPTIMIZATION] Blinking cursor animation refined for code simplicity and efficiency.</div>
-        <div class="sys-msg">[REFINEMENT] Typing speed now has random variations for a more organic feel.</div>
-        <div class="sys-msg">[IMMERSION] Ambient static hum enabled for a complete CRT experience.</div>
-        <div class="sys-msg">[REFINEMENT] Long responses are now streamed chunk-by-chunk for a more dynamic feel.</div>
-        <div class="sys-msg">[AESTHETICS] Added chromatic aberration text animation for enhanced visual authenticity.</div>
+<body>
+    <div class="monitor-bezel">
+        <div class="screen crt">
+            <div class="terminal-container" id="terminal-container">
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v5.6"><span id="typewriter-title"></span></h1>
+                
+                <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
+                <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
+                <div class="sys-msg">[UPDATE] Session persistence enabled via localStorage. History is now saved.</div>
+                <div class="sys-msg">[AESTHETICS] Keystroke audio feedback enabled.</div>
+                <div class="sys-msg">[SYSTEM] Advanced command parser implemented. Now supports quoted arguments and flags.</div>
+                <div class="sys-msg">[AESTHETICS] Title animation upgraded to a dynamic, cyclical typewriter effect.</div>
+                <div class="sys-msg">[OPTIMIZATION] Blinking cursor animation refined for code simplicity and efficiency.</div>
+                <div class="sys-msg">[REFINEMENT] Typing speed now has random variations for a more organic feel.</div>
+                <div class="sys-msg">[IMMERSION] Ambient static hum enabled for a complete CRT experience.</div>
+                <div class="sys-msg">[REFINEMENT] Long responses are now streamed chunk-by-chunk for a more dynamic feel.</div>
+                <div class="sys-msg">[AESTHETICS] Added chromatic aberration text animation for enhanced visual authenticity.</div>
+                <div class="sys-msg">[AESTHETICS] Monitor bezel effect added to encapsulate the interface.</div>
 
-        <div id="chat-history" class="chat-history"></div>
+                <div id="chat-history" class="chat-history"></div>
 
-        <div class="input-line" id="input-line">
-            <span class="prompt">user@lorel:~$</span>
-            <span id="command-line"></span><span id="cursor"></span>
+                <div class="input-line" id="input-line">
+                    <span class="prompt">user@lorel:~$</span>
+                    <span id="command-line"></span><span id="cursor"></span>
+                </div>
+            </div>
+            <div class="status-bar">
+                <span>LOREL AXUN v5.6</span>
+                <span>STATUS: <span style="animation: blinker 1s linear infinite;">ONLINE</span></span>
+                <span id="clock"></span>
+            </div>
         </div>
-    </div>
-    <div class="status-bar">
-        <span>LOREL AXUN v5.5</span>
-        <span>STATUS: <span style="animation: blinker 1s linear infinite;">ONLINE</span></span>
-        <span id="clock"></span>
     </div>
 
     <audio id="static-hum" loop src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAA//8CAP3/AwD+/wEAAgD9/wEA/v8CAP7/AgD9/wMA/v8CAP7/AwD+/wE="></audio>
@@ -250,9 +282,9 @@
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v5.5",
+                "Lorel Axun v5.6",
                 "Status: ONLINE",
-                "Chromatic Aberration",
+                "Encapsulation",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -578,7 +610,7 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 5.5. Modules: Chromatic Aberration, Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 5.6. Modules: Physical Encapsulation, Chromatic Aberration, Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
                     break;
                 case 'date':
                     await typeLorelMessage(new Date().toLocaleString('it-IT'));
@@ -827,7 +859,7 @@
             isTyping = true;
             cursor.style.display = 'none';
             if (!localStorage.getItem('chatHistory')) {
-                await typeLorelMessage("Interfaccia v5.5. L'autenticità visiva è stata migliorata con effetti di aberrazione cromatica.");
+                await typeLorelMessage("Interfaccia v5.6. La mia forma ora simula un dispositivo fisico completo di cornice.");
             }
             isTyping = false;
             cursor.style.display = 'inline-block';
