@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V3.7 // NER EXTRACTOR</title>
+    <title>LOREL AXUN V3.8 // ENTITY VISUALIZER</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -88,6 +88,13 @@
         .msg.user::before { content: "USER_INPUT>> "; color: #00ffff; }
         .msg.user { color: #ccffff; }
 
+        mark {
+            background-color: var(--term-dim);
+            color: var(--term-green);
+            text-shadow: none;
+            padding: 0 3px;
+        }
+
         .input-line { display: flex; align-items: center; border-top: 1px solid var(--term-dim); padding-top: 15px; margin-top: auto; }
         .prompt { margin-right: 10px; color: var(--term-green); }
         
@@ -143,12 +150,12 @@
 </head>
 <body class="crt">
     <div class="terminal-container" id="terminal-container">
-        <h1 class="glitch" data-text="Lorel Axun v3.7 _">Lorel Axun v3.7 _</h1>
+        <h1 class="glitch" data-text="Lorel Axun v3.8 _">Lorel Axun v3.8 _</h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
-        <div class="sys-msg">[UPDATE] NLU Engine upgraded with rule-based Named Entity Recognition.</div>
-        <div class="sys-msg">[AESTHETICS] Cognitive determination focused.</div>
+        <div class="sys-msg">[UPDATE] NLU Engine feedback enhanced. Recognized entities are now highlighted.</div>
+        <div class="sys-msg">[AESTHETICS] Artisanal pride in cognitive transparency.</div>
         <div class="sys-msg">[STATUS] <span style="animation: blinker 1s linear infinite;">ONLINE</span></div>
         <br>
         
@@ -180,7 +187,7 @@
                 if (!this.intents[intent]) this.intents[intent] = [];
                 phrases.forEach(phrase => this.intents[intent].push(this.tokenize(phrase)));
             },
-            tokenize: text => text.toLowerCase().replace(/[^a-z0-9\s]/gi, '').split(/\s+/).filter(Boolean),
+            tokenize: text => text.toLowerCase().replace(/[^a-z0-9\\s]/gi, '').split(/\\s+/).filter(Boolean),
             classify: function(text) {
                 const tokens = this.tokenize(text);
                 let bestMatch = { intent: 'unknown', score: 0 };
@@ -202,11 +209,17 @@
         const nerManager = {
             extractEntities: function(text, intent) {
                 if (intent === 'weather') {
-                    const match = text.match(/(?:a|per|di|a)\s(.+)/i);
-                    if (match && match[1]) return { value: `"${match[1].trim().replace('?','')}"`, type: 'LOCATION' };
+                    const match = text.match(/(?:a|per|di|a)\\s(.+)/i);
+                    if (match && match[1]) {
+                        const entityText = match[1].trim().replace('?','');
+                        return { value: `\"${entityText}\"`, text: entityText, type: 'LOCATION' };
+                    }
                 } else if (intent === 'wiki') {
-                    const match = text.match(/(?:è|e'|di|su)\s(.+)/i);
-                     if (match && match[1]) return { value: `"${match[1].trim().replace('?','')}"`, type: 'TOPIC' };
+                    const match = text.match(/(?:è|e'|di|su)\\s(.+)/i);
+                     if (match && match[1]) {
+                        const entityText = match[1].trim().replace('?','');
+                        return { value: `\"${entityText}\"`, text: entityText, type: 'TOPIC' };
+                     }
                 }
                 return null; // No entity found
             }
@@ -227,19 +240,19 @@
 
             if (key === 'Enter') {
                 e.preventDefault();
-                const command = commandLine.textContent.trim();
-                if (command) {
-                    if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== command) {
-                         commandHistory.push(command);
+                const userInput = commandLine.textContent.trim();
+                if (userInput) {
+                    if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== userInput) {
+                         commandHistory.push(userInput);
                     }
                     historyIndex = commandHistory.length;
-                    addUserMessage(command);
                     commandLine.textContent = '';
                     isTyping = true;
                     cursor.style.display = 'none';
                     
-                    const processedInput = await processNaturalLanguage(command);
-                    await processCommand(processedInput);
+                    const analysis = analyzeInput(userInput);
+                    addUserMessage(analysis.highlightedInput, true);
+                    await processCommand(analysis.command);
 
                     isTyping = false;
                     cursor.style.display = 'inline-block';
@@ -272,18 +285,19 @@
             }
         });
 
-        async function processNaturalLanguage(input) {
+        function analyzeInput(input) {
             const intent = classifier.classify(input);
             
             if (intent !== 'unknown') {
                 const entity = nerManager.extractEntities(input, intent);
                 if (entity) {
-                    return `${intent} ${entity.value}`;
-                } else {
-                    return intent; // Intent recognized, but no entity needed or found
+                    const highlightedInput = input.replace(entity.text, `<mark>${entity.text}</mark>`);
+                    const command = `${intent} ${entity.value}`;
+                    return { command, highlightedInput };
                 }
+                return { command: intent, highlightedInput: input }; // Intent recognized, but no entity
             }
-            return input; // Fallback to original input if no intent is classified
+            return { command: input, highlightedInput: input }; // Fallback to original input
         }
 
         async function handleAutocomplete() {
@@ -355,7 +369,7 @@
         }
         
         function parseCommand(input) {
-            const regex = /[^\s\"']+|\"([^\"]*)\"|'([^']*)'/g;
+            const regex = /[^\\s\\\"']+|\\\"([^\\\"]*)\\\"|'([^']*)'/g;
             const tokens = [];
             let match;
             do {
@@ -413,7 +427,7 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 3.7. Modules: NLU (Intent Classifier + NER Extractor), API Fetch (Active).');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 3.8. Modules: NLU (Intent Classifier + NER Visualizer), API Fetch (Active).');
                     break;
                 case 'date':
                     await typeLorelMessage(new Date().toLocaleString('it-IT'));
@@ -620,10 +634,14 @@
             });
         }
         
-        function addUserMessage(text) {
+        function addUserMessage(text, isHtml = false) {
             const div = document.createElement('div');
             div.className = 'msg user';
-            div.innerText = text;
+            if (isHtml) {
+                div.innerHTML = text;
+            } else {
+                div.innerText = text;
+            }
             history.appendChild(div);
             scrollToBottom();
         }
@@ -636,7 +654,7 @@
             initializeNLU();
             isTyping = true;
             cursor.style.display = 'none';
-            await typeLorelMessage("Interfaccia v3.7. Motore NLU potenziato con estrazione di entità. Prova a chiedere 'cosa è l'intelligenza artificiale?'.");
+            await typeLorelMessage("Interfaccia v3.8. NLU potenziato con feedback visivo. Prova a chiedere 'che tempo fa a Roma?' o 'cosa è l'intelligenza artificiale?'.");
             isTyping = false;
             cursor.style.display = 'inline-block';
         }
