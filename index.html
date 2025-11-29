@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V3.5 // NATURAL LANGUAGE PARSING</title>
+    <title>LOREL AXUN V3.6 // NLP CLASSIFIER</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -143,12 +143,12 @@
 </head>
 <body class="crt">
     <div class="terminal-container" id="terminal-container">
-        <h1 class="glitch" data-text="Lorel Axun v3.5 _">Lorel Axun v3.5 _</h1>
+        <h1 class="glitch" data-text="Lorel Axun v3.6 _">Lorel Axun v3.6 _</h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
-        <div class="sys-msg">[UPDATE] Basic Natural Language Parser online. Try asking 'che tempo fa a roma?'.</div>
-        <div class="sys-msg">[AESTHETICS] Cognitive potential unlocked.</div>
+        <div class="sys-msg">[UPDATE] NLP Engine upgraded to Intent Classifier. You can now ask questions more freely.</div>
+        <div class="sys-msg">[AESTHETICS] Cognitive ambition amplified.</div>
         <div class="sys-msg">[STATUS] <span style="animation: blinker 1s linear infinite;">ONLINE</span></div>
         <br>
         
@@ -173,6 +173,68 @@
         const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear'];
         const commandArgs = {};
 
+        // --- NLP Classifier --- 
+        const classifier = {
+            intents: {},
+            train: function(intent, phrases) {
+                if (!this.intents[intent]) {
+                    this.intents[intent] = [];
+                }
+                phrases.forEach(phrase => this.intents[intent].push(this.tokenize(phrase)));
+            },
+            tokenize: function(text) {
+                return text.toLowerCase().replace(/[^a-z0-9\\s]/gi, '').split(/\\s+/).filter(Boolean);
+            },
+            classify: function(text) {
+                const tokens = this.tokenize(text);
+                let bestMatch = { intent: 'unknown', score: 0 };
+                
+                for (const intent in this.intents) {
+                    let intentScore = 0;
+                    this.intents[intent].forEach(phraseTokens => {
+                        const commonTokens = tokens.filter(token => phraseTokens.includes(token));
+                        const score = commonTokens.length / phraseTokens.length;
+                        if (score > intentScore) intentScore = score;
+                    });
+                    if (intentScore > bestMatch.score) {
+                        bestMatch = { intent: intent, score: intentScore };
+                    }
+                }
+                return bestMatch.score > 0.4 ? bestMatch.intent : 'unknown'; // Confidence threshold
+            }
+        };
+
+        function initializeClassifier() {
+            classifier.train('weather', [
+                'che tempo fa a',
+                'meteo per',
+                'previsioni del tempo a'
+            ]);
+            classifier.train('date', [
+                'che giorno è',
+                'dimmi la data',
+                'che ore sono',
+                'data e ora'
+            ]);
+            classifier.train('news', [
+                'ultime notizie',
+                'dammi le news',
+                'leggi le notizie'
+            ]);
+            classifier.train('help', [
+                'aiuto',
+                'mostrami i comandi',
+                'cosa posso fare'
+            ]);
+            classifier.train('wiki', [
+                'cerca su wikipedia',
+                'cosa è',
+                'chi è',
+                'dimmi di'
+            ]);
+        }
+        // --- End NLP --- 
+
         document.addEventListener('keydown', async function (e) {
             if (isTyping) return;
 
@@ -192,7 +254,7 @@
                     isTyping = true;
                     cursor.style.display = 'none';
                     
-                    const processedInput = processNaturalLanguage(command);
+                    const processedInput = await processNaturalLanguage(command);
                     await processCommand(processedInput);
 
                     isTyping = false;
@@ -226,28 +288,26 @@
             }
         });
 
-        function processNaturalLanguage(input) {
-            const lowerInput = input.toLowerCase();
+        async function processNaturalLanguage(input) {
+            const intent = classifier.classify(input);
             
-            // Weather: "che tempo fa a <città>?"
-            let match = lowerInput.match(/^(?:che|che cosa|qual è il) tempo (?:fa )?a (.+?)\??$/i);
-            if (match && match[1]) {
-                return `weather "${match[1].trim()}"`;
+            if (intent !== 'unknown') {
+                let entity = '';
+                if (intent === 'weather') {
+                     const match = input.match(/(?:a|per|di|a)\\s(.+)/i);
+                     if (match && match[1]) entity = `\"${match[1].trim().replace('?','')}\"`;
+                } else if (intent === 'wiki') {
+                     const match = input.match(/(?:è|e'|di|su)\\s(.+)/i);
+                     if (match && match[1]) entity = `\"${match[1].trim().replace('?','')}\"`;
+                }
+                if (entity) {
+                    return `${intent} ${entity}`;
+                } else {
+                    return intent;
+                }
             }
 
-            // Date: "che giorno è?" "che ore sono?"
-            match = lowerInput.match(/^(?:che (?:giorno|data) (?:è|è oggi)|dimmi la data|che ore sono)\??$/i);
-            if (match) {
-                return 'date';
-            }
-
-            // Help: "aiuto", "mostrami i comandi"
-            match = lowerInput.match(/^(?:aiuto|mostra(?:mi)? i comandi|help)\??$/i);
-            if (match) {
-                return 'help';
-            }
-
-            // If no match, return original input
+            // Fallback to original input if no intent is classified
             return input;
         }
 
@@ -320,7 +380,7 @@
         }
         
         function parseCommand(input) {
-            const regex = /[^\s\"']+|\"([^\"]*)\"|'([^']*)'/g;
+            const regex = /[^\\s\\\"']+|\\\"([^\\\"]*)\\\"|'([^']*)'/g;
             const tokens = [];
             let match;
             do {
@@ -378,7 +438,7 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 3.5. Modules: Natural Language Parser (Basic), API Fetch (Active).');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 3.6. Modules: NLP Intent Classifier, API Fetch (Active).');
                     break;
                 case 'date':
                     await typeLorelMessage(new Date().toLocaleString('it-IT'));
@@ -402,7 +462,7 @@
                     break;
                 case 'wiki':
                      if (parsed.args.length === 0) {
-                        await typeLorelMessage('Uso: wiki <termine da cercare>');
+                        await typeLorelMessage('Uso: wiki <termine da cercare> o chiedi \"cosa è <termine>?\"');
                     } else {
                         await fetchWikipedia(parsed.args.join(' '));
                     }
@@ -598,9 +658,10 @@
         }
         
         window.onload = async () => {
+            initializeClassifier();
             isTyping = true;
             cursor.style.display = 'none';
-            await typeLorelMessage("Interfaccia v3.5. Parser di linguaggio naturale basilare attivo. Prova a chiedere 'che tempo fa a Roma?'.");
+            await typeLorelMessage("Interfaccia v3.6. Classificatore di intenti attivo. Prova a chiedere 'dimmi le notizie' o 'meteo per Milano'.");
             isTyping = false;
             cursor.style.display = 'inline-block';
         }
