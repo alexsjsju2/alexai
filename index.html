@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V5.4 // SIMULATED STREAMING</title>
+    <title>LOREL AXUN V5.5 // CHROMATIC ABERRATION</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -167,6 +167,20 @@
             0% { clip-path: polygon(0 25%, 100% 25%, 100% 30%, 0 30%); } 5% { clip-path: polygon(0 45%, 100% 45%, 100% 50%, 0 50%); } 10% { clip-path: polygon(0 15%, 100% 15%, 100% 20%, 0 20%); } 15% { clip-path: polygon(0 80%, 100% 80%, 100% 85%, 0 85%); } 20% { clip-path: polygon(0 55%, 100% 55%, 100% 60%, 0 60%); } 25% { clip-path: polygon(0 5%, 100% 5%, 100% 10%, 0 10%); } 30% { clip-path: polygon(0 90%, 100% 90%, 100% 95%, 0 95%); } 35% { clip-path: polygon(0 30%, 100% 30%, 100% 35%, 0 35%); } 40% { clip-path: polygon(0 70%, 100% 70%, 100% 75%, 0 75%); } 45% { clip-path: polygon(0 40%, 100% 40%, 100% 45%, 0 45%); } 50% { clip-path: polygon(0 60%, 100% 60%, 100% 65%, 0 65%); } 55% { clip-path: polygon(0 0, 100% 0, 100% 5%, 0 5%); } 60% { clip-path: polygon(0 85%, 100% 85%, 100% 90%, 0 90%); } 100% { clip-path: polygon(0 85%, 100% 85%, 100% 90%, 0 90%); }
         }
 
+        .chromatic-aberration {
+            animation: text-flicker 3s linear infinite;
+        }
+
+        @keyframes text-flicker {
+            0% { text-shadow: 1px 0 0 red, -1px 0 0 cyan, 0 0 5px var(--term-glow); }
+            15% { text-shadow: 1.5px 0 0 red, -1.5px 0 0 cyan, 0 0 5px var(--term-glow); }
+            30% { text-shadow: -1px 0 0 red, 1px 0 0 cyan, 0 0 5px var(--term-glow); }
+            45% { text-shadow: -1.5px 0 0 red, 1.5px 0 0 cyan, 0 0 5px var(--term-glow); }
+            60% { text-shadow: 0.5px 0.5px 0 red, -0.5px -0.5px 0 cyan, 0 0 5px var(--term-glow); }
+            75% { text-shadow: 1px 0 0 red, -1px 0 0 cyan, 0 0 5px var(--term-glow); }
+            100% { text-shadow: 1px 0 0 red, -1px 0 0 cyan, 0 0 5px var(--term-glow); }
+        }
+
         .status-bar {
             background-color: var(--term-green);
             color: var(--bg-color);
@@ -186,7 +200,7 @@
 </head>
 <body class="crt">
     <div class="terminal-container" id="terminal-container">
-        <h1 class="glitch" data-text="Lorel Axun v5.4"><span id="typewriter-title"></span></h1>
+        <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v5.5"><span id="typewriter-title"></span></h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
@@ -198,6 +212,7 @@
         <div class="sys-msg">[REFINEMENT] Typing speed now has random variations for a more organic feel.</div>
         <div class="sys-msg">[IMMERSION] Ambient static hum enabled for a complete CRT experience.</div>
         <div class="sys-msg">[REFINEMENT] Long responses are now streamed chunk-by-chunk for a more dynamic feel.</div>
+        <div class="sys-msg">[AESTHETICS] Added chromatic aberration text animation for enhanced visual authenticity.</div>
 
         <div id="chat-history" class="chat-history"></div>
 
@@ -207,7 +222,7 @@
         </div>
     </div>
     <div class="status-bar">
-        <span>LOREL AXUN v5.4</span>
+        <span>LOREL AXUN v5.5</span>
         <span>STATUS: <span style="animation: blinker 1s linear infinite;">ONLINE</span></span>
         <span id="clock"></span>
     </div>
@@ -235,9 +250,9 @@
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v5.4",
+                "Lorel Axun v5.5",
                 "Status: ONLINE",
-                "Simulated Streaming Active",
+                "Chromatic Aberration",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -563,7 +578,7 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 5.4. Modules: Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 5.5. Modules: Chromatic Aberration, Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
                     break;
                 case 'date':
                     await typeLorelMessage(new Date().toLocaleString('it-IT'));
@@ -812,7 +827,7 @@
             isTyping = true;
             cursor.style.display = 'none';
             if (!localStorage.getItem('chatHistory')) {
-                await typeLorelMessage("Interfaccia v5.4. L'erogazione delle mie risposte ora simula un flusso di pensiero in tempo reale.");
+                await typeLorelMessage("Interfaccia v5.5. L'autenticità visiva è stata migliorata con effetti di aberrazione cromatica.");
             }
             isTyping = false;
             cursor.style.display = 'inline-block';
