@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V3.6 // NLP CLASSIFIER</title>
+    <title>LOREL AXUN V3.7 // NER EXTRACTOR</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -143,12 +143,12 @@
 </head>
 <body class="crt">
     <div class="terminal-container" id="terminal-container">
-        <h1 class="glitch" data-text="Lorel Axun v3.6 _">Lorel Axun v3.6 _</h1>
+        <h1 class="glitch" data-text="Lorel Axun v3.7 _">Lorel Axun v3.7 _</h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
-        <div class="sys-msg">[UPDATE] NLP Engine upgraded to Intent Classifier. You can now ask questions more freely.</div>
-        <div class="sys-msg">[AESTHETICS] Cognitive ambition amplified.</div>
+        <div class="sys-msg">[UPDATE] NLU Engine upgraded with rule-based Named Entity Recognition.</div>
+        <div class="sys-msg">[AESTHETICS] Cognitive determination focused.</div>
         <div class="sys-msg">[STATUS] <span style="animation: blinker 1s linear infinite;">ONLINE</span></div>
         <br>
         
@@ -173,22 +173,17 @@
         const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear'];
         const commandArgs = {};
 
-        // --- NLP Classifier --- 
+        // --- NLU Engine ---
         const classifier = {
             intents: {},
             train: function(intent, phrases) {
-                if (!this.intents[intent]) {
-                    this.intents[intent] = [];
-                }
+                if (!this.intents[intent]) this.intents[intent] = [];
                 phrases.forEach(phrase => this.intents[intent].push(this.tokenize(phrase)));
             },
-            tokenize: function(text) {
-                return text.toLowerCase().replace(/[^a-z0-9\\s]/gi, '').split(/\\s+/).filter(Boolean);
-            },
+            tokenize: text => text.toLowerCase().replace(/[^a-z0-9\s]/gi, '').split(/\s+/).filter(Boolean),
             classify: function(text) {
                 const tokens = this.tokenize(text);
                 let bestMatch = { intent: 'unknown', score: 0 };
-                
                 for (const intent in this.intents) {
                     let intentScore = 0;
                     this.intents[intent].forEach(phraseTokens => {
@@ -197,47 +192,37 @@
                         if (score > intentScore) intentScore = score;
                     });
                     if (intentScore > bestMatch.score) {
-                        bestMatch = { intent: intent, score: intentScore };
+                        bestMatch = { intent, score: intentScore };
                     }
                 }
                 return bestMatch.score > 0.4 ? bestMatch.intent : 'unknown'; // Confidence threshold
             }
         };
 
-        function initializeClassifier() {
-            classifier.train('weather', [
-                'che tempo fa a',
-                'meteo per',
-                'previsioni del tempo a'
-            ]);
-            classifier.train('date', [
-                'che giorno è',
-                'dimmi la data',
-                'che ore sono',
-                'data e ora'
-            ]);
-            classifier.train('news', [
-                'ultime notizie',
-                'dammi le news',
-                'leggi le notizie'
-            ]);
-            classifier.train('help', [
-                'aiuto',
-                'mostrami i comandi',
-                'cosa posso fare'
-            ]);
-            classifier.train('wiki', [
-                'cerca su wikipedia',
-                'cosa è',
-                'chi è',
-                'dimmi di'
-            ]);
+        const nerManager = {
+            extractEntities: function(text, intent) {
+                if (intent === 'weather') {
+                    const match = text.match(/(?:a|per|di|a)\s(.+)/i);
+                    if (match && match[1]) return { value: `"${match[1].trim().replace('?','')}"`, type: 'LOCATION' };
+                } else if (intent === 'wiki') {
+                    const match = text.match(/(?:è|e'|di|su)\s(.+)/i);
+                     if (match && match[1]) return { value: `"${match[1].trim().replace('?','')}"`, type: 'TOPIC' };
+                }
+                return null; // No entity found
+            }
+        };
+
+        function initializeNLU() {
+            classifier.train('weather', ['che tempo fa a', 'meteo per', 'previsioni del tempo a']);
+            classifier.train('date', ['che giorno è', 'dimmi la data', 'che ore sono', 'data e ora']);
+            classifier.train('news', ['ultime notizie', 'dammi le news', 'leggi le notizie']);
+            classifier.train('help', ['aiuto', 'mostrami i comandi', 'cosa posso fare']);
+            classifier.train('wiki', ['cerca su wikipedia', 'cosa è', 'chi è', 'dimmi di']);
         }
-        // --- End NLP --- 
+        // --- End NLU ---
 
         document.addEventListener('keydown', async function (e) {
             if (isTyping) return;
-
             const key = e.key;
 
             if (key === 'Enter') {
@@ -250,7 +235,6 @@
                     historyIndex = commandHistory.length;
                     addUserMessage(command);
                     commandLine.textContent = '';
-                    
                     isTyping = true;
                     cursor.style.display = 'none';
                     
@@ -292,23 +276,14 @@
             const intent = classifier.classify(input);
             
             if (intent !== 'unknown') {
-                let entity = '';
-                if (intent === 'weather') {
-                     const match = input.match(/(?:a|per|di|a)\\s(.+)/i);
-                     if (match && match[1]) entity = `\"${match[1].trim().replace('?','')}\"`;
-                } else if (intent === 'wiki') {
-                     const match = input.match(/(?:è|e'|di|su)\\s(.+)/i);
-                     if (match && match[1]) entity = `\"${match[1].trim().replace('?','')}\"`;
-                }
+                const entity = nerManager.extractEntities(input, intent);
                 if (entity) {
-                    return `${intent} ${entity}`;
+                    return `${intent} ${entity.value}`;
                 } else {
-                    return intent;
+                    return intent; // Intent recognized, but no entity needed or found
                 }
             }
-
-            // Fallback to original input if no intent is classified
-            return input;
+            return input; // Fallback to original input if no intent is classified
         }
 
         async function handleAutocomplete() {
@@ -380,7 +355,7 @@
         }
         
         function parseCommand(input) {
-            const regex = /[^\\s\\\"']+|\\\"([^\\\"]*)\\\"|'([^']*)'/g;
+            const regex = /[^\s\"']+|\"([^\"]*)\"|'([^']*)'/g;
             const tokens = [];
             let match;
             do {
@@ -438,7 +413,7 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 3.6. Modules: NLP Intent Classifier, API Fetch (Active).');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 3.7. Modules: NLU (Intent Classifier + NER Extractor), API Fetch (Active).');
                     break;
                 case 'date':
                     await typeLorelMessage(new Date().toLocaleString('it-IT'));
@@ -658,10 +633,10 @@
         }
         
         window.onload = async () => {
-            initializeClassifier();
+            initializeNLU();
             isTyping = true;
             cursor.style.display = 'none';
-            await typeLorelMessage("Interfaccia v3.6. Classificatore di intenti attivo. Prova a chiedere 'dimmi le notizie' o 'meteo per Milano'.");
+            await typeLorelMessage("Interfaccia v3.7. Motore NLU potenziato con estrazione di entità. Prova a chiedere 'cosa è l'intelligenza artificiale?'.");
             isTyping = false;
             cursor.style.display = 'inline-block';
         }
