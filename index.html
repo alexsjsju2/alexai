@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V5.0 // DYNAMIC TITLE</title>
+    <title>LOREL AXUN V5.1 // UNIFIED CURSOR BLINK</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -131,8 +131,7 @@
             vertical-align: middle;
         }
         @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
+            50% { opacity: 0.0; }
         }
 
         /* Scrollbar styling */
@@ -187,7 +186,7 @@
 </head>
 <body class="crt">
     <div class="terminal-container" id="terminal-container">
-        <h1 class="glitch" data-text="Lorel Axun v5.0"><span id="typewriter-title"></span></h1>
+        <h1 class="glitch" data-text="Lorel Axun v5.1"><span id="typewriter-title"></span></h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
@@ -198,7 +197,8 @@
         <div class="sys-msg">[AESTHETICS] Lorel's messages now feature a typewriter effect with synchronized audio.</div>
         <div class="sys-msg">[SYSTEM] Advanced command parser implemented. Now supports quoted arguments and flags.</div>
         <div class="sys-msg">[AESTHETICS] Title animation upgraded to a dynamic, cyclical typewriter effect.</div>
-        
+        <div class="sys-msg">[OPTIMIZATION] Blinking cursor animation refined for code simplicity and efficiency.</div>
+
         <div id="chat-history" class="chat-history"></div>
 
         <div class="input-line" id="input-line">
@@ -207,7 +207,7 @@
         </div>
     </div>
     <div class="status-bar">
-        <span>LOREL AXUN v5.0</span>
+        <span>LOREL AXUN v5.1</span>
         <span>STATUS: <span style="animation: blinker 1s linear infinite;">ONLINE</span></span>
         <span id="clock"></span>
     </div>
@@ -232,7 +232,7 @@
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v5.0",
+                "Lorel Axun v5.1",
                 "Status: ONLINE",
                 "System nominal.",
                 "Awaiting input..."
@@ -551,7 +551,7 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 5.0. Modules: Dynamic Title, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 5.1. Modules: Dynamic Title, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
                     break;
                 case 'date':
                     await typeLorelMessage(new Date().toLocaleString('it-IT'));
@@ -825,7 +825,7 @@
             isTyping = true;
             cursor.style.display = 'none';
             if (!localStorage.getItem('chatHistory')) {
-                await typeLorelMessage("Interfaccia v5.0. Il titolo ora riflette il mio stato di attività continuo.");
+                await typeLorelMessage("Interfaccia v5.1. L'animazione del cursore è stata unificata e ottimizzata per una maggiore coerenza estetica.");
                 saveChatHistory();
             }
             isTyping = false;
