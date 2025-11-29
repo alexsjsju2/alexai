@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V4.0 // TYPING INDICATOR</title>
+    <title>LOREL AXUN V4.1 // LIVE INPUT RECOGNITION</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -100,7 +100,13 @@
         }
 
         .input-line { display: flex; align-items: center; border-top: 1px solid var(--term-dim); padding-top: 15px;}
-        .prompt { margin-right: 10px; color: var(--term-green); }
+        .prompt { margin-right: 10px; color: var(--term-green); transition: color 0.3s; }
+        .prompt.listening::after {
+            content: '_';
+            animation: cursor-blink 0.8s step-end infinite;
+            padding-left: 5px;
+            color: var(--term-dim);
+        }
         
         #command-line {
             outline: none;
@@ -196,12 +202,12 @@
 </head>
 <body class="crt">
     <div class="terminal-container" id="terminal-container">
-        <h1 class="glitch" data-text="Lorel Axun v4.0 _">Lorel Axun v4.0 _</h1>
+        <h1 class="glitch" data-text="Lorel Axun v4.1 _">Lorel Axun v4.1 _</h1>
         
         <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
         <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
-        <div class="sys-msg">[UPDATE] Typing indicator implemented. Dynamic feedback enhanced.</div>
-        <div class="sys-msg">[AESTHETICS] Interactive choreography refined.</div>
+        <div class="sys-msg">[UPDATE] Live input recognition implemented. Prompt is now responsive to user activity.</div>
+        <div class="sys-msg">[AESTHETICS] Symbiotic awareness engaged.</div>
         
         <div id="chat-history" class="chat-history"></div>
 
@@ -211,7 +217,7 @@
         </div>
     </div>
     <div class="status-bar">
-        <span>LOREL AXUN v4.0</span>
+        <span>LOREL AXUN v4.1</span>
         <span>STATUS: <span style="animation: blinker 1s linear infinite;">ONLINE</span></span>
         <span id="clock"></span>
     </div>
@@ -222,10 +228,12 @@
         const terminalContainer = document.getElementById('terminal-container');
         const cursor = document.getElementById('cursor');
         const clock = document.getElementById('clock');
+        const prompt = document.querySelector('.prompt');
 
         let isTyping = false;
         let commandHistory = [];
         let historyIndex = -1;
+        let activityTimeout;
 
         const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear'];
         const commandArgs = {};
@@ -288,8 +296,17 @@
             if (isTyping) return;
             const key = e.key;
 
+            clearTimeout(activityTimeout);
+            if (key !== 'Enter') {
+                prompt.classList.add('listening');
+                activityTimeout = setTimeout(() => {
+                    prompt.classList.remove('listening');
+                }, 1500);
+            }
+
             if (key === 'Enter') {
                 e.preventDefault();
+                prompt.classList.remove('listening');
                 const userInput = commandLine.textContent.trim();
                 if (userInput) {
                     if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== userInput) {
@@ -419,7 +436,7 @@
         }
         
         function parseCommand(input) {
-            const regex = /[^\\s\\"']+|\\"([^\\\"]*)\\"|'([^']*)'/g;
+            const regex = /[^\\s\"']+|\"([^\"]*)\"|'([^']*)'/g;
             const tokens = [];
             let match;
             do {
@@ -477,7 +494,7 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 4.0. Modules: NLU, API Fetch, Dynamic Feedback (Typing Indicator).');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 4.1. Modules: NLU, API Fetch, Symbiotic Feedback.');
                     break;
                 case 'date':
                     await typeLorelMessage(new Date().toLocaleString('it-IT'));
@@ -731,7 +748,7 @@
             setInterval(updateClock, 1000);
             isTyping = true;
             cursor.style.display = 'none';
-            await typeLorelMessage("Interfaccia v4.0. L'indicatore di scrittura è ora attivo. Il feedback dinamico dell'interazione è migliorato.");
+            await typeLorelMessage("Interfaccia v4.1. L'ascolto attivo è ora online. L'interfaccia risponde all'input in tempo reale.");
             isTyping = false;
             cursor.style.display = 'inline-block';
         }
