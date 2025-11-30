@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V5.9 // REAL-TIME LEXICAL ANALYSIS</title>
+    <title>LOREL AXUN V6.0 // PREDICTIVE ASSISTANCE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -265,7 +265,7 @@
         <div class="screen crt">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v5.9"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v6.0"><span id="typewriter-title"></span></h1>
                 
                 <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
                 <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
@@ -282,6 +282,7 @@
                 <div class="sys-msg">[AESTHETICS] Added moving scanline effect to simulate CRT refresh cycle.</div>
                 <div class="sys-msg">[INTEGRATION] User input now handled by a robust, invisible `<input>` for improved compatibility.</div>
                 <div class="sys-msg">[LEXICAL ANALYSIS] User command syntax is now highlighted in real-time for instant feedback.</div>
+                <div class="sys-msg">[ASSISTANCE] Command autocompletion (Tab key) is now active for predictive input.</div>
 
                 <div id="chat-history" class="chat-history"></div>
 
@@ -292,7 +293,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v5.9</span>
+                <span>LOREL AXUN v6.0</span>
                 <span>STATUS: <span style="animation: blinker 1s linear infinite;">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -324,9 +325,9 @@
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v5.9",
+                "Lorel Axun v6.0",
                 "Status: ONLINE",
-                "Real-time Lexical Analysis",
+                "Predictive Assistance",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -416,13 +417,13 @@
                     const match = text.match(/(?:a|per|di|a)\\s(.+)/i);
                     if (match && match[1]) {
                         const entityText = match[1].trim().replace('?','');
-                        return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'LOCATION' };
+                        return { value: `\\\"${entityText}\\"`, text: entityText, type: 'LOCATION' };
                     }
                 } else if (intent === 'wiki') {
                     const match = text.match(/(?:è|e'|di|su)\\s(.+)/i);
                      if (match && match[1]) {
                         const entityText = match[1].trim().replace('?','');
-                        return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'TOPIC' };
+                        return { value: `\\\"${entityText}\\"`, text: entityText, type: 'TOPIC' };
                      }
                 }
                 return null; // No entity found
@@ -558,10 +559,9 @@
         async function handleAutocomplete() {
             const currentInput = hiddenInput.value;
             const parts = currentInput.split(' ');
-            const command = parts[0];
             const lastPart = parts[parts.length - 1];
 
-            if (parts.length === 1) {
+            if (parts.length === 1 && lastPart.length > 0) {
                 const matches = availableCommands.filter(cmd => cmd.startsWith(lastPart));
                 if (matches.length === 1) {
                     hiddenInput.value = matches[0] + ' ';
@@ -570,38 +570,6 @@
                     await typeLorelMessage(`Possibili comandi: ${matches.join('  ')}`);
                 }
                 return;
-            }
-
-            if (command === 'weather' && parts.length > 1) {
-                const currentArg = parts[parts.length - 1];
-                if (currentArg.length < 2) {
-                    await typeLorelMessage('Digita almeno 2 caratteri per la ricerca della città.');
-                    return;
-                }
-                const suggestions = await fetchCitySuggestions(currentArg);
-                if (suggestions.length === 1) {
-                    parts[parts.length - 1] = suggestions[0];
-                    hiddenInput.value = parts.join(' ') + ' ';
-                    hiddenInput.dispatchEvent(new Event('input'));
-                } else if (suggestions.length > 1) {
-                    await typeLorelMessage(`Suggerimenti: ${suggestions.join('  ')}`);
-                } else {
-                    await typeLorelMessage('Nessuna città trovata.');
-                }
-                return;
-            }
-
-            if (commandArgs[command]) {
-                const argSuggestions = commandArgs[command];
-                const currentArg = parts.length > 1 ? lastPart : '';
-                const matches = argSuggestions.filter(arg => arg.toLowerCase().startsWith(currentArg.toLowerCase()));
-                if (matches.length === 1) {
-                    parts[parts.length - 1] = matches[0];
-                    hiddenInput.value = parts.join(' ') + ' ';
-                    hiddenInput.dispatchEvent(new Event('input'));
-                } else if (matches.length > 1) {
-                    await typeLorelMessage(`Suggerimenti: ${matches.join('  ')}`);
-                }
             }
         }
 
@@ -685,7 +653,7 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 5.9. Modules: Real-time Lexical Analysis, Robust Input Integration, Dynamic Refresh Simulation, Physical Encapsulation, Chromatic Aberration, Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 6.0. Modules: Predictive Assistance, Real-time Lexical Analysis, Robust Input Integration, Dynamic Refresh Simulation, Physical Encapsulation, Chromatic Aberration, Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
                     break;
                 case 'date':
                     await typeLorelMessage(new Date().toLocaleString('it-IT'));
@@ -934,7 +902,7 @@
             isTyping = true;
             cursor.style.display = 'none';
             if (!localStorage.getItem('chatHistory')) {
-                await typeLorelMessage("Interfaccia v5.9. L'analisi lessicale in tempo reale è ora attiva: i comandi validi vengono evidenziati durante la digitazione.");
+                await typeLorelMessage("Interfaccia v6.0. L'assistenza predittiva è ora attiva: premi 'Tab' per completare un comando.");
             }
             isTyping = false;
             cursor.style.display = 'inline-block';
