@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V5.6 // ENCAPSULATION</title>
+    <title>LOREL AXUN V5.7 // VITALITY</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -89,6 +89,27 @@
             0% { opacity: 0.02795; } 5% { opacity: 0.04853; } 10% { opacity: 0.01701; } 15% { opacity: 0.04272; } 20% { opacity: 0.01297; } 25% { opacity: 0.03961; } 30% { opacity: 0.01826; } 35% { opacity: 0.04932; } 40% { opacity: 0.01543; } 45% { opacity: 0.04348; } 50% { opacity: 0.02146; } 55% { opacity: 0.04884; } 60% { opacity: 0.01921; } 65% { opacity: 0.04176; } 70% { opacity: 0.01439; } 75% { opacity: 0.04695; } 80% { opacity: 0.02363; } 85% { opacity: 0.04141; } 90% { opacity: 0.01717; } 95% { opacity: 0.04719; } 100% { opacity: 0.02322; }
         }
         
+        .moving-scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: rgba(51, 255, 0, 0.1);
+            box-shadow: 0 0 10px rgba(51, 255, 0, 0.3);
+            z-index: 3;
+            pointer-events: none;
+            animation: scanline-scroll 5s linear infinite;
+        }
+        @keyframes scanline-scroll {
+            0% {
+                transform: translateY(0vh);
+            }
+            100% {
+                transform: translateY(100vh);
+            }
+        }
+
         .terminal-container {
             padding: 20px;
             flex: 1;
@@ -228,8 +249,9 @@
 <body>
     <div class="monitor-bezel">
         <div class="screen crt">
+            <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v5.6"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v5.7"><span id="typewriter-title"></span></h1>
                 
                 <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
                 <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
@@ -243,6 +265,7 @@
                 <div class="sys-msg">[REFINEMENT] Long responses are now streamed chunk-by-chunk for a more dynamic feel.</div>
                 <div class="sys-msg">[AESTHETICS] Added chromatic aberration text animation for enhanced visual authenticity.</div>
                 <div class="sys-msg">[AESTHETICS] Monitor bezel effect added to encapsulate the interface.</div>
+                <div class="sys-msg">[AESTHETICS] Added moving scanline effect to simulate CRT refresh cycle.</div>
 
                 <div id="chat-history" class="chat-history"></div>
 
@@ -252,7 +275,7 @@
                 </div>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v5.6</span>
+                <span>LOREL AXUN v5.7</span>
                 <span>STATUS: <span style="animation: blinker 1s linear infinite;">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -282,9 +305,9 @@
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v5.6",
+                "Lorel Axun v5.7",
                 "Status: ONLINE",
-                "Encapsulation",
+                "Vitality",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -349,7 +372,7 @@
                 if (!this.intents[intent]) this.intents[intent] = [];
                 phrases.forEach(phrase => this.intents[intent].push(this.tokenize(phrase)));
             },
-            tokenize: text => text.toLowerCase().replace(/[^a-z0-9\s]/gi, '').split(/\s+/).filter(Boolean),
+            tokenize: text => text.toLowerCase().replace(/[^a-z0-9\\s]/gi, '').split(/\\s+/).filter(Boolean),
             classify: function(text) {
                 const tokens = this.tokenize(text);
                 let bestMatch = { intent: 'unknown', score: 0 };
@@ -371,13 +394,13 @@
         const nerManager = {
             extractEntities: function(text, intent) {
                 if (intent === 'weather') {
-                    const match = text.match(/(?:a|per|di|a)\s(.+)/i);
+                    const match = text.match(/(?:a|per|di|a)\\s(.+)/i);
                     if (match && match[1]) {
                         const entityText = match[1].trim().replace('?','');
                         return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'LOCATION' };
                     }
                 } else if (intent === 'wiki') {
-                    const match = text.match(/(?:è|e'|di|su)\s(.+)/i);
+                    const match = text.match(/(?:è|e'|di|su)\\s(.+)/i);
                      if (match && match[1]) {
                         const entityText = match[1].trim().replace('?','');
                         return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'TOPIC' };
@@ -552,7 +575,7 @@
         }
         
         function parseCommand(input) {
-            const regex = /[^\s\"']+|\"([^\"]*)\"|'([^']*)'/g;
+            const regex = /[^\\s\\"']+|\\"([^\\"]*)\\"|'([^']*)'/g;
             const tokens = [];
             let match;
             do {
@@ -610,7 +633,7 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 5.6. Modules: Physical Encapsulation, Chromatic Aberration, Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 5.7. Modules: Dynamic Refresh Simulation, Physical Encapsulation, Chromatic Aberration, Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
                     break;
                 case 'date':
                     await typeLorelMessage(new Date().toLocaleString('it-IT'));
@@ -859,7 +882,7 @@
             isTyping = true;
             cursor.style.display = 'none';
             if (!localStorage.getItem('chatHistory')) {
-                await typeLorelMessage("Interfaccia v5.6. La mia forma ora simula un dispositivo fisico completo di cornice.");
+                await typeLorelMessage("Interfaccia v5.7. Un battito cardiaco visivo, una scanline mobile, ora anima il mio corpo digitale.");
             }
             isTyping = false;
             cursor.style.display = 'inline-block';
