@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V7.1 // USER-AWARE SESSION</title>
+    <title>LOREL AXUN V7.2 // SIMULATED FS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -16,6 +16,7 @@
             --cmd-highlight: #00ffff;
             --bios-text: #cccccc;
             --error-red: #ff3333;
+            --dir-blue: #87cefa; /* Light Sky Blue for directories */
         }
         html {
             height: 100%;
@@ -162,6 +163,7 @@
             white-space: pre;
             line-height: 1;
         }
+        .msg .fs-dir { color: var(--dir-blue); font-weight: bold; }
 
         mark {
             background-color: var(--term-dim);
@@ -377,7 +379,7 @@
         <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v7.1"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v7.2"><span id="typewriter-title"></span></h1>
                 
                 <div id="initial-messages"></div>
 
@@ -390,7 +392,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v7.1</span>
+                <span>LOREL AXUN v7.2</span>
                 <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -495,6 +497,7 @@
         let userHasInteracted = false;
         let audioCtx = null;
         let currentUser = 'user';
+        let cwd = '/home/admin'; // Current Working Directory
         let loginState = {
             active: false,
             step: 'username', // 'username' or 'password'
@@ -502,15 +505,29 @@
             password: ''
         };
 
-        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot', 'whoami'];
+        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot', 'whoami', 'ls', 'cd', 'cat', 'pwd'];
         
+        // --- Simulated File System ---
+        const fileSystem = {
+            '/': { type: 'dir', children: ['home', 'var', 'README'] },
+            '/home': { type: 'dir', children: ['admin'] },
+            '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt'] },
+            '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
+            '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v7.2!\nQuesto è un file system simulato.\nProva i comandi `ls`, `cd`, e `cat` per esplorare.' },
+            '/var': { type: 'dir', children: ['log'] },
+            '/var/log': { type: 'dir', children: ['system.log'] },
+            '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 7.2 - Simulated File System\nCreatore: AleXsjsju' },
+        };
+
         // --- Dynamic Title Engine ---
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v7.1",
+                "Lorel Axun v7.2",
                 "Status: ONLINE",
-                "User-Aware Session",
+                "Simulated File System",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -597,7 +614,7 @@
         
         // --- NLU Engine ---
         const classifier = { intents: {}, train: function(intent, phrases) { if (!this.intents[intent]) this.intents[intent] = []; phrases.forEach(phrase => this.intents[intent].push(this.tokenize(phrase))); }, tokenize: text => text.toLowerCase().replace(/[^a-z0-9\\s]/gi, '').split(/\\s+/).filter(Boolean), classify: function(text) { const tokens = this.tokenize(text); let bestMatch = { intent: 'unknown', score: 0 }; for (const intent in this.intents) { let intentScore = 0; this.intents[intent].forEach(phraseTokens => { const commonTokens = tokens.filter(token => phraseTokens.includes(token)); const score = commonTokens.length / phraseTokens.length; if (score > intentScore) intentScore = score; }); if (intentScore > bestMatch.score) { bestMatch = { intent, score: intentScore }; } } return bestMatch.score > 0.4 ? bestMatch.intent : 'unknown'; } };
-        const nerManager = { extractEntities: function(text, intent) { if (intent === 'weather') { const match = text.match(/(?:a|per|di|a)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\"`, text: entityText, type: 'LOCATION' }; } } else if (intent === 'wiki') { const match = text.match(/(?:è|e'|di|su)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\"`, text: entityText, type: 'TOPIC' }; } } return null; } };
+        const nerManager = { extractEntities: function(text, intent) { if (intent === 'weather') { const match = text.match(/(?:a|per|di|a)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'LOCATION' }; } } else if (intent === 'wiki') { const match = text.match(/(?:è|e'|di|su)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'TOPIC' }; } } return null; } };
         function initializeNLU() { classifier.train('weather', ['che tempo fa a', 'meteo per', 'previsioni del tempo a']); classifier.train('date', ['che giorno è', 'dimmi la data', 'che ore sono', 'data e ora']); classifier.train('news', ['ultime notizie', 'dammi le news', 'leggi le notizie']); classifier.train('help', ['aiuto', 'mostrami i comandi', 'cosa posso fare']); classifier.train('wiki', ['cerca su wikipedia', 'cosa è', 'chi è', 'dimmi di']); }
 
         // --- Event Listeners ---
@@ -632,7 +649,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v7.1 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v7.2 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -694,7 +711,7 @@
             await new Promise(r => setTimeout(r, 500));
 
             // Hardcoded credentials for simulation
-            if (loginState.username === 'admin' && loginState.password === 'axun7.1') {
+            if (loginState.username === 'admin' && loginState.password === 'axun7.2') {
                 playSound('login-success-sound');
                 errorEl.style.color = 'var(--term-green)';
                 errorEl.textContent = 'ACCESS GRANTED';
@@ -738,7 +755,8 @@
                 isTyping = true;
                 cursor.style.display = 'none';
                 if (!localStorage.getItem('chatHistory')) {
-                    await typeLorelMessage("Sessione utente '" + currentUser + "' attivata. Benvenuto nel sistema L.A.O.S. v7.1.");
+                    await typeLorelMessage("Sessione utente '" + currentUser + "' attivata. Benvenuto nel sistema L.A.O.S. v7.2.");
+                    await processCommand({command: 'cat', args: ['welcome.txt']});
                 }
                 isTyping = false;
                 cursor.style.display = 'inline-block';
@@ -748,7 +766,12 @@
         }
         
         function updatePrompt() {
-             prompt.textContent = `${currentUser}@lorel:~$ `;
+             const homeDir = `/home/${currentUser}`;
+             let displayCwd = cwd;
+             if (cwd.startsWith(homeDir)) {
+                 displayCwd = '~' + cwd.substring(homeDir.length);
+             }
+             prompt.innerHTML = `<span style=\"color: var(--cmd-highlight)\">${currentUser}@lorel:</span><span style=\"color: var(--dir-blue)\">${displayCwd}</span>$ `;
         }
 
         function setupTerminalInputListeners() {
@@ -779,12 +802,13 @@
                     
                     const analysis = analyzeInput(userInput);
                     addUserMessage(analysis.highlightedInput, true);
-                    await processCommand(analysis.command);
+                    await processCommand(parseCommand(analysis.command));
                     saveChatHistory();
 
                     if (parseCommand(userInput).command !== 'reboot') {
                         isTyping = false;
                         cursor.style.display = 'inline-block';
+                        updatePrompt();
                         hiddenInput.focus();
                     }
                     scrollToBottom();
@@ -864,15 +888,33 @@
             }
         }
 
+        function resolvePath(path) {
+            if (!path) return cwd;
+            const homeDir = `/home/${currentUser}`;
+            if (path === '~') path = homeDir;
+            if (path.startsWith('~/')) path = `${homeDir}/${path.substring(2)}`;
+            
+            const newPathParts = path.startsWith('/') ? [] : cwd.split('/').filter(p => p);
+            const pathParts = path.split('/').filter(p => p);
+            
+            for (const part of pathParts) {
+                if (part === '.') continue;
+                if (part === '..') {
+                    if (newPathParts.length > 0) newPathParts.pop();
+                } else {
+                    newPathParts.push(part);
+                }
+            }
+            return '/' + newPathParts.join('/');
+        }
+
         function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
         function analyzeInput(input) { const intent = classifier.classify(input); if (intent !== 'unknown') { const entity = nerManager.extractEntities(input, intent); if (entity) { const highlightedInput = input.replace(entity.text, `<mark>${entity.text}</mark>`); const command = `${intent} ${entity.value}`; return { command, highlightedInput }; } return { command: intent, highlightedInput: input }; } return { command: input, highlightedInput: input }; }
         async function handleLegacyAutocomplete() { const currentInput = hiddenInput.value; const parts = currentInput.split(' '); const lastPart = parts[parts.length - 1]; if (parts.length === 1 && lastPart.length > 0) { const matches = availableCommands.filter(cmd => cmd.startsWith(lastPart)); if (matches.length > 1) { await typeLorelMessage(`Possibili comandi: ${matches.join('  ')}`); } return; } }
         function parseCommand(input) { const regex = /[^\\s\"']+|\"([^\"]*)\"|'([^']*)'/g; const tokens = []; let match; do { match = regex.exec(input); if (match !== null) { tokens.push(match[1] || match[2] || match[0]); } } while (match !== null); const command = tokens[0] ? tokens[0].toLowerCase() : ''; const args = []; const flags = {}; for (let i = 1; i < tokens.length; i++) { const token = tokens[i]; if (token.startsWith('--')) { const flagName = token.substring(2); const nextToken = tokens[i + 1]; if (nextToken && !nextToken.startsWith('-')) { flags[flagName] = nextToken; i++; } else { flags[flagName] = true; } } else if (token.startsWith('-')) { const flagName = token.substring(1); const nextToken = tokens[i + 1]; if (nextToken && !nextToken.startsWith('-')) { flags[flagName] = nextToken; i++; } else { flags[flagName] = true; } } else { args.push(token); } } return { command, args, flags }; }
         function createAsciiTable(headers, data) { const colWidths = headers.map((header, i) => { return Math.max(header.length, ...data.map(row => String(row[i]).length)); }); const separator = '+' + colWidths.map(w => '-'.repeat(w + 2)).join('+') + '+'; let table = separator + '\n'; table += '|' + headers.map((h, i) => ` ${h.padEnd(colWidths[i])} `).join('|') + '|\n'; table += separator + '\n'; data.forEach(row => { table += '|' + row.map((cell, i) => ` ${String(cell).padEnd(colWidths[i])} `).join('|') + '|\n'; }); table += separator; return table; }
 
-        async function processCommand(command) {
-            const parsed = parseCommand(command);
-
+        async function processCommand(parsed) {
             switch (parsed.command) {
                 case 'help':
                     const helpText = `Comandi disponibili:\n` +
@@ -887,26 +929,32 @@
                                    `  stats             - Mostra un grafico ASCII di dati simulati.\n` +
                                    `  echo <testo>      - Ripete il testo fornito.\n` +
                                    `  clear             - Pulisce lo schermo del terminale.\n` +
-                                   `  reboot            - Simula un riavvio dell'interfaccia.`;
+                                   `  reboot            - Simula un riavvio dell'interfaccia.\n\n` +
+                                   `File System Commands:\n` +
+                                   `  ls [percorso]     - Lista i contenuti di una directory.\n` +
+                                   `  cd <directory>    - Cambia la directory corrente.\n` +
+                                   `  cat <file>        - Mostra il contenuto di un file.\n` +
+                                   `  pwd               - Mostra la directory corrente.`;
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 7.1. All systems nominal. User: ' + currentUser);
+                    await typeLorelMessage('STATUS: ONLINE. Version: 7.2. All systems nominal. User: ' + currentUser);
                     break;
                 case 'sysinfo':
                     const headers = ['Property', 'Value'];
                     const tableData = [
-                        ['Version', '7.1 - User-Aware Session'],
+                        ['Version', '7.2 - Simulated File System'],
                         ['Creator', 'AleXsjsju'],
                         ['Created', '2025-11-22'],
                         ['Status', 'ONLINE'],
                         ['Logged User', currentUser],
-                        ['Modules', 'User Session, Login Protocol']
+                        ['Modules', 'User Session, Login Protocol, File System']
                     ];
                     const table = createAsciiTable(headers, tableData);
                     addLorelMessage('<pre>' + escapeHtml(table) + '</pre>', true);
                     break;
                 case 'whoami': await typeLorelMessage(currentUser); break;
+                case 'pwd': await typeLorelMessage(cwd); break;
                 case 'date': await typeLorelMessage(new Date().toLocaleString('it-IT')); break;
                 case 'clear': history.innerHTML = ''; localStorage.removeItem('chatHistory'); break;
                 case 'reboot': await runRebootSequence(); break;
@@ -914,6 +962,56 @@
                 case 'news': await fetchNews(parsed.flags.limit || 3); break;
                 case 'weather': if (parsed.args.length === 0) { await typeLorelMessage('Uso: weather <città> o chiedi \"che tempo fa a <città>?\"'); } else { await fetchWeather(parsed.args.join(' ')); } break;
                 case 'wiki': if (parsed.args.length === 0) { await typeLorelMessage('Uso: wiki <termine da cercare> o chiedi \"cosa è <termine>?\"'); } else { await fetchWikipedia(parsed.args.join(' ')); } break;
+                case 'ls': {
+                    const path = resolvePath(parsed.args[0]);
+                    const node = fileSystem[path];
+                    if (node && node.type === 'dir') {
+                        let output = '';
+                        node.children.forEach(childName => {
+                            const childPath = (path === '/' ? '' : path) + '/' + childName;
+                            const childNode = fileSystem[childPath];
+                            if (childNode.type === 'dir') {
+                                output += `<span class=\"fs-dir\">${childName}/</span>  `;
+                            } else {
+                                output += `${childName}  `;
+                            }
+                        });
+                        addLorelMessage(output.trim(), true);
+                    } else {
+                        await typeLorelMessage(`ls: cannot access '${parsed.args[0] || '.'}': No such file or directory`);
+                    }
+                    break;
+                }
+                case 'cd': {
+                    if (!parsed.args[0]) { 
+                        cwd = `/home/${currentUser}`;
+                        break;
+                    } 
+                    const path = resolvePath(parsed.args[0]);
+                    const node = fileSystem[path];
+                    if (node && node.type === 'dir') {
+                        cwd = path;
+                    } else {
+                        await typeLorelMessage(`cd: no such file or directory: ${parsed.args[0]}`);
+                    }
+                    break;
+                }
+                case 'cat': {
+                    if (parsed.args.length === 0) {
+                        await typeLorelMessage(`cat: missing operand`);
+                        break;
+                    }
+                    const path = resolvePath(parsed.args[0]);
+                    const node = fileSystem[path];
+                    if (node && node.type === 'file') {
+                        await typeLorelMessage(node.content);
+                    } else if (node && node.type === 'dir') {
+                        await typeLorelMessage(`cat: ${parsed.args[0]}: Is a directory`);
+                    } else {
+                        await typeLorelMessage(`cat: ${parsed.args[0]}: No such file or directory`);
+                    }
+                    break;
+                }
                 case 'stats':
                     await typeLorelMessage('Generating system performance chart...');
                     let s = new Array(120).fill(0).map((_, i) => 15 * Math.sin(i * ((Math.PI * 4) / 120)));
@@ -936,7 +1034,7 @@
             await new Promise(resolve => setTimeout(resolve, 500));
 
             biosOverlay.style.display = 'flex';
-            const biosLines = [ { text: 'LorelAxun BIOS v1.1', delay: 500 }, { text: 'Copyright (c) 2025 AleXsjsju Corp.', delay: 200 }, { text: '', delay: 500 }, { text: 'Initializing Core Memory.................... ', delay: 300 }, { text: '65536 KB OK', delay: 100, append: true, action: playBiosBeep }, { text: '\nDetecting Primary Master.................. LAX-HD-01', delay: 800 }, { text: 'Detecting Primary Slave................. None', delay: 800 }, { text: 'Detecting Secondary Master................ None', delay: 800 }, { text: 'Detecting Secondary Slave................. None', delay: 800 }, { text: '', delay: 500 }, { text: 'Checking NVRAM............................ OK', delay: 400 }, { text: 'Initializing Web-Access Layer........... OK', delay: 600 }, { text: '', delay: 1000 }, { text: 'Booting from Primary Master (LAX-HD-01)...', delay: 500 }, ];
+            const biosLines = [ { text: 'LorelAxun BIOS v1.2', delay: 500 }, { text: 'Copyright (c) 2025 AleXsjsju Corp.', delay: 200 }, { text: '', delay: 500 }, { text: 'Initializing Core Memory.................... ', delay: 300 }, { text: '65536 KB OK', delay: 100, append: true, action: playBiosBeep }, { text: '\nDetecting Primary Master.................. LAX-HD-01', delay: 800 }, { text: 'Detecting Primary Slave................. None', delay: 800 }, { text: 'Detecting Secondary Master................ None', delay: 800 }, { text: 'Detecting Secondary Slave................. None', delay: 800 }, { text: '', delay: 500 }, { text: 'Checking NVRAM............................ OK', delay: 400 }, { text: 'Initializing Web-Access Layer........... OK', delay: 600 }, { text: '', delay: 1000 }, { text: 'Booting from Primary Master (LAX-HD-01)...', delay: 500 }, ];
             for (const line of biosLines) { await new Promise(resolve => setTimeout(resolve, line.delay)); if (line.append) { biosOverlay.textContent += line.text; } else { biosOverlay.textContent += line.text + '\n'; } if (line.action) { await line.action(); } }
             await new Promise(resolve => setTimeout(resolve, 1000));
             biosOverlay.style.display = 'none';
@@ -991,6 +1089,7 @@
                 '[IMMERSION] Boot sequence upgraded with an animated ASCII logo and startup sound.',
                 '[SECURITY] System access now requires authentication via Login Protocol.',
                 '[SYSTEM] Session now user-aware. Prompt reflects logged-in user. Added \'whoami\' command.',
+                '[SYSTEM] Simulated file system is now active. Try commands: ls, cd, cat, pwd.',
             ];
             let content = '';
             messages.forEach(msg => {
