@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V5.8 // INTEGRATION</title>
+    <title>LOREL AXUN V5.9 // REAL-TIME LEXICAL ANALYSIS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -13,6 +13,7 @@
             --term-green: #33ff00;
             --term-dim: #1a8000;
             --term-glow: #33ff0080;
+            --cmd-highlight: #00ffff;
         }
         html {
             height: 100%;
@@ -165,6 +166,11 @@
             padding-left: 5px;
             color: var(--term-dim);
         }
+
+        #command-line .command-known {
+            color: var(--cmd-highlight);
+            font-weight: bold;
+        }
         
         #hidden-input {
             position: absolute;
@@ -234,13 +240,7 @@
         }
 
         @keyframes text-flicker {
-            0% { text-shadow: 1px 0 0 red, -1px 0 0 cyan, 0 0 5px var(--term-glow); }
-            15% { text-shadow: 1.5px 0 0 red, -1.5px 0 0 cyan, 0 0 5px var(--term-glow); }
-            30% { text-shadow: -1px 0 0 red, 1px 0 0 cyan, 0 0 5px var(--term-glow); }
-            45% { text-shadow: -1.5px 0 0 red, 1.5px 0 0 cyan, 0 0 5px var(--term-glow); }
-            60% { text-shadow: 0.5px 0.5px 0 red, -0.5px -0.5px 0 cyan, 0 0 5px var(--term-glow); }
-            75% { text-shadow: 1px 0 0 red, -1px 0 0 cyan, 0 0 5px var(--term-glow); }
-            100% { text-shadow: 1px 0 0 red, -1px 0 0 cyan, 0 0 5px var(--term-glow); }
+            0% { text-shadow: 1px 0 0 red, -1px 0 0 cyan, 0 0 5px var(--term-glow); }            15% { text-shadow: 1.5px 0 0 red, -1.5px 0 0 cyan, 0 0 5px var(--term-glow); }            30% { text-shadow: -1px 0 0 red, 1px 0 0 cyan, 0 0 5px var(--term-glow); }            45% { text-shadow: -1.5px 0 0 red, 1.5px 0 0 cyan, 0 0 5px var(--term-glow); }            60% { text-shadow: 0.5px 0.5px 0 red, -0.5px -0.5px 0 cyan, 0 0 5px var(--term-glow); }            75% { text-shadow: 1px 0 0 red, -1px 0 0 cyan, 0 0 5px var(--term-glow); }            100% { text-shadow: 1px 0 0 red, -1px 0 0 cyan, 0 0 5px var(--term-glow); }
         }
 
         .status-bar {
@@ -265,7 +265,7 @@
         <div class="screen crt">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v5.8"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v5.9"><span id="typewriter-title"></span></h1>
                 
                 <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
                 <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
@@ -281,6 +281,7 @@
                 <div class="sys-msg">[AESTHETICS] Monitor bezel effect added to encapsulate the interface.</div>
                 <div class="sys-msg">[AESTHETICS] Added moving scanline effect to simulate CRT refresh cycle.</div>
                 <div class="sys-msg">[INTEGRATION] User input now handled by a robust, invisible `<input>` for improved compatibility.</div>
+                <div class="sys-msg">[LEXICAL ANALYSIS] User command syntax is now highlighted in real-time for instant feedback.</div>
 
                 <div id="chat-history" class="chat-history"></div>
 
@@ -291,7 +292,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v5.8</span>
+                <span>LOREL AXUN v5.9</span>
                 <span>STATUS: <span style="animation: blinker 1s linear infinite;">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -323,9 +324,9 @@
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v5.8",
+                "Lorel Axun v5.9",
                 "Status: ONLINE",
-                "Integration",
+                "Real-time Lexical Analysis",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -415,13 +416,13 @@
                     const match = text.match(/(?:a|per|di|a)\\s(.+)/i);
                     if (match && match[1]) {
                         const entityText = match[1].trim().replace('?','');
-                        return { value: `\\\"${entityText}\\"`, text: entityText, type: 'LOCATION' };
+                        return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'LOCATION' };
                     }
                 } else if (intent === 'wiki') {
                     const match = text.match(/(?:è|e'|di|su)\\s(.+)/i);
                      if (match && match[1]) {
                         const entityText = match[1].trim().replace('?','');
-                        return { value: `\\\"${entityText}\\"`, text: entityText, type: 'TOPIC' };
+                        return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'TOPIC' };
                      }
                 }
                 return null; // No entity found
@@ -443,9 +444,27 @@
         });
 
         hiddenInput.addEventListener('input', () => {
-            commandLine.textContent = hiddenInput.value;
             playKeySound();
+            const inputText = hiddenInput.value;
+            const parts = inputText.split(' ');
+            const command = parts[0].toLowerCase();
+            
+            if (availableCommands.includes(command) && parts[0] !== '') {
+                const remainingText = escapeHtml(parts.slice(1).join(' '));
+                commandLine.innerHTML = `<span class=\"command-known\">${escapeHtml(parts[0])}</span> ${remainingText}`;
+            } else {
+                commandLine.textContent = inputText;
+            }
         });
+
+        function escapeHtml(text) {
+            return text
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
 
         inputForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -500,18 +519,18 @@
                 if (historyIndex > 0) {
                     historyIndex--;
                     hiddenInput.value = commandHistory[historyIndex];
-                    commandLine.textContent = hiddenInput.value;
+                    hiddenInput.dispatchEvent(new Event('input')); // Trigger input event to update highlighting
                 }
             } else if (key === 'ArrowDown') {
                 e.preventDefault();
                 if (historyIndex < commandHistory.length - 1) {
                     historyIndex++;
                     hiddenInput.value = commandHistory[historyIndex];
-                    commandLine.textContent = hiddenInput.value;
+                    hiddenInput.dispatchEvent(new Event('input')); // Trigger input event to update highlighting
                 } else {
                     historyIndex = commandHistory.length;
                     hiddenInput.value = '';
-                    commandLine.textContent = '';
+                    hiddenInput.dispatchEvent(new Event('input')); // Trigger input event to clear highlighting
                 }
             } else if (key === 'Tab') {
                 e.preventDefault();
@@ -546,7 +565,7 @@
                 const matches = availableCommands.filter(cmd => cmd.startsWith(lastPart));
                 if (matches.length === 1) {
                     hiddenInput.value = matches[0] + ' ';
-                    commandLine.textContent = hiddenInput.value;
+                    hiddenInput.dispatchEvent(new Event('input'));
                 } else if (matches.length > 1) {
                     await typeLorelMessage(`Possibili comandi: ${matches.join('  ')}`);
                 }
@@ -563,7 +582,7 @@
                 if (suggestions.length === 1) {
                     parts[parts.length - 1] = suggestions[0];
                     hiddenInput.value = parts.join(' ') + ' ';
-                    commandLine.textContent = hiddenInput.value;
+                    hiddenInput.dispatchEvent(new Event('input'));
                 } else if (suggestions.length > 1) {
                     await typeLorelMessage(`Suggerimenti: ${suggestions.join('  ')}`);
                 } else {
@@ -579,7 +598,7 @@
                 if (matches.length === 1) {
                     parts[parts.length - 1] = matches[0];
                     hiddenInput.value = parts.join(' ') + ' ';
-                    commandLine.textContent = hiddenInput.value;
+                    hiddenInput.dispatchEvent(new Event('input'));
                 } else if (matches.length > 1) {
                     await typeLorelMessage(`Suggerimenti: ${matches.join('  ')}`);
                 }
@@ -666,7 +685,7 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 5.8. Modules: Robust Input Integration, Dynamic Refresh Simulation, Physical Encapsulation, Chromatic Aberration, Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 5.9. Modules: Real-time Lexical Analysis, Robust Input Integration, Dynamic Refresh Simulation, Physical Encapsulation, Chromatic Aberration, Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
                     break;
                 case 'date':
                     await typeLorelMessage(new Date().toLocaleString('it-IT'));
@@ -915,7 +934,7 @@
             isTyping = true;
             cursor.style.display = 'none';
             if (!localStorage.getItem('chatHistory')) {
-                await typeLorelMessage("Interfaccia v5.8. Il mio sistema di input è stato integrato con componenti standard per una maggiore robustezza e accessibilità.");
+                await typeLorelMessage("Interfaccia v5.9. L'analisi lessicale in tempo reale è ora attiva: i comandi validi vengono evidenziati durante la digitazione.");
             }
             isTyping = false;
             cursor.style.display = 'inline-block';
