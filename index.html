@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V7.2 // SIMULATED FS</title>
+    <title>LOREL AXUN V7.3 // NEOFETCH</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -379,7 +379,7 @@
         <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v7.2"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v7.3"><span id="typewriter-title"></span></h1>
                 
                 <div id="initial-messages"></div>
 
@@ -392,7 +392,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v7.2</span>
+                <span>LOREL AXUN v7.3</span>
                 <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -505,7 +505,7 @@
             password: ''
         };
 
-        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot', 'whoami', 'ls', 'cd', 'cat', 'pwd'];
+        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot', 'whoami', 'ls', 'cd', 'cat', 'pwd', 'neofetch'];
         
         // --- Simulated File System ---
         const fileSystem = {
@@ -514,20 +514,20 @@
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt'] },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v7.2!\nQuesto è un file system simulato.\nProva i comandi `ls`, `cd`, e `cat` per esplorare.' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v7.3!\nQuesto è un file system simulato.\nProva i comandi `ls`, `cd`, e `cat` per esplorare.' },
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 7.2 - Simulated File System\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 7.3 - Neofetch\nCreatore: AleXsjsju' },
         };
 
         // --- Dynamic Title Engine ---
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v7.2",
+                "Lorel Axun v7.3",
                 "Status: ONLINE",
-                "Simulated File System",
+                "Neofetch Ready",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -649,7 +649,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v7.2 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v7.3 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -711,7 +711,7 @@
             await new Promise(r => setTimeout(r, 500));
 
             // Hardcoded credentials for simulation
-            if (loginState.username === 'admin' && loginState.password === 'axun7.2') {
+            if (loginState.username === 'admin' && loginState.password === 'axun7.3') {
                 playSound('login-success-sound');
                 errorEl.style.color = 'var(--term-green)';
                 errorEl.textContent = 'ACCESS GRANTED';
@@ -755,8 +755,8 @@
                 isTyping = true;
                 cursor.style.display = 'none';
                 if (!localStorage.getItem('chatHistory')) {
-                    await typeLorelMessage("Sessione utente '" + currentUser + "' attivata. Benvenuto nel sistema L.A.O.S. v7.2.");
-                    await processCommand({command: 'cat', args: ['welcome.txt']});
+                    await typeLorelMessage("Sessione utente '" + currentUser + "' attivata. Benvenuto nel sistema L.A.O.S. v7.3.");
+                    await processCommand({command: 'neofetch', args: []});
                 }
                 isTyping = false;
                 cursor.style.display = 'inline-block';
@@ -921,6 +921,7 @@
                                    `  help              - Mostra questa lista di comandi.\n` +
                                    `  status            - Mostra lo stato attuale del sistema.\n` +
                                    `  sysinfo           - Mostra informazioni di sistema in una tabella.\n` +
+                                   `  neofetch          - Mostra info di sistema con logo ASCII.\n` +
                                    `  date              - Mostra data e ora correnti.\n` +
                                    `  whoami            - Mostra l'utente attualmente loggato.\n` +
                                    `  news [--limit N]  - Recupera N notizie (default 3).\n` +
@@ -938,20 +939,53 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 7.2. All systems nominal. User: ' + currentUser);
+                    await typeLorelMessage('STATUS: ONLINE. Version: 7.3. All systems nominal. User: ' + currentUser);
                     break;
                 case 'sysinfo':
                     const headers = ['Property', 'Value'];
                     const tableData = [
-                        ['Version', '7.2 - Simulated File System'],
+                        ['Version', '7.3 - Neofetch'],
                         ['Creator', 'AleXsjsju'],
                         ['Created', '2025-11-22'],
                         ['Status', 'ONLINE'],
                         ['Logged User', currentUser],
-                        ['Modules', 'User Session, Login Protocol, File System']
+                        ['Modules', 'Neofetch, User Session, File System']
                     ];
                     const table = createAsciiTable(headers, tableData);
                     addLorelMessage('<pre>' + escapeHtml(table) + '</pre>', true);
+                    break;
+                case 'neofetch':
+                    const logoLines = [
+                        '██╗      █████╗',
+                        '██║     ██╔══██╗',
+                        '██║     ███████║',
+                        '██║     ██╔══██║',
+                        '███████╗██║  ██║',
+                        '╚══════╝╚═╝  ╚═╝',
+                        ''
+                    ];
+                    const labelColor = 'var(--term-dim)';
+                    const valueColor = 'var(--term-green)';
+                    const uptimeMins = Math.floor(performance.now() / 60000); 
+                    const uptimeString = `${uptimeMins} mins`;
+                    const infoLines = [
+                        `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
+                        '------------------',
+                        `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v7.3 Neofetch`,
+                        `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
+                        `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
+                        `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
+                        `<span style=\"color: ${labelColor};\">Shell</span>: LAX-Shell 1.0`,
+                    ];
+                    const logoWidth = 24;
+                    let output = '';
+                    const maxLines = Math.max(logoLines.length, infoLines.length);
+                    for (let i = 0; i < maxLines; i++) {
+                        const logoLine = (logoLines[i] || '').padEnd(logoWidth, ' ');
+                        const infoLine = infoLines[i] || '';
+                        output += `<span style=\"color: var(--cmd-highlight);\">${logoLine}</span>${infoLine}\n`;
+                    }
+                    addLorelMessage('<pre>' + output + '</pre>', true);
                     break;
                 case 'whoami': await typeLorelMessage(currentUser); break;
                 case 'pwd': await typeLorelMessage(cwd); break;
@@ -1090,6 +1124,7 @@
                 '[SECURITY] System access now requires authentication via Login Protocol.',
                 '[SYSTEM] Session now user-aware. Prompt reflects logged-in user. Added \'whoami\' command.',
                 '[SYSTEM] Simulated file system is now active. Try commands: ls, cd, cat, pwd.',
+                '[SYSTEM] Identity module added. Try the new `neofetch` command for system info.',
             ];
             let content = '';
             messages.forEach(msg => {
