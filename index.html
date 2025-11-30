@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V7.0 // LOGIN PROTOCOL</title>
+    <title>LOREL AXUN V7.1 // USER-AWARE SESSION</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -377,20 +377,20 @@
         <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v7.0"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v7.1"><span id="typewriter-title"></span></h1>
                 
                 <div id="initial-messages"></div>
 
                 <div id="chat-history" class="chat-history"></div>
 
                 <form class="input-line" id="input-form">
-                    <span class="prompt">user@lorel:~$</span>
+                    <span class="prompt" id="prompt"></span>
                     <span id="command-line"></span><span id="autocomplete-suggestion"></span><span id="cursor"></span>
                     <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v7.0</span>
+                <span>LOREL AXUN v7.1</span>
                 <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -478,7 +478,7 @@
         const initialMessagesContainer = document.getElementById('initial-messages');
         const cursor = document.getElementById('cursor');
         const clock = document.getElementById('clock');
-        const prompt = document.querySelector('.prompt');
+        const prompt = document.getElementById('prompt');
         const hiddenInput = document.getElementById('hidden-input');
         const inputForm = document.getElementById('input-form');
         const biosOverlay = document.getElementById('bios-overlay');
@@ -494,6 +494,7 @@
         let activityTimeout;
         let userHasInteracted = false;
         let audioCtx = null;
+        let currentUser = 'user';
         let loginState = {
             active: false,
             step: 'username', // 'username' or 'password'
@@ -501,15 +502,15 @@
             password: ''
         };
 
-        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot'];
+        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot', 'whoami'];
         
         // --- Dynamic Title Engine ---
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v7.0",
+                "Lorel Axun v7.1",
                 "Status: ONLINE",
-                "Login Protocol",
+                "User-Aware Session",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -596,7 +597,7 @@
         
         // --- NLU Engine ---
         const classifier = { intents: {}, train: function(intent, phrases) { if (!this.intents[intent]) this.intents[intent] = []; phrases.forEach(phrase => this.intents[intent].push(this.tokenize(phrase))); }, tokenize: text => text.toLowerCase().replace(/[^a-z0-9\\s]/gi, '').split(/\\s+/).filter(Boolean), classify: function(text) { const tokens = this.tokenize(text); let bestMatch = { intent: 'unknown', score: 0 }; for (const intent in this.intents) { let intentScore = 0; this.intents[intent].forEach(phraseTokens => { const commonTokens = tokens.filter(token => phraseTokens.includes(token)); const score = commonTokens.length / phraseTokens.length; if (score > intentScore) intentScore = score; }); if (intentScore > bestMatch.score) { bestMatch = { intent, score: intentScore }; } } return bestMatch.score > 0.4 ? bestMatch.intent : 'unknown'; } };
-        const nerManager = { extractEntities: function(text, intent) { if (intent === 'weather') { const match = text.match(/(?:a|per|di|a)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'LOCATION' }; } } else if (intent === 'wiki') { const match = text.match(/(?:è|e'|di|su)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'TOPIC' }; } } return null; } };
+        const nerManager = { extractEntities: function(text, intent) { if (intent === 'weather') { const match = text.match(/(?:a|per|di|a)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\"`, text: entityText, type: 'LOCATION' }; } } else if (intent === 'wiki') { const match = text.match(/(?:è|e'|di|su)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\"`, text: entityText, type: 'TOPIC' }; } } return null; } };
         function initializeNLU() { classifier.train('weather', ['che tempo fa a', 'meteo per', 'previsioni del tempo a']); classifier.train('date', ['che giorno è', 'dimmi la data', 'che ore sono', 'data e ora']); classifier.train('news', ['ultime notizie', 'dammi le news', 'leggi le notizie']); classifier.train('help', ['aiuto', 'mostrami i comandi', 'cosa posso fare']); classifier.train('wiki', ['cerca su wikipedia', 'cosa è', 'chi è', 'dimmi di']); }
 
         // --- Event Listeners ---
@@ -627,10 +628,11 @@
             loginState.step = 'username';
             loginState.username = '';
             loginState.password = '';
+            currentUser = 'user'; // Reset on logout/reboot
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v7.0 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v7.1 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -692,10 +694,11 @@
             await new Promise(r => setTimeout(r, 500));
 
             // Hardcoded credentials for simulation
-            if (loginState.username === 'admin' && loginState.password === 'axun7.0') {
+            if (loginState.username === 'admin' && loginState.password === 'axun7.1') {
                 playSound('login-success-sound');
                 errorEl.style.color = 'var(--term-green)';
                 errorEl.textContent = 'ACCESS GRANTED';
+                currentUser = loginState.username;
                 await new Promise(r => setTimeout(r, 1000));
                 loginSuccess();
             } else {
@@ -729,18 +732,23 @@
             updateClock();
             setInterval(updateClock, 1000);
             setupTerminalInputListeners();
+            updatePrompt();
 
             (async () => {
                 isTyping = true;
                 cursor.style.display = 'none';
                 if (!localStorage.getItem('chatHistory')) {
-                    await typeLorelMessage("Protocollo di login implementato. Accesso al sistema L.A.O.S. v7.0 garantito.");
+                    await typeLorelMessage("Sessione utente '" + currentUser + "' attivata. Benvenuto nel sistema L.A.O.S. v7.1.");
                 }
                 isTyping = false;
                 cursor.style.display = 'inline-block';
                 hiddenInput.focus();
                 scrollToBottom();
             })();
+        }
+        
+        function updatePrompt() {
+             prompt.textContent = `${currentUser}@lorel:~$ `;
         }
 
         function setupTerminalInputListeners() {
@@ -859,7 +867,7 @@
         function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
         function analyzeInput(input) { const intent = classifier.classify(input); if (intent !== 'unknown') { const entity = nerManager.extractEntities(input, intent); if (entity) { const highlightedInput = input.replace(entity.text, `<mark>${entity.text}</mark>`); const command = `${intent} ${entity.value}`; return { command, highlightedInput }; } return { command: intent, highlightedInput: input }; } return { command: input, highlightedInput: input }; }
         async function handleLegacyAutocomplete() { const currentInput = hiddenInput.value; const parts = currentInput.split(' '); const lastPart = parts[parts.length - 1]; if (parts.length === 1 && lastPart.length > 0) { const matches = availableCommands.filter(cmd => cmd.startsWith(lastPart)); if (matches.length > 1) { await typeLorelMessage(`Possibili comandi: ${matches.join('  ')}`); } return; } }
-        function parseCommand(input) { const regex = /[^\\s\\"']+|\\"([^\\"]*)\\|'([^']*)'/g; const tokens = []; let match; do { match = regex.exec(input); if (match !== null) { tokens.push(match[1] || match[2] || match[0]); } } while (match !== null); const command = tokens[0] ? tokens[0].toLowerCase() : ''; const args = []; const flags = {}; for (let i = 1; i < tokens.length; i++) { const token = tokens[i]; if (token.startsWith('--')) { const flagName = token.substring(2); const nextToken = tokens[i + 1]; if (nextToken && !nextToken.startsWith('-')) { flags[flagName] = nextToken; i++; } else { flags[flagName] = true; } } else if (token.startsWith('-')) { const flagName = token.substring(1); const nextToken = tokens[i + 1]; if (nextToken && !nextToken.startsWith('-')) { flags[flagName] = nextToken; i++; } else { flags[flagName] = true; } } else { args.push(token); } } return { command, args, flags }; }
+        function parseCommand(input) { const regex = /[^\\s\"']+|\"([^\"]*)\"|'([^']*)'/g; const tokens = []; let match; do { match = regex.exec(input); if (match !== null) { tokens.push(match[1] || match[2] || match[0]); } } while (match !== null); const command = tokens[0] ? tokens[0].toLowerCase() : ''; const args = []; const flags = {}; for (let i = 1; i < tokens.length; i++) { const token = tokens[i]; if (token.startsWith('--')) { const flagName = token.substring(2); const nextToken = tokens[i + 1]; if (nextToken && !nextToken.startsWith('-')) { flags[flagName] = nextToken; i++; } else { flags[flagName] = true; } } else if (token.startsWith('-')) { const flagName = token.substring(1); const nextToken = tokens[i + 1]; if (nextToken && !nextToken.startsWith('-')) { flags[flagName] = nextToken; i++; } else { flags[flagName] = true; } } else { args.push(token); } } return { command, args, flags }; }
         function createAsciiTable(headers, data) { const colWidths = headers.map((header, i) => { return Math.max(header.length, ...data.map(row => String(row[i]).length)); }); const separator = '+' + colWidths.map(w => '-'.repeat(w + 2)).join('+') + '+'; let table = separator + '\n'; table += '|' + headers.map((h, i) => ` ${h.padEnd(colWidths[i])} `).join('|') + '|\n'; table += separator + '\n'; data.forEach(row => { table += '|' + row.map((cell, i) => ` ${String(cell).padEnd(colWidths[i])} `).join('|') + '|\n'; }); table += separator; return table; }
 
         async function processCommand(command) {
@@ -872,6 +880,7 @@
                                    `  status            - Mostra lo stato attuale del sistema.\n` +
                                    `  sysinfo           - Mostra informazioni di sistema in una tabella.\n` +
                                    `  date              - Mostra data e ora correnti.\n` +
+                                   `  whoami            - Mostra l'utente attualmente loggato.\n` +
                                    `  news [--limit N]  - Recupera N notizie (default 3).\n` +
                                    `  weather <città>   - Mostra il meteo per una città.\n` +
                                    `  wiki <termine>    - Cerca un termine su Wikipedia.\n` +
@@ -882,20 +891,22 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 7.0. All systems nominal. Use `sysinfo` for detailed report.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 7.1. All systems nominal. User: ' + currentUser);
                     break;
                 case 'sysinfo':
                     const headers = ['Property', 'Value'];
                     const tableData = [
-                        ['Version', '7.0 - Login Protocol'],
+                        ['Version', '7.1 - User-Aware Session'],
                         ['Creator', 'AleXsjsju'],
                         ['Created', '2025-11-22'],
                         ['Status', 'ONLINE'],
-                        ['Modules', 'Login Protocol, Boot Logo']
+                        ['Logged User', currentUser],
+                        ['Modules', 'User Session, Login Protocol']
                     ];
                     const table = createAsciiTable(headers, tableData);
                     addLorelMessage('<pre>' + escapeHtml(table) + '</pre>', true);
                     break;
+                case 'whoami': await typeLorelMessage(currentUser); break;
                 case 'date': await typeLorelMessage(new Date().toLocaleString('it-IT')); break;
                 case 'clear': history.innerHTML = ''; localStorage.removeItem('chatHistory'); break;
                 case 'reboot': await runRebootSequence(); break;
@@ -979,6 +990,7 @@
                 '[IMMERSION] Reboot sequence now features a simulated BIOS POST screen with an audible beep.',
                 '[IMMERSION] Boot sequence upgraded with an animated ASCII logo and startup sound.',
                 '[SECURITY] System access now requires authentication via Login Protocol.',
+                '[SYSTEM] Session now user-aware. Prompt reflects logged-in user. Added \'whoami\' command.',
             ];
             let content = '';
             messages.forEach(msg => {
