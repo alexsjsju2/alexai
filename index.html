@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V6.6 // REBOOT PROTOCOL</title>
+    <title>LOREL AXUN V6.7 // BIOS BOOT SIMULATION</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -14,6 +14,7 @@
             --term-dim: #1a8000;
             --term-glow: #33ff0080;
             --cmd-highlight: #00ffff;
+            --bios-text: #cccccc;
         }
         html {
             height: 100%;
@@ -56,6 +57,7 @@
             position: relative; /* For the ::before/::after pseudo-elements */
             display: flex;
             flex-direction: column;
+            transition: opacity 0.5s ease-in-out;
         }
 
         /* CRT Effect Overlay */
@@ -283,14 +285,31 @@
             100% { text-shadow: 0 0 2px var(--bg-color), 0 0 4px var(--bg-color); }
         }
 
+        #bios-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            color: var(--bios-text);
+            font-family: 'VT323', monospace;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 10000;
+            display: none;
+            white-space: pre;
+        }
+
     </style>
 </head>
 <body>
+    <div id="bios-overlay"></div>
     <div class="monitor-bezel">
-        <div class="screen crt">
+        <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v6.6"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v6.7"><span id="typewriter-title"></span></h1>
                 
                 <div id="initial-messages"></div>
 
@@ -303,7 +322,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v6.6</span>
+                <span>LOREL AXUN v6.7</span>
                 <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -390,6 +409,8 @@
         const prompt = document.querySelector('.prompt');
         const hiddenInput = document.getElementById('hidden-input');
         const inputForm = document.getElementById('input-form');
+        const biosOverlay = document.getElementById('bios-overlay');
+        const mainScreen = document.getElementById('main-screen');
 
         let isTyping = false;
         let commandHistory = [];
@@ -404,9 +425,9 @@
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v6.6",
+                "Lorel Axun v6.7",
                 "Status: ONLINE",
-                "Reboot Protocol",
+                "BIOS Boot Simulation",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -591,9 +612,11 @@
                 await processCommand(analysis.command);
                 saveChatHistory();
 
-                isTyping = false;
-                cursor.style.display = 'inline-block';
-                hiddenInput.focus();
+                if (parseCommand(userInput).command !== 'reboot') {
+                    isTyping = false;
+                    cursor.style.display = 'inline-block';
+                    hiddenInput.focus();
+                }
                 scrollToBottom();
             }
         });
@@ -779,16 +802,16 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 6.6. All systems nominal. Use `sysinfo` for detailed report.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 6.7. All systems nominal. Use `sysinfo` for detailed report.');
                     break;
                 case 'sysinfo':
                     const headers = ['Property', 'Value'];
                     const tableData = [
-                        ['Version', '6.6 - Reboot Protocol'],
+                        ['Version', '6.7 - BIOS Boot Simulation'],
                         ['Creator', 'AleXsjsju'],
                         ['Created', '2025-11-22'],
                         ['Status', 'ONLINE'],
-                        ['Modules', 'Reboot Sim, Ghost Autocomplete']
+                        ['Modules', 'BIOS Sim, Ghost Autocomplete']
                     ];
                     const table = createAsciiTable(headers, tableData);
                     addLorelMessage('<pre>' + escapeHtml(table) + '</pre>', true);
@@ -801,13 +824,7 @@
                     localStorage.removeItem('chatHistory');
                     break;
                  case 'reboot':
-                    await typeLorelMessage("[SYSTEM] Reboot sequence initiated... Please stand by.");
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                    history.innerHTML = '';
-                    initialMessagesContainer.innerHTML = '';
-                    localStorage.removeItem('chatHistory');
-                    displayInitialMessages();
-                    await typeLorelMessage("System reboot complete. Welcome back.");
+                    await runRebootSequence();
                     break;
                 case 'echo':
                     await typeLorelMessage(parsed.args.length > 0 ? parsed.args.join(' ') : '');
@@ -844,6 +861,56 @@
                     await typeLorelMessage(`Comando non riconosciuto: '${parsed.command}'. Digita 'help' per la lista dei comandi.`);
                     break;
             }
+        }
+
+        async function runRebootSequence() {
+            await typeLorelMessage("[SYSTEM] Reboot sequence initiated... Shutting down.");
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            mainScreen.style.opacity = '0';
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            biosOverlay.style.display = 'block';
+            const biosLines = [
+                { text: 'LorelAxun BIOS v1.0', delay: 500 },
+                { text: 'Copyright (c) 2025 AleXsjsju Corp.', delay: 200 },
+                { text: '', delay: 500 },
+                { text: 'Initializing Core Memory.................... ', delay: 300 },
+                { text: '65536 KB OK', delay: 100, append: true },
+                { text: '\nDetecting Primary Master.................. LAX-HD-01', delay: 800 },
+                { text: 'Detecting Primary Slave................. None', delay: 800 },
+                { text: 'Detecting Secondary Master................ None', delay: 800 },
+                { text: 'Detecting Secondary Slave................. None', delay: 800 },
+                { text: '', delay: 500 },
+                { text: 'Checking NVRAM............................ OK', delay: 400 },
+                { text: 'Initializing Web-Access Layer........... OK', delay: 600 },
+                { text: '', delay: 1000 },
+                { text: 'Booting from Primary Master (LAX-HD-01)...', delay: 500 },
+            ];
+
+            for (const line of biosLines) {
+                await new Promise(resolve => setTimeout(resolve, line.delay));
+                if (line.append) {
+                    biosOverlay.textContent += line.text;
+                } else {
+                    biosOverlay.textContent += line.text + '\n';
+                }
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            biosOverlay.style.display = 'none';
+            biosOverlay.textContent = '';
+
+            mainScreen.style.opacity = '1';
+            history.innerHTML = '';
+            initialMessagesContainer.innerHTML = '';
+            localStorage.removeItem('chatHistory');
+            displayInitialMessages();
+            await typeLorelMessage("System reboot complete. Welcome back.");
+
+            isTyping = false;
+            cursor.style.display = 'inline-block';
+            hiddenInput.focus();
         }
 
         async function fetchWikipedia(term) {
@@ -1085,6 +1152,7 @@
                 '[AESTHETICS] \'ONLINE\' status indicator is now animated with a pulsing glow effect.',
                 '[ASSISTANCE] Inline command autocompletion suggestions (\'ghost text\') are now active.',
                 '[SYSTEM] Reboot Protocol module loaded. Type \'reboot\' to restart the interface.',
+                '[IMMERSION] Reboot sequence now features a simulated BIOS POST screen.',
             ];
             let content = '';
             messages.forEach(msg => {
@@ -1113,7 +1181,7 @@
             isTyping = true;
             cursor.style.display = 'none';
             if (!localStorage.getItem('chatHistory')) {
-                await typeLorelMessage("Interfaccia v6.6. Ora posso eseguire un riavvio simulato. Prova il comando 'reboot'.");
+                await typeLorelMessage("Interfaccia v6.7. Il comando 'reboot' ora esegue una sequenza di avvio BIOS simulata per un'immersione totale.");
             }
             isTyping = false;
             cursor.style.display = 'inline-block';
