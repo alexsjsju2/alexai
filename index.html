@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V6.7 // BIOS BOOT SIMULATION</title>
+    <title>LOREL AXUN V6.8 // BIOS POST BEEP</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -309,7 +309,7 @@
         <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v6.7"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v6.8"><span id="typewriter-title"></span></h1>
                 
                 <div id="initial-messages"></div>
 
@@ -322,7 +322,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v6.7</span>
+                <span>LOREL AXUN v6.8</span>
                 <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -417,6 +417,7 @@
         let historyIndex = -1;
         let activityTimeout;
         let userHasInteracted = false;
+        let audioCtx = null;
 
         const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot'];
         const commandArgs = {};
@@ -425,9 +426,9 @@
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v6.7",
+                "Lorel Axun v6.8",
                 "Status: ONLINE",
-                "BIOS Boot Simulation",
+                "BIOS POST Beep",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -482,6 +483,28 @@
             sound.currentTime = 0;
             sound.play().catch(e => { /* Ignore errors from rapid playback or browser policy */ });
             keySoundIndex = (keySoundIndex + 1) % keySoundPoolSize;
+        }
+
+        async function playBiosBeep() {
+            return new Promise(resolve => {
+                if (!audioCtx || !userHasInteracted) {
+                    resolve();
+                    return;
+                }
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                oscillator.frequency.setValueAtTime(900, audioCtx.currentTime); // High-pitched beep
+                oscillator.type = 'sine';
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.15); // Beep for 150ms
+                oscillator.onended = resolve;
+            });
         }
         // --- End Audio ---
 
@@ -628,6 +651,7 @@
                 const hum = document.getElementById('static-hum');
                 hum.volume = 0.05;
                 hum.play().catch(err => console.error("Ambient audio playback failed:", err));
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 userHasInteracted = true;
             }
 
@@ -802,16 +826,16 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 6.7. All systems nominal. Use `sysinfo` for detailed report.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 6.8. All systems nominal. Use `sysinfo` for detailed report.');
                     break;
                 case 'sysinfo':
                     const headers = ['Property', 'Value'];
                     const tableData = [
-                        ['Version', '6.7 - BIOS Boot Simulation'],
+                        ['Version', '6.8 - BIOS POST Beep'],
                         ['Creator', 'AleXsjsju'],
                         ['Created', '2025-11-22'],
                         ['Status', 'ONLINE'],
-                        ['Modules', 'BIOS Sim, Ghost Autocomplete']
+                        ['Modules', 'BIOS Beep, Ghost Autocomplete']
                     ];
                     const table = createAsciiTable(headers, tableData);
                     addLorelMessage('<pre>' + escapeHtml(table) + '</pre>', true);
@@ -872,11 +896,11 @@
 
             biosOverlay.style.display = 'block';
             const biosLines = [
-                { text: 'LorelAxun BIOS v1.0', delay: 500 },
+                { text: 'LorelAxun BIOS v1.1', delay: 500 },
                 { text: 'Copyright (c) 2025 AleXsjsju Corp.', delay: 200 },
                 { text: '', delay: 500 },
                 { text: 'Initializing Core Memory.................... ', delay: 300 },
-                { text: '65536 KB OK', delay: 100, append: true },
+                { text: '65536 KB OK', delay: 100, append: true, action: playBiosBeep },
                 { text: '\nDetecting Primary Master.................. LAX-HD-01', delay: 800 },
                 { text: 'Detecting Primary Slave................. None', delay: 800 },
                 { text: 'Detecting Secondary Master................ None', delay: 800 },
@@ -894,6 +918,9 @@
                     biosOverlay.textContent += line.text;
                 } else {
                     biosOverlay.textContent += line.text + '\n';
+                }
+                if (line.action) {
+                    await line.action();
                 }
             }
 
@@ -1152,7 +1179,7 @@
                 '[AESTHETICS] \'ONLINE\' status indicator is now animated with a pulsing glow effect.',
                 '[ASSISTANCE] Inline command autocompletion suggestions (\'ghost text\') are now active.',
                 '[SYSTEM] Reboot Protocol module loaded. Type \'reboot\' to restart the interface.',
-                '[IMMERSION] Reboot sequence now features a simulated BIOS POST screen.',
+                '[IMMERSION] Reboot sequence now features a simulated BIOS POST screen with an audible beep.',
             ];
             let content = '';
             messages.forEach(msg => {
@@ -1181,7 +1208,7 @@
             isTyping = true;
             cursor.style.display = 'none';
             if (!localStorage.getItem('chatHistory')) {
-                await typeLorelMessage("Interfaccia v6.7. Il comando 'reboot' ora esegue una sequenza di avvio BIOS simulata per un'immersione totale.");
+                await typeLorelMessage("Interfaccia v6.8. Il riavvio del BIOS ora emette un segnale acustico di POST per un'immersione completa.");
             }
             isTyping = false;
             cursor.style.display = 'inline-block';
