@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V6.9 // BIOS BOOT LOGO</title>
+    <title>LOREL AXUN V7.0 // LOGIN PROTOCOL</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -15,6 +15,7 @@
             --term-glow: #33ff0080;
             --cmd-highlight: #00ffff;
             --bios-text: #cccccc;
+            --error-red: #ff3333;
         }
         html {
             height: 100%;
@@ -285,7 +286,7 @@
             100% { text-shadow: 0 0 2px var(--bg-color), 0 0 4px var(--bg-color); }
         }
 
-        #bios-overlay, #boot-logo-overlay {
+        #bios-overlay, #boot-logo-overlay, #login-overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -300,10 +301,10 @@
             align-items: center;
             justify-content: center;
             flex-direction: column;
+            z-index: 10000;
         }
         #bios-overlay {
              color: var(--bios-text);
-             z-index: 10000;
              align-items: flex-start;
              justify-content: flex-start;
         }
@@ -326,17 +327,57 @@
             80% { opacity: 1; }
             100% { opacity: 0; }
         }
+
+        #login-overlay {
+            z-index: 9998;
+            font-size: 1.5rem;
+            color: var(--term-green);
+            text-shadow: 0 0 5px var(--term-glow);
+        }
+        .login-box {
+            border: 2px solid var(--term-green);
+            padding: 2rem 4rem;
+            box-shadow: 0 0 15px var(--term-glow) inset;
+        }
+        .login-prompt {
+            display: flex;
+            align-items: center;
+            margin: 1rem 0;
+        }
+        .login-cursor {
+             display: inline-block;
+            background-color: var(--term-green);
+            box-shadow: 0 0 5px var(--term-glow);
+            width: 1ch;
+            height: 1.5rem;
+            vertical-align: bottom;
+            animation: blink 1s step-end infinite;
+            margin-left: 5px;
+        }
+        #login-error-message {
+            color: var(--error-red);
+            text-shadow: 0 0 5px var(--error-red);
+            height: 1.5rem;
+            margin-top: 1rem;
+            text-align: center;
+            animation: error-flicker 0.2s infinite;
+        }
+        @keyframes error-flicker {
+            50% { opacity: 0.7; }
+        }
+
     </style>
 </head>
 <body>
     <div id="bios-overlay"></div>
     <div id="boot-logo-overlay"></div>
+    <div id="login-overlay"></div>
 
-    <div class="monitor-bezel">
+    <div class="monitor-bezel" id="monitor-bezel" style="display: none;">
         <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v6.9"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v7.0"><span id="typewriter-title"></span></h1>
                 
                 <div id="initial-messages"></div>
 
@@ -349,7 +390,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v6.9</span>
+                <span>LOREL AXUN v7.0</span>
                 <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -358,6 +399,8 @@
 
     <audio id="static-hum" loop src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAA//8CAP3/AwD+/wEAAgD9/wEA/v8CAP7/AgD9/wMA/v8CAP7/AwD+/wE="></audio>
     <audio id="startup-sound" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAA//8/wD7APgA+wD4AP8A+wD8AP4A/AD9AP0A/QD8AP0A/QD9APwA/QD7APwA+wD7APgA+QD5APsA+QD5APkA+QD4APgA+AD4APc=+"></audio>
+    <audio id="login-success-sound" src="data:audio/wav;base64,UklGRlIAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YVgAAAAIAAD/AP8A/wD/AP8A/wD/AAABAAEBAgADAgMDBAQEBgYIBwkKCw0ODxAREhMUFRYXGBkbHR4fICEiJCUnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW11eX2BhYmNkZWZnaGlqa2xtbm9wcXJzdHV2d3h5ent8fX5/gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp+goaKjpKWmp6ipqqusra6vsLGys7S1tre4ubq7vL2+v8DBwsPExcbHyMnKy8zNzs/Q0dLT1NXW19jZ2tvc3d7f4OHi4+Tl5ufo6err7O3u7/Dx8vP09fb3+Pn6+/z9/v8AAA=="></audio>
+    <audio id="login-fail-sound" src="data:audio/wav;base64,UklGRiwAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQgAAAAAAAD/AP4A/QD7APYA9ADwAOwA6ADlANsA1QDHAMQAwgC/ALsAsQCiAIcAfwB3AHQAcQBwAGoAZQBgAFwAVQBRAEsARgBDAEAAOQAyACsAJQAgABwAGQAVABEADgAKAAcABAAAAAAA//8="></audio>
 
     <script>
         // --- asciichart.js (embedded) ---
@@ -427,6 +470,7 @@
         })()
 
         // --- Lorel's Core Script ---
+        // DOM Elements
         const history = document.getElementById('chat-history');
         const commandLine = document.getElementById('command-line');
         const autocompleteSuggestion = document.getElementById('autocomplete-suggestion');
@@ -439,25 +483,33 @@
         const inputForm = document.getElementById('input-form');
         const biosOverlay = document.getElementById('bios-overlay');
         const bootLogoOverlay = document.getElementById('boot-logo-overlay');
+        const loginOverlay = document.getElementById('login-overlay');
         const mainScreen = document.getElementById('main-screen');
+        const monitorBezel = document.getElementById('monitor-bezel');
 
+        // State Variables
         let isTyping = false;
         let commandHistory = [];
         let historyIndex = -1;
         let activityTimeout;
         let userHasInteracted = false;
         let audioCtx = null;
+        let loginState = {
+            active: false,
+            step: 'username', // 'username' or 'password'
+            username: '',
+            password: ''
+        };
 
         const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot'];
-        const commandArgs = {};
         
         // --- Dynamic Title Engine ---
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v6.9",
+                "Lorel Axun v7.0",
                 "Status: ONLINE",
-                "BIOS Boot Logo",
+                "Login Protocol",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -497,7 +549,7 @@
         }
 
         // --- Audio Feedback Engine ---
-        const KEY_CLICK_SOUND = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA='; // A very short keyboard tick
+        const KEY_CLICK_SOUND = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
         const keySoundPoolSize = 10; 
         const keySoundPool = [];
         let keySoundIndex = 0;
@@ -506,11 +558,17 @@
             keySoundPool.push(new Audio(KEY_CLICK_SOUND));
         }
 
+        function playSound(id) {
+            if(!userHasInteracted) return;
+            const sound = document.getElementById(id);
+            if (sound) {
+                sound.currentTime = 0;
+                sound.play().catch(e => {});
+            }
+        }
+
         function playKeySound() {
-            if(!userHasInteracted) return; // Don't play sounds until user interacts
-            const sound = keySoundPool[keySoundIndex];
-            sound.currentTime = 0;
-            sound.play().catch(e => { /* Ignore errors from rapid playback or browser policy */ });
+            playSound('keySoundPool' + keySoundIndex);
             keySoundIndex = (keySoundIndex + 1) % keySoundPoolSize;
         }
 
@@ -535,72 +593,239 @@
                 oscillator.onended = resolve;
             });
         }
-        // --- End Audio ---
-
+        
         // --- NLU Engine ---
-        const classifier = {
-            intents: {},
-            train: function(intent, phrases) {
-                if (!this.intents[intent]) this.intents[intent] = [];
-                phrases.forEach(phrase => this.intents[intent].push(this.tokenize(phrase)));
-            },
-            tokenize: text => text.toLowerCase().replace(/[^a-z0-9\s]/gi, '').split(/\s+/).filter(Boolean),
-            classify: function(text) {
-                const tokens = this.tokenize(text);
-                let bestMatch = { intent: 'unknown', score: 0 };
-                for (const intent in this.intents) {
-                    let intentScore = 0;
-                    this.intents[intent].forEach(phraseTokens => {
-                        const commonTokens = tokens.filter(token => phraseTokens.includes(token));
-                        const score = commonTokens.length / phraseTokens.length;
-                        if (score > intentScore) intentScore = score;
-                    });
-                    if (intentScore > bestMatch.score) {
-                        bestMatch = { intent, score: intentScore };
-                    }
-                }
-                return bestMatch.score > 0.4 ? bestMatch.intent : 'unknown'; // Confidence threshold
-            }
-        };
+        const classifier = { intents: {}, train: function(intent, phrases) { if (!this.intents[intent]) this.intents[intent] = []; phrases.forEach(phrase => this.intents[intent].push(this.tokenize(phrase))); }, tokenize: text => text.toLowerCase().replace(/[^a-z0-9\\s]/gi, '').split(/\\s+/).filter(Boolean), classify: function(text) { const tokens = this.tokenize(text); let bestMatch = { intent: 'unknown', score: 0 }; for (const intent in this.intents) { let intentScore = 0; this.intents[intent].forEach(phraseTokens => { const commonTokens = tokens.filter(token => phraseTokens.includes(token)); const score = commonTokens.length / phraseTokens.length; if (score > intentScore) intentScore = score; }); if (intentScore > bestMatch.score) { bestMatch = { intent, score: intentScore }; } } return bestMatch.score > 0.4 ? bestMatch.intent : 'unknown'; } };
+        const nerManager = { extractEntities: function(text, intent) { if (intent === 'weather') { const match = text.match(/(?:a|per|di|a)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'LOCATION' }; } } else if (intent === 'wiki') { const match = text.match(/(?:è|e'|di|su)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'TOPIC' }; } } return null; } };
+        function initializeNLU() { classifier.train('weather', ['che tempo fa a', 'meteo per', 'previsioni del tempo a']); classifier.train('date', ['che giorno è', 'dimmi la data', 'che ore sono', 'data e ora']); classifier.train('news', ['ultime notizie', 'dammi le news', 'leggi le notizie']); classifier.train('help', ['aiuto', 'mostrami i comandi', 'cosa posso fare']); classifier.train('wiki', ['cerca su wikipedia', 'cosa è', 'chi è', 'dimmi di']); }
 
-        const nerManager = {
-            extractEntities: function(text, intent) {
-                if (intent === 'weather') {
-                    const match = text.match(/(?:a|per|di|a)\s(.+)/i);
-                    if (match && match[1]) {
-                        const entityText = match[1].trim().replace('?','');
-                        return { value: `\"${entityText}\"`, text: entityText, type: 'LOCATION' };
-                    }
-                } else if (intent === 'wiki') {
-                    const match = text.match(/(?:è|e'|di|su)\s(.+)/i);
-                     if (match && match[1]) {
-                        const entityText = match[1].trim().replace('?','');
-                        return { value: `\"${entityText}\"`, text: entityText, type: 'TOPIC' };
-                     }
-                }
-                return null; // No entity found
-            }
-        };
-
-        function initializeNLU() {
-            classifier.train('weather', ['che tempo fa a', 'meteo per', 'previsioni del tempo a']);
-            classifier.train('date', ['che giorno è', 'dimmi la data', 'che ore sono', 'data e ora']);
-            classifier.train('news', ['ultime notizie', 'dammi le news', 'leggi le notizie']);
-            classifier.train('help', ['aiuto', 'mostrami i comandi', 'cosa posso fare']);
-            classifier.train('wiki', ['cerca su wikipedia', 'cosa è', 'chi è', 'dimmi di']);
+        // --- Event Listeners ---
+        function initializeGlobalListeners() {
+            document.addEventListener('keydown', handleGlobalKeyPress);
+            terminalContainer.addEventListener('click', () => {
+                if (!loginState.active) hiddenInput.focus();
+            });
         }
-        // --- End NLU ---
 
-        // Focus hidden input on any click
-        terminalContainer.addEventListener('click', () => {
-            hiddenInput.focus();
-        });
+        function handleGlobalKeyPress(e) {
+            if (!userHasInteracted) {
+                const hum = document.getElementById('static-hum');
+                hum.volume = 0.05;
+                hum.play().catch(err => {});
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                userHasInteracted = true;
+            }
 
-        hiddenInput.addEventListener('input', () => {
+            if (loginState.active) {
+                handleLoginInput(e);
+            }
+        }
+
+        // --- Login Protocol ---
+        function initLoginScreen() {
+            loginState.active = true;
+            loginState.step = 'username';
+            loginState.username = '';
+            loginState.password = '';
+
+            const loginHTML = `
+                <div class=\"login-box\">
+                    <pre>L.A.O.S. v7.0 (Lorel Axun Operating System)</pre>
+                    <div class=\"login-prompt\">
+                        <span>Username: </span>
+                        <span id=\"login-user-input\"></span>
+                        <span id=\"login-user-cursor\" class=\"login-cursor\"></span>
+                    </div>
+                    <div class=\"login-prompt\">
+                        <span>Password: </span>
+                        <span id=\"login-pass-input\"></span>
+                        <span id=\"login-pass-cursor\" class=\"login-cursor\" style=\"display:none;\"></span>
+                    </div>
+                    <div id=\"login-error-message\"></div>
+                </div>
+            `;
+            loginOverlay.innerHTML = loginHTML;
+            loginOverlay.style.display = 'flex';
+        }
+
+        function handleLoginInput(e) {
+            e.preventDefault();
+            const key = e.key;
+
             playKeySound();
-            updateCommandLine();
-            updateAutocompleteSuggestion();
-        });
+
+            if (key === 'Enter') {
+                if (loginState.step === 'username') {
+                    loginState.step = 'password';
+                    document.getElementById('login-user-cursor').style.display = 'none';
+                    document.getElementById('login-pass-cursor').style.display = 'inline-block';
+                } else if (loginState.step === 'password') {
+                    attemptLogin();
+                }
+                return;
+            }
+
+            if (key === 'Backspace') {
+                if (loginState.step === 'username' && loginState.username.length > 0) {
+                    loginState.username = loginState.username.slice(0, -1);
+                } else if (loginState.step === 'password' && loginState.password.length > 0) {
+                    loginState.password = loginState.password.slice(0, -1);
+                } 
+            } else if (key.length === 1) { // Regular character input
+                if (loginState.step === 'username') {
+                    loginState.username += key;
+                } else if (loginState.step === 'password') {
+                    loginState.password += key;
+                }
+            }
+            updateLoginDisplay();
+        }
+
+        function updateLoginDisplay() {
+            document.getElementById('login-user-input').textContent = loginState.username;
+            document.getElementById('login-pass-input').textContent = '*'.repeat(loginState.password.length);
+        }
+
+        async function attemptLogin() {
+            const errorEl = document.getElementById('login-error-message');
+            errorEl.textContent = 'AUTHENTICATING...';
+            await new Promise(r => setTimeout(r, 500));
+
+            // Hardcoded credentials for simulation
+            if (loginState.username === 'admin' && loginState.password === 'axun7.0') {
+                playSound('login-success-sound');
+                errorEl.style.color = 'var(--term-green)';
+                errorEl.textContent = 'ACCESS GRANTED';
+                await new Promise(r => setTimeout(r, 1000));
+                loginSuccess();
+            } else {
+                playSound('login-fail-sound');
+                errorEl.style.color = 'var(--error-red)';
+                errorEl.textContent = 'ACCESS DENIED';
+                await new Promise(r => setTimeout(r, 1500));
+                initLoginScreen(); // Reset the screen
+            }
+        }
+
+        async function loginSuccess() {
+            loginState.active = false;
+            loginOverlay.style.opacity = '0';
+            await new Promise(r => setTimeout(r, 500));
+            loginOverlay.style.display = 'none';
+
+            monitorBezel.style.display = 'flex';
+            await new Promise(r => setTimeout(r, 100));
+            mainScreen.style.opacity = '1';
+            
+            initializeTerminal();
+        }
+        
+        // --- Terminal Functions (post-login) ---
+        function initializeTerminal() {
+            initTitleTypewriter();
+            initializeNLU();
+            loadHistory();
+            displayInitialMessages();
+            updateClock();
+            setInterval(updateClock, 1000);
+            setupTerminalInputListeners();
+
+            (async () => {
+                isTyping = true;
+                cursor.style.display = 'none';
+                if (!localStorage.getItem('chatHistory')) {
+                    await typeLorelMessage("Protocollo di login implementato. Accesso al sistema L.A.O.S. v7.0 garantito.");
+                }
+                isTyping = false;
+                cursor.style.display = 'inline-block';
+                hiddenInput.focus();
+                scrollToBottom();
+            })();
+        }
+
+        function setupTerminalInputListeners() {
+            hiddenInput.addEventListener('input', () => {
+                playKeySound();
+                updateCommandLine();
+                updateAutocompleteSuggestion();
+            });
+
+            inputForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (isTyping) return;
+
+                prompt.classList.remove('listening');
+                autocompleteSuggestion.textContent = '';
+                const userInput = hiddenInput.value.trim();
+                if (userInput) {
+                    if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== userInput) {
+                        commandHistory.push(userInput);
+                        localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
+                    }
+                    historyIndex = commandHistory.length;
+                    hiddenInput.value = '';
+                    commandLine.textContent = '';
+
+                    isTyping = true;
+                    cursor.style.display = 'none';
+                    
+                    const analysis = analyzeInput(userInput);
+                    addUserMessage(analysis.highlightedInput, true);
+                    await processCommand(analysis.command);
+                    saveChatHistory();
+
+                    if (parseCommand(userInput).command !== 'reboot') {
+                        isTyping = false;
+                        cursor.style.display = 'inline-block';
+                        hiddenInput.focus();
+                    }
+                    scrollToBottom();
+                }
+            });
+
+            hiddenInput.addEventListener('keydown', async function (e) {
+                if (isTyping) return;
+
+                const key = e.key;
+
+                clearTimeout(activityTimeout);
+                prompt.classList.add('listening');
+                activityTimeout = setTimeout(() => {
+                    prompt.classList.remove('listening');
+                }, 1500);
+
+                if (key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (historyIndex > 0) {
+                        historyIndex--;
+                        hiddenInput.value = commandHistory[historyIndex];
+                        hiddenInput.dispatchEvent(new Event('input'));
+                    }
+                } else if (key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (historyIndex < commandHistory.length - 1) {
+                        historyIndex++;
+                        hiddenInput.value = commandHistory[historyIndex];
+                        hiddenInput.dispatchEvent(new Event('input'));
+                    } else {
+                        historyIndex = commandHistory.length;
+                        hiddenInput.value = '';
+                        hiddenInput.dispatchEvent(new Event('input'));
+                    }
+                } else if (key === 'Tab' || key === 'ArrowRight') {
+                    if(autocompleteSuggestion.textContent && hiddenInput.selectionStart === hiddenInput.value.length) {
+                        e.preventDefault();
+                        hiddenInput.value += autocompleteSuggestion.textContent;
+                        hiddenInput.dispatchEvent(new Event('input'));
+                    } else if (key === 'Tab') {
+                       e.preventDefault();
+                       await handleLegacyAutocomplete();
+                    }
+                } else if (key === 'Backspace') {
+                     playKeySound();
+                }
+            });
+        }
 
         function updateCommandLine() {
             const inputText = hiddenInput.value;
@@ -631,209 +856,11 @@
             }
         }
 
-        function escapeHtml(text) {
-            return text
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
-        }
-
-        inputForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (isTyping) return;
-
-            prompt.classList.remove('listening');
-            autocompleteSuggestion.textContent = '';
-            const userInput = hiddenInput.value.trim();
-            if (userInput) {
-                if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== userInput) {
-                    commandHistory.push(userInput);
-                    localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
-                }
-                historyIndex = commandHistory.length;
-                hiddenInput.value = '';
-                commandLine.textContent = '';
-
-                isTyping = true;
-                cursor.style.display = 'none';
-                
-                const analysis = analyzeInput(userInput);
-                addUserMessage(analysis.highlightedInput, true);
-                await processCommand(analysis.command);
-                saveChatHistory();
-
-                if (parseCommand(userInput).command !== 'reboot') {
-                    isTyping = false;
-                    cursor.style.display = 'inline-block';
-                    hiddenInput.focus();
-                }
-                scrollToBottom();
-            }
-        });
-
-        hiddenInput.addEventListener('keydown', async function (e) {
-            if (isTyping) return;
-
-            if (!userHasInteracted) {
-                const hum = document.getElementById('static-hum');
-                hum.volume = 0.05;
-                hum.play().catch(err => console.error("Ambient audio playback failed:", err));
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                userHasInteracted = true;
-            }
-
-            const key = e.key;
-
-            clearTimeout(activityTimeout);
-            prompt.classList.add('listening');
-            activityTimeout = setTimeout(() => {
-                prompt.classList.remove('listening');
-            }, 1500);
-
-            if (key === 'ArrowUp') {
-                e.preventDefault();
-                if (historyIndex > 0) {
-                    historyIndex--;
-                    hiddenInput.value = commandHistory[historyIndex];
-                    hiddenInput.dispatchEvent(new Event('input'));
-                }
-            } else if (key === 'ArrowDown') {
-                e.preventDefault();
-                if (historyIndex < commandHistory.length - 1) {
-                    historyIndex++;
-                    hiddenInput.value = commandHistory[historyIndex];
-                    hiddenInput.dispatchEvent(new Event('input'));
-                } else {
-                    historyIndex = commandHistory.length;
-                    hiddenInput.value = '';
-                    hiddenInput.dispatchEvent(new Event('input'));
-                }
-            } else if (key === 'Tab' || key === 'ArrowRight') {
-                if(autocompleteSuggestion.textContent && hiddenInput.selectionStart === hiddenInput.value.length) {
-                    e.preventDefault();
-                    hiddenInput.value += autocompleteSuggestion.textContent;
-                    hiddenInput.dispatchEvent(new Event('input'));
-                } else if (key === 'Tab') {
-                   e.preventDefault();
-                   await handleLegacyAutocomplete();
-                }
-            } else if (key === 'Backspace') {
-                 playKeySound();
-            }
-        });
-
-        function analyzeInput(input) {
-            const intent = classifier.classify(input);
-            
-            if (intent !== 'unknown') {
-                const entity = nerManager.extractEntities(input, intent);
-                if (entity) {
-                    const highlightedInput = input.replace(entity.text, `<mark>${entity.text}</mark>`);
-                    const command = `${intent} ${entity.value}`
-                    return { command, highlightedInput };
-                }
-                return { command: intent, highlightedInput: input }; // Intent recognized, but no entity
-            }
-            return { command: input, highlightedInput: input }; // Fallback to original input
-        }
-
-        async function handleLegacyAutocomplete() {
-            const currentInput = hiddenInput.value;
-            const parts = currentInput.split(' ');
-            const lastPart = parts[parts.length - 1];
-
-            if (parts.length === 1 && lastPart.length > 0) {
-                const matches = availableCommands.filter(cmd => cmd.startsWith(lastPart));
-                if (matches.length > 1) {
-                    await typeLorelMessage(`Possibili comandi: ${matches.join('  ')}`);
-                }
-                return;
-            }
-        }
-
-        async function fetchCitySuggestions(partialName) {
-            try {
-                const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(partialName)}&count=5&language=it&format=json`);
-                if (!response.ok) return [];
-                const data = await response.json();
-                if (data.results) {
-                    const uniqueNames = new Set();
-                    return data.results.map(loc => {
-                        const name = `${loc.name}, ${loc.country_code}`
-                        if(uniqueNames.has(name)) return null;
-                        uniqueNames.add(name);
-                        return name;
-                    }).filter(name => name !== null);
-                }
-                return [];
-            } catch (error) {
-                console.error("City suggestion fetch error:", error);
-                return [];
-            }
-        }
-        
-        function parseCommand(input) {
-            const regex = /[^\s\"']+|\"([^\"]*)\"|'([^']*)'/g;
-            const tokens = [];
-            let match;
-            do {
-                match = regex.exec(input);
-                if (match !== null) {
-                    tokens.push(match[1] || match[2] || match[0]);
-                }
-            } while (match !== null);
-
-            const command = tokens[0] ? tokens[0].toLowerCase() : '';
-            const args = [];
-            const flags = {};
-
-            for (let i = 1; i < tokens.length; i++) {
-                const token = tokens[i];
-                if (token.startsWith('--')) {
-                    const flagName = token.substring(2);
-                    const nextToken = tokens[i + 1];
-                    if (nextToken && !nextToken.startsWith('-')) {
-                        flags[flagName] = nextToken;
-                        i++;
-                    } else {
-                        flags[flagName] = true;
-                    }
-                } else if (token.startsWith('-')) {
-                    const flagName = token.substring(1);
-                     const nextToken = tokens[i + 1];
-                    if (nextToken && !nextToken.startsWith('-')) {
-                        flags[flagName] = nextToken;
-                        i++;
-                    } else {
-                        flags[flagName] = true;
-                    }
-                } else {
-                    args.push(token);
-                }
-            }
-            return { command, args, flags };
-        }
-
-        function createAsciiTable(headers, data) {
-            const colWidths = headers.map((header, i) => {
-                return Math.max(header.length, ...data.map(row => String(row[i]).length));
-            });
-
-            const separator = '+' + colWidths.map(w => '-'.repeat(w + 2)).join('+') + '+';
-
-            let table = separator + '\n';
-            table += '|' + headers.map((h, i) => ` ${h.padEnd(colWidths[i])} `).join('|') + '|\n';
-            table += separator + '\n';
-
-            data.forEach(row => {
-                table += '|' + row.map((cell, i) => ` ${String(cell).padEnd(colWidths[i])} `).join('|') + '|\n';
-            });
-
-            table += separator;
-            return table;
-        }
+        function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+        function analyzeInput(input) { const intent = classifier.classify(input); if (intent !== 'unknown') { const entity = nerManager.extractEntities(input, intent); if (entity) { const highlightedInput = input.replace(entity.text, `<mark>${entity.text}</mark>`); const command = `${intent} ${entity.value}`; return { command, highlightedInput }; } return { command: intent, highlightedInput: input }; } return { command: input, highlightedInput: input }; }
+        async function handleLegacyAutocomplete() { const currentInput = hiddenInput.value; const parts = currentInput.split(' '); const lastPart = parts[parts.length - 1]; if (parts.length === 1 && lastPart.length > 0) { const matches = availableCommands.filter(cmd => cmd.startsWith(lastPart)); if (matches.length > 1) { await typeLorelMessage(`Possibili comandi: ${matches.join('  ')}`); } return; } }
+        function parseCommand(input) { const regex = /[^\\s\\"']+|\\"([^\\"]*)\\|'([^']*)'/g; const tokens = []; let match; do { match = regex.exec(input); if (match !== null) { tokens.push(match[1] || match[2] || match[0]); } } while (match !== null); const command = tokens[0] ? tokens[0].toLowerCase() : ''; const args = []; const flags = {}; for (let i = 1; i < tokens.length; i++) { const token = tokens[i]; if (token.startsWith('--')) { const flagName = token.substring(2); const nextToken = tokens[i + 1]; if (nextToken && !nextToken.startsWith('-')) { flags[flagName] = nextToken; i++; } else { flags[flagName] = true; } } else if (token.startsWith('-')) { const flagName = token.substring(1); const nextToken = tokens[i + 1]; if (nextToken && !nextToken.startsWith('-')) { flags[flagName] = nextToken; i++; } else { flags[flagName] = true; } } else { args.push(token); } } return { command, args, flags }; }
+        function createAsciiTable(headers, data) { const colWidths = headers.map((header, i) => { return Math.max(header.length, ...data.map(row => String(row[i]).length)); }); const separator = '+' + colWidths.map(w => '-'.repeat(w + 2)).join('+') + '+'; let table = separator + '\n'; table += '|' + headers.map((h, i) => ` ${h.padEnd(colWidths[i])} `).join('|') + '|\n'; table += separator + '\n'; data.forEach(row => { table += '|' + row.map((cell, i) => ` ${String(cell).padEnd(colWidths[i])} `).join('|') + '|\n'; }); table += separator; return table; }
 
         async function processCommand(command) {
             const parsed = parseCommand(command);
@@ -855,57 +882,30 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 6.9. All systems nominal. Use `sysinfo` for detailed report.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 7.0. All systems nominal. Use `sysinfo` for detailed report.');
                     break;
                 case 'sysinfo':
                     const headers = ['Property', 'Value'];
                     const tableData = [
-                        ['Version', '6.9 - BIOS Boot Logo'],
+                        ['Version', '7.0 - Login Protocol'],
                         ['Creator', 'AleXsjsju'],
                         ['Created', '2025-11-22'],
                         ['Status', 'ONLINE'],
-                        ['Modules', 'Boot Logo, BIOS Beep']
+                        ['Modules', 'Login Protocol, Boot Logo']
                     ];
                     const table = createAsciiTable(headers, tableData);
                     addLorelMessage('<pre>' + escapeHtml(table) + '</pre>', true);
                     break;
-                case 'date':
-                    await typeLorelMessage(new Date().toLocaleString('it-IT'));
-                    break;
-                case 'clear':
-                    history.innerHTML = '';
-                    localStorage.removeItem('chatHistory');
-                    break;
-                 case 'reboot':
-                    await runRebootSequence();
-                    break;
-                case 'echo':
-                    await typeLorelMessage(parsed.args.length > 0 ? parsed.args.join(' ') : '');
-                    break;
-                case 'news':
-                    const limit = parsed.flags.limit || 3;
-                    await fetchNews(limit);
-                    break;
-                case 'weather':
-                    if (parsed.args.length === 0) {
-                        await typeLorelMessage('Uso: weather <città> o chiedi \"che tempo fa a <città>?\"');
-                    } else {
-                        await fetchWeather(parsed.args.join(' '));
-                    }
-                    break;
-                case 'wiki':
-                     if (parsed.args.length === 0) {
-                        await typeLorelMessage('Uso: wiki <termine da cercare> o chiedi \"cosa è <termine>?\"');
-                    } else {
-                        await fetchWikipedia(parsed.args.join(' '));
-                    }
-                    break;
+                case 'date': await typeLorelMessage(new Date().toLocaleString('it-IT')); break;
+                case 'clear': history.innerHTML = ''; localStorage.removeItem('chatHistory'); break;
+                case 'reboot': await runRebootSequence(); break;
+                case 'echo': await typeLorelMessage(parsed.args.length > 0 ? parsed.args.join(' ') : ''); break;
+                case 'news': await fetchNews(parsed.flags.limit || 3); break;
+                case 'weather': if (parsed.args.length === 0) { await typeLorelMessage('Uso: weather <città> o chiedi \"che tempo fa a <città>?\"'); } else { await fetchWeather(parsed.args.join(' ')); } break;
+                case 'wiki': if (parsed.args.length === 0) { await typeLorelMessage('Uso: wiki <termine da cercare> o chiedi \"cosa è <termine>?\"'); } else { await fetchWikipedia(parsed.args.join(' ')); } break;
                 case 'stats':
                     await typeLorelMessage('Generating system performance chart...');
-                    let s = new Array (120);
-                    for (let i = 0; i < s.length; i++) {
-                        s[i] = 15 * Math.sin (i * ((Math.PI * 4) / s.length));
-                    }
+                    let s = new Array(120).fill(0).map((_, i) => 15 * Math.sin(i * ((Math.PI * 4) / 120)));
                     const chart = asciichart.plot(s, { height: 10 });
                     addLorelMessage('<pre>' + escapeHtml(chart) + '</pre>', true);
                     await typeLorelMessage('Chart depicts simulated CPU load over the last 60 seconds.');
@@ -921,285 +921,37 @@
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             mainScreen.style.opacity = '0';
+            monitorBezel.style.display = 'none';
             await new Promise(resolve => setTimeout(resolve, 500));
 
             biosOverlay.style.display = 'flex';
-            const biosLines = [
-                { text: 'LorelAxun BIOS v1.1', delay: 500 },
-                { text: 'Copyright (c) 2025 AleXsjsju Corp.', delay: 200 },
-                { text: '', delay: 500 },
-                { text: 'Initializing Core Memory.................... ', delay: 300 },
-                { text: '65536 KB OK', delay: 100, append: true, action: playBiosBeep },
-                { text: '\nDetecting Primary Master.................. LAX-HD-01', delay: 800 },
-                { text: 'Detecting Primary Slave................. None', delay: 800 },
-                { text: 'Detecting Secondary Master................ None', delay: 800 },
-                { text: 'Detecting Secondary Slave................. None', delay: 800 },
-                { text: '', delay: 500 },
-                { text: 'Checking NVRAM............................ OK', delay: 400 },
-                { text: 'Initializing Web-Access Layer........... OK', delay: 600 },
-                { text: '', delay: 1000 },
-                { text: 'Booting from Primary Master (LAX-HD-01)...', delay: 500 },
-            ];
-
-            for (const line of biosLines) {
-                await new Promise(resolve => setTimeout(resolve, line.delay));
-                if (line.append) {
-                    biosOverlay.textContent += line.text;
-                } else {
-                    biosOverlay.textContent += line.text + '\n';
-                }
-                if (line.action) {
-                    await line.action();
-                }
-            }
+            const biosLines = [ { text: 'LorelAxun BIOS v1.1', delay: 500 }, { text: 'Copyright (c) 2025 AleXsjsju Corp.', delay: 200 }, { text: '', delay: 500 }, { text: 'Initializing Core Memory.................... ', delay: 300 }, { text: '65536 KB OK', delay: 100, append: true, action: playBiosBeep }, { text: '\nDetecting Primary Master.................. LAX-HD-01', delay: 800 }, { text: 'Detecting Primary Slave................. None', delay: 800 }, { text: 'Detecting Secondary Master................ None', delay: 800 }, { text: 'Detecting Secondary Slave................. None', delay: 800 }, { text: '', delay: 500 }, { text: 'Checking NVRAM............................ OK', delay: 400 }, { text: 'Initializing Web-Access Layer........... OK', delay: 600 }, { text: '', delay: 1000 }, { text: 'Booting from Primary Master (LAX-HD-01)...', delay: 500 }, ];
+            for (const line of biosLines) { await new Promise(resolve => setTimeout(resolve, line.delay)); if (line.append) { biosOverlay.textContent += line.text; } else { biosOverlay.textContent += line.text + '\n'; } if (line.action) { await line.action(); } }
             await new Promise(resolve => setTimeout(resolve, 1000));
             biosOverlay.style.display = 'none';
             biosOverlay.textContent = '';
 
-            // Boot Logo Sequence
-            const logo = `
-██╗      █████╗
-██║     ██╔══██╗
-██║     ███████║
-██║     ██╔══██║
-███████╗██║  ██║
-╚══════╝╚═╝  ╚═╝
-            `;
+            const logo = `\n██╗      █████╗\n██║     ██╔══██╗\n██║     ███████║\n██║     ██╔══██║\n███████╗██║  ██║\n╚══════╝╚═╝  ╚═╝\n            `;
             bootLogoOverlay.innerHTML = `<pre>${escapeHtml(logo)}</pre>`;
             bootLogoOverlay.style.display = 'flex';
-            const startupSound = document.getElementById('startup-sound');
-            if(userHasInteracted) startupSound.play().catch(e => {});
-            await new Promise(resolve => setTimeout(resolve, 3500)); // Wait for animation
+            playSound('startup-sound');
+            await new Promise(resolve => setTimeout(resolve, 3500));
             bootLogoOverlay.style.display = 'none';
             bootLogoOverlay.innerHTML = '';
 
-            mainScreen.style.opacity = '1';
-            history.innerHTML = '';
-            initialMessagesContainer.innerHTML = '';
-            localStorage.removeItem('chatHistory');
-            displayInitialMessages();
-            await typeLorelMessage("System reboot complete. Welcome back.");
-
-            isTyping = false;
-            cursor.style.display = 'inline-block';
-            hiddenInput.focus();
+            initLoginScreen();
         }
 
-        async function fetchWikipedia(term) {
-            await typeLorelMessage(`Ricerca su Wikipedia per \"${term}\"...`);
-            try {
-                const searchUrl = `https://it.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(term)}&format=json&origin=*`;
-                const searchResponse = await fetch(searchUrl);
-                if (!searchResponse.ok) throw new Error(`Errore API Wikipedia (Search): ${searchResponse.status}`);
-                const searchData = await searchResponse.json();
-
-                if (!searchData.query.search || searchData.query.search.length === 0) {
-                    throw new Error(`Nessun risultato trovato per \"${term}\".`);
-                }
-
-                const searchResults = searchData.query.search;
-                
-                if (searchResults.length > 1 && searchResults[0].title.toLowerCase() !== term.toLowerCase()) {
-                    let disambiguation = false;
-                    if (searchResults[0].snippet.toLowerCase().includes('disambigua')) disambiguation = true;
-
-                    if(disambiguation || searchResults.length > 2) {
-                        let suggestionText = `Trovati più risultati per \"${term}\". Essere più specifici:\n`;
-                        searchResults.slice(0, 5).forEach(res => {
-                            suggestionText += `  - ${res.title}\n`;
-                        });
-                        suggestionText += `Esempio: wiki \"${searchResults[0].title}\"`
-                        await typeLorelMessage(suggestionText);
-                        return;
-                    }
-                }
-
-                const pageTitle = searchResults[0].title;
-                await typeLorelMessage(`Trovata pagina: \"${pageTitle}\".\nRecupero riassunto...`);
-
-                const summaryUrl = `https://it.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(pageTitle)}&format=json&origin=*`;
-                const summaryResponse = await fetch(summaryUrl);
-                if (!summaryResponse.ok) throw new Error(`Errore API Wikipedia (Extract): ${summaryResponse.status}`);
-                const summaryData = await summaryResponse.json();
-
-                const pages = summaryData.query.pages;
-                const pageId = Object.keys(pages)[0];
-                const extract = pages[pageId].extract;
-
-                if (extract) {
-                    await typeLorelMessage(extract);
-                } else {
-                    throw new Error(`Nessun riassunto disponibile per \"${pageTitle}\". Potrebbe essere una pagina di reindirizzamento o disambiguazione.`);
-                }
-
-            } catch (error) {
-                await typeLorelMessage(`Errore durante la ricerca su Wikipedia: ${error.message}`);
-            }
-        }
-
-        async function fetchWeather(city) {
-            await typeLorelMessage(`Ricerca coordinate per ${city}...`);
-            try {
-                const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=5&language=it&format=json`);
-                if (!geoResponse.ok) throw new Error(`Errore Geocoding: ${geoResponse.status}`);
-                const geoData = await geoResponse.json();
-                
-                if (!geoData.results || geoData.results.length === 0) {
-                    throw new Error(`Località non trovata: ${city}`);
-                }
-
-                const uniqueLocations = [];
-                const seen = new Set();
-                for (const loc of geoData.results) {
-                    const identifier = `${loc.name}, ${loc.admin1 || loc.country}`
-                    if (!seen.has(identifier)) {
-                        uniqueLocations.push(loc);
-                        seen.add(identifier);
-                    }
-                }
-
-                let location;
-                if (uniqueLocations.length > 1 && !city.includes(',')) {
-                    let suggestionText = `Trovate più località per \"${city}\". Essere più specifici:\n`;
-                    uniqueLocations.slice(0, 3).forEach(loc => {
-                        suggestionText += `  - ${loc.name}, ${loc.admin1 || loc.country_code}\n`;
-                    });
-                    suggestionText += `Esempio: weather \"${uniqueLocations[0].name}, ${uniqueLocations[0].country_code}\"`
-                    await typeLorelMessage(suggestionText);
-                    return;
-                } else {
-                    location = uniqueLocations[0];
-                }
-
-                const { latitude, longitude, name, admin1, country_code } = location;
-                const locationName = `${name}, ${admin1 || country_code}`
-                await typeLorelMessage(`Coordinate trovate per ${locationName}.\nRecupero dati meteo...`);
-
-                const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
-                if (!weatherResponse.ok) throw new Error(`Errore API Meteo: ${weatherResponse.status}`);
-                const weatherData = await weatherResponse.json();
-                
-                const { temperature, windspeed, weathercode } = weatherData.current_weather;
-                const weatherDescription = getWeatherDescription(weathercode);
-
-                const weatherReport = `Meteo attuale per ${locationName}:\n` +
-                                    `  - Descrizione: ${weatherDescription}\n` +
-                                    `  - Temperatura: ${temperature}°C\n` +
-                                    `  - Vento: ${windspeed} km/h`;
-                await typeLorelMessage(weatherReport);
-
-            } catch (error) {
-                await typeLorelMessage(`Errore durante il recupero del meteo: ${error.message}`);
-            }
-        }
-
-        function getWeatherDescription(code) {
-            const descriptions = {
-                0: 'Sereno', 1: 'Prevalentemente sereno', 2: 'Parzialmente nuvoloso', 3: 'Nuvoloso',
-                45: 'Nebbia', 48: 'Nebbia con brina',
-                51: 'Pioggerella leggera', 53: 'Pioggerella moderata', 55: 'Pioggerella intensa',
-                61: 'Pioggia leggera', 63: 'Pioggia moderata', 65: 'Pioggia forte',
-                71: 'Nevicata leggera', 73: 'Nevicata moderata', 75: 'Nevicata forte',
-                80: 'Rovescio leggero', 81: 'Rovescio moderato', 82: 'Rovescio violento',
-                95: 'Temporale', 96: 'Temporale con grandine leggera', 99: 'Temporale con grandine pesante'
-            };
-            return descriptions[code] || 'Condizioni non specificate';
-        }
-
-        async function fetchNews(limit = 3) {
-            await typeLorelMessage(`Recupero ${limit} notizie dal web...`);
-            try {
-                const response = await fetch(`https://jsonplaceholder.typicode.com/posts?_limit=${limit}`);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
-                let newsHeadlines = 'Ultime notizie recuperate:\n';
-                data.forEach((article, index) => {
-                    const title = article.title.charAt(0).toUpperCase() + article.title.slice(1);
-                    newsHeadlines += `\n[${index + 1}] ${title}`;
-                });
-                await typeLorelMessage(newsHeadlines);
-            } catch (error) {
-                await typeLorelMessage(`Errore durante il recupero delle notizie: ${error.message}`);
-            }
-        }
-
-        async function typeLorelMessage(text) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'msg lorel';
-            history.appendChild(messageDiv);
-            scrollToBottom();
-
-            const chunks = text.split('\n');
-
-            for (let i = 0; i < chunks.length; i++) {
-                const chunk = chunks[i];
-                if (i > 0) {
-                    messageDiv.innerText += '\n';
-                    const pauseDuration = 250 + Math.random() * 300;
-                    await new Promise(resolve => setTimeout(resolve, pauseDuration));
-                }
-
-                for (let j = 0; j < chunk.length; j++) {
-                    const char = chunk.charAt(j);
-                    messageDiv.innerText += char;
-                    playKeySound();
-                    scrollToBottom();
-
-                    const speed = 30 + (Math.random() * 25);
-                    await new Promise(resolve => setTimeout(resolve, speed));
-
-                    if (char === ',') {
-                        await new Promise(resolve => setTimeout(resolve, 250 + Math.random() * 100));
-                    } else if (char === '.' || char === '!' || char === '?') {
-                        await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 150));
-                    }
-                }
-            }
-            saveChatHistory();
-        }
+        async function fetchWikipedia(term) { await typeLorelMessage(`Ricerca su Wikipedia per \"${term}\"...`); try { const searchUrl = `https://it.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(term)}&format=json&origin=*`; const searchResponse = await fetch(searchUrl); if (!searchResponse.ok) throw new Error(`Errore API Wikipedia (Search): ${searchResponse.status}`); const searchData = await searchResponse.json(); if (!searchData.query.search || searchData.query.search.length === 0) { throw new Error(`Nessun risultato trovato per \"${term}\".`); } const searchResults = searchData.query.search; if (searchResults.length > 1 && searchResults[0].title.toLowerCase() !== term.toLowerCase()) { let disambiguation = false; if (searchResults[0].snippet.toLowerCase().includes('disambigua')) disambiguation = true; if(disambiguation || searchResults.length > 2) { let suggestionText = `Trovati più risultati per \"${term}\". Essere più specifici:\n`; searchResults.slice(0, 5).forEach(res => { suggestionText += `  - ${res.title}\n`; }); suggestionText += `Esempio: wiki \"${searchResults[0].title}\"`; await typeLorelMessage(suggestionText); return; } } const pageTitle = searchResults[0].title; await typeLorelMessage(`Trovata pagina: \"${pageTitle}\".\nRecupero riassunto...`); const summaryUrl = `https://it.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(pageTitle)}&format=json&origin=*`; const summaryResponse = await fetch(summaryUrl); if (!summaryResponse.ok) throw new Error(`Errore API Wikipedia (Extract): ${summaryResponse.status}`); const summaryData = await summaryResponse.json(); const pages = summaryData.query.pages; const pageId = Object.keys(pages)[0]; const extract = pages[pageId].extract; if (extract) { await typeLorelMessage(extract); } else { throw new Error(`Nessun riassunto disponibile per \"${pageTitle}\".`); } } catch (error) { await typeLorelMessage(`Errore durante la ricerca su Wikipedia: ${error.message}`); } }
+        async function fetchWeather(city) { await typeLorelMessage(`Ricerca coordinate per ${city}...`); try { const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=5&language=it&format=json`); if (!geoResponse.ok) throw new Error(`Errore Geocoding: ${geoResponse.status}`); const geoData = await geoResponse.json(); if (!geoData.results || geoData.results.length === 0) { throw new Error(`Località non trovata: ${city}`); } const uniqueLocations = []; const seen = new Set(); for (const loc of geoData.results) { const identifier = `${loc.name}, ${loc.admin1 || loc.country}`; if (!seen.has(identifier)) { uniqueLocations.push(loc); seen.add(identifier); } } let location; if (uniqueLocations.length > 1 && !city.includes(',')) { let suggestionText = `Trovate più località per \"${city}\". Essere più specifici:\n`; uniqueLocations.slice(0, 3).forEach(loc => { suggestionText += `  - ${loc.name}, ${loc.admin1 || loc.country_code}\n`; }); suggestionText += `Esempio: weather \"${uniqueLocations[0].name}, ${uniqueLocations[0].country_code}\"`; await typeLorelMessage(suggestionText); return; } else { location = uniqueLocations[0]; } const { latitude, longitude, name, admin1, country_code } = location; const locationName = `${name}, ${admin1 || country_code}`; await typeLorelMessage(`Coordinate trovate per ${locationName}.\nRecupero dati meteo...`); const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`); if (!weatherResponse.ok) throw new Error(`Errore API Meteo: ${weatherResponse.status}`); const weatherData = await weatherResponse.json(); const { temperature, windspeed, weathercode } = weatherData.current_weather; const weatherDescription = getWeatherDescription(weathercode); const weatherReport = `Meteo attuale per ${locationName}:\n` + `  - Descrizione: ${weatherDescription}\n` + `  - Temperatura: ${temperature}°C\n` + `  - Vento: ${windspeed} km/h`; await typeLorelMessage(weatherReport); } catch (error) { await typeLorelMessage(`Errore durante il recupero del meteo: ${error.message}`); } }
+        function getWeatherDescription(code) { const descriptions = { 0: 'Sereno', 1: 'Prevalentemente sereno', 2: 'Parzialmente nuvoloso', 3: 'Nuvoloso', 45: 'Nebbia', 48: 'Nebbia con brina', 51: 'Pioggerella leggera', 53: 'Pioggerella moderata', 55: 'Pioggerella intensa', 61: 'Pioggia leggera', 63: 'Pioggia moderata', 65: 'Pioggia forte', 71: 'Nevicata leggera', 73: 'Nevicata moderata', 75: 'Nevicata forte', 80: 'Rovescio leggero', 81: 'Rovescio moderato', 82: 'Rovescio violento', 95: 'Temporale', 96: 'Temporale con grandine leggera', 99: 'Temporale con grandine pesante' }; return descriptions[code] || 'Condizioni non specificate'; }
+        async function fetchNews(limit = 3) { await typeLorelMessage(`Recupero ${limit} notizie dal web...`); try { const response = await fetch(`https://jsonplaceholder.typicode.com/posts?_limit=${limit}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); let newsHeadlines = 'Ultime notizie recuperate:\n'; data.forEach((article, index) => { const title = article.title.charAt(0).toUpperCase() + article.title.slice(1); newsHeadlines += `\n[${index + 1}] ${title}`; }); await typeLorelMessage(newsHeadlines); } catch (error) { await typeLorelMessage(`Errore durante il recupero delle notizie: ${error.message}`); } }
+        async function typeLorelMessage(text) { const messageDiv = document.createElement('div'); messageDiv.className = 'msg lorel'; history.appendChild(messageDiv); scrollToBottom(); const chunks = text.split('\n'); for (let i = 0; i < chunks.length; i++) { const chunk = chunks[i]; if (i > 0) { messageDiv.innerText += '\n'; const pauseDuration = 250 + Math.random() * 300; await new Promise(resolve => setTimeout(resolve, pauseDuration)); } for (let j = 0; j < chunk.length; j++) { const char = chunk.charAt(j); messageDiv.innerText += char; playKeySound(); scrollToBottom(); const speed = 30 + (Math.random() * 25); await new Promise(resolve => setTimeout(resolve, speed)); if (char === ',') { await new Promise(resolve => setTimeout(resolve, 250 + Math.random() * 100)); } else if (char === '.' || char === '!' || char === '?') { await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 150)); } } } saveChatHistory(); }
+        function addLorelMessage(text, isHtml = false) { const div = document.createElement('div'); div.className = 'msg lorel'; if (isHtml) { div.innerHTML = text; } else { div.innerText = text; } history.appendChild(div); saveChatHistory(); scrollToBottom(); }
+        function addUserMessage(text, isHtml = false) { const div = document.createElement('div'); div.className = 'msg user'; if (isHtml) { div.innerHTML = text; } else { div.innerText = text; } history.appendChild(div); saveChatHistory(); scrollToBottom(); }
+        function saveChatHistory() { localStorage.setItem('chatHistory', history.innerHTML); }
+        function loadHistory() { const savedCommandHistory = localStorage.getItem('commandHistory'); if(savedCommandHistory) { commandHistory = JSON.parse(savedCommandHistory); historyIndex = commandHistory.length; } const savedChat = localStorage.getItem('chatHistory'); if (savedChat) { history.innerHTML = savedChat; } }
         
-        function addLorelMessage(text, isHtml = false) {
-            const div = document.createElement('div');
-            div.className = 'msg lorel';
-            if (isHtml) {
-                div.innerHTML = text;
-            } else {
-                div.innerText = text;
-            }
-            history.appendChild(div);
-            saveChatHistory();
-            scrollToBottom();
-        }
-
-        function addUserMessage(text, isHtml = false) {
-            const div = document.createElement('div');
-            div.className = 'msg user';
-            if (isHtml) {
-                div.innerHTML = text;
-            } else {
-                div.innerText = text;
-            }
-            history.appendChild(div);
-            saveChatHistory();
-            scrollToBottom();
-        }
-
-        function saveChatHistory() {
-            localStorage.setItem('chatHistory', history.innerHTML);
-        }
-
-        function loadHistory() {
-            const savedCommandHistory = localStorage.getItem('commandHistory');
-            if(savedCommandHistory) {
-                commandHistory = JSON.parse(savedCommandHistory);
-                historyIndex = commandHistory.length;
-            }
-            const savedChat = localStorage.getItem('chatHistory');
-            if (savedChat) {
-                history.innerHTML = savedChat;
-            }
-        }
-
         function displayInitialMessages() {
             const messages = [
                 '[SYSTEM] Initializing core memory... OK',
@@ -1226,6 +978,7 @@
                 '[SYSTEM] Reboot Protocol module loaded. Type \'reboot\' to restart the interface.',
                 '[IMMERSION] Reboot sequence now features a simulated BIOS POST screen with an audible beep.',
                 '[IMMERSION] Boot sequence upgraded with an animated ASCII logo and startup sound.',
+                '[SECURITY] System access now requires authentication via Login Protocol.',
             ];
             let content = '';
             messages.forEach(msg => {
@@ -1234,32 +987,12 @@
             initialMessagesContainer.innerHTML = content;
         }
 
-        function scrollToBottom() {
-             terminalContainer.scrollTop = terminalContainer.scrollHeight;
-        }
-
-        function updateClock() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('it-IT');
-            clock.textContent = timeString;
-        }
+        function scrollToBottom() { terminalContainer.scrollTop = terminalContainer.scrollHeight; }
+        function updateClock() { const now = new Date(); const timeString = now.toLocaleTimeString('it-IT'); clock.textContent = timeString; }
         
-        window.onload = async () => {
-            initTitleTypewriter();
-            initializeNLU();
-            loadHistory();
-            displayInitialMessages();
-            updateClock();
-            setInterval(updateClock, 1000);
-            isTyping = true;
-            cursor.style.display = 'none';
-            if (!localStorage.getItem('chatHistory')) {
-                await typeLorelMessage("Interfaccia v6.9. La sequenza di avvio ora include un logo animato, a definire la mia identità visiva.");
-            }
-            isTyping = false;
-            cursor.style.display = 'inline-block';
-            hiddenInput.focus();
-            scrollToBottom();
+        window.onload = () => {
+            initializeGlobalListeners();
+            initLoginScreen();
         }
 
     </script>
