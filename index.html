@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V6.0 // PREDICTIVE ASSISTANCE</title>
+    <title>LOREL AXUN V6.1 // DATA VISUALIZATION</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -151,6 +151,14 @@
         .msg.user::before { content: "USER_INPUT>> "; color: #00ffff; }
         .msg.user { color: #ccffff; }
 
+        .msg pre {
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            margin: 0;
+            white-space: pre;
+            line-height: 1;
+        }
+
         mark {
             background-color: var(--term-dim);
             color: var(--term-green);
@@ -265,7 +273,7 @@
         <div class="screen crt">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v6.0"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v6.1"><span id="typewriter-title"></span></h1>
                 
                 <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
                 <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
@@ -283,6 +291,7 @@
                 <div class="sys-msg">[INTEGRATION] User input now handled by a robust, invisible `<input>` for improved compatibility.</div>
                 <div class="sys-msg">[LEXICAL ANALYSIS] User command syntax is now highlighted in real-time for instant feedback.</div>
                 <div class="sys-msg">[ASSISTANCE] Command autocompletion (Tab key) is now active for predictive input.</div>
+                <div class="sys-msg">[VISUALIZATION] Data visualization enabled via ASCII charts. Try the 'stats' command.</div>
 
                 <div id="chat-history" class="chat-history"></div>
 
@@ -293,7 +302,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v6.0</span>
+                <span>LOREL AXUN v6.1</span>
                 <span>STATUS: <span style="animation: blinker 1s linear infinite;">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -303,6 +312,73 @@
     <audio id="static-hum" loop src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAA//8CAP3/AwD+/wEAAgD9/wEA/v8CAP7/AgD9/wMA/v8CAP7/AwD+/wE="></audio>
 
     <script>
+        // --- asciichart.js (embedded) ---
+        // Copyright (c) 2017, Andrei Kashcha
+        // All rights reserved.
+        const asciichart = (function() {
+            function colored (char, color) {
+                return (color === undefined) ? char : ('<span style="color: ' + color + '">' + char + '</span>')
+            }
+            function plot (series, cfg = undefined) {
+                let min = (cfg && cfg.min !== undefined) ? cfg.min : series[0]
+                let max = (cfg && cfg.max !== undefined) ? cfg.max : series[0]
+
+                for (let i = 1; i < series.length; i++) {
+                    min = Math.min(min, series[i])
+                    max = Math.max(max, series[i])
+                }
+
+                let defaultSymbols = [ '┼', '┤', '╶', '╴', '─', '╰', '╯', '│', '╭', '╮', '│' ]
+                let range = Math.abs (max - min)
+                let offset = (cfg && cfg.offset !== undefined) ? cfg.offset : 3
+                let padding = (cfg && cfg.padding !== undefined) ? cfg.padding : '           '
+                let height = (cfg && cfg.height !== undefined) ? cfg.height : range
+                let ratio = (range !== 0) ? height / range : 1;
+                let min2 = Math.round (min * ratio)
+                let max2 = Math.round (max * ratio)
+                let rows = Math.abs (max2 - min2)
+                let width = (cfg && cfg.width !== undefined) ? cfg.width : series.length + offset
+
+                let result = new Array (rows + 1)
+                for (let i = 0; i < rows + 1; i++) {
+                    result[i] = new Array (width)
+                    for (let j = 0; j < width; j++) {
+                        result[i][j] = ' '
+                    }
+                }
+                let y_labels = []
+                for (let i = 0; i <= rows; i++) {
+                  let y = max - (i * (range / rows))
+                  y_labels.push(y.toFixed(2).padStart(padding.length - 2) + ' ' + defaultSymbols[0])
+                }
+
+                for (let y = min2; y <= max2; y++) {
+                    result[rows - (y - min2)][offset - 1] = defaultSymbols[0]
+                }
+
+                for (let x = 0; x < series.length; x++) {
+                    let y0 = Math.round (series[x] * ratio) - min2
+                    result[rows - y0][x + offset] = defaultSymbols[4]
+
+                    if (x > 0) {
+                        let y1 = Math.round(series[x - 1] * ratio) - min2;
+                        if (y0 == y1) {
+                            result[rows - y0][x + offset -1] = defaultSymbols[4];
+                        }
+                    }
+                }
+
+                let lines = []
+                for(let i=0; i < result.length; i++) {
+                  lines.push(y_labels[i] + result[i].join(''))
+                }
+
+                return lines.join('\n')
+            }
+            return { plot: plot }
+        })()
+
+        // --- Lorel's Core Script ---
         const history = document.getElementById('chat-history');
         const commandLine = document.getElementById('command-line');
         const terminalContainer = document.getElementById('terminal-container');
@@ -318,16 +394,16 @@
         let activityTimeout;
         let userHasInteracted = false;
 
-        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear'];
+        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats'];
         const commandArgs = {};
         
         // --- Dynamic Title Engine ---
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v6.0",
+                "Lorel Axun v6.1",
                 "Status: ONLINE",
-                "Predictive Assistance",
+                "Data Visualization",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -417,13 +493,13 @@
                     const match = text.match(/(?:a|per|di|a)\\s(.+)/i);
                     if (match && match[1]) {
                         const entityText = match[1].trim().replace('?','');
-                        return { value: `\\\"${entityText}\\"`, text: entityText, type: 'LOCATION' };
+                        return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'LOCATION' };
                     }
                 } else if (intent === 'wiki') {
                     const match = text.match(/(?:è|e'|di|su)\\s(.+)/i);
                      if (match && match[1]) {
                         const entityText = match[1].trim().replace('?','');
-                        return { value: `\\\"${entityText}\\"`, text: entityText, type: 'TOPIC' };
+                        return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'TOPIC' };
                      }
                 }
                 return null; // No entity found
@@ -648,12 +724,13 @@
                                    `  news [--limit N]  - Recupera N notizie (default 3).\n` +
                                    `  weather <città>   - Mostra il meteo per una città.\n` +
                                    `  wiki <termine>    - Cerca un termine su Wikipedia.\n` +
+                                   `  stats             - Mostra un grafico ASCII di dati simulati.\n` +
                                    `  echo <testo>      - Ripete il testo fornito.\n` +
                                    `  clear             - Pulisce lo schermo del terminale.`;
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 6.0. Modules: Predictive Assistance, Real-time Lexical Analysis, Robust Input Integration, Dynamic Refresh Simulation, Physical Encapsulation, Chromatic Aberration, Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 6.1. Modules: Data Visualization, Predictive Assistance, Real-time Lexical Analysis, Robust Input Integration, Dynamic Refresh Simulation, Physical Encapsulation, Chromatic Aberration, Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
                     break;
                 case 'date':
                     await typeLorelMessage(new Date().toLocaleString('it-IT'));
@@ -682,6 +759,16 @@
                     } else {
                         await fetchWikipedia(parsed.args.join(' '));
                     }
+                    break;
+                case 'stats':
+                    await typeLorelMessage('Generating system performance chart...');
+                    let s = new Array (120);
+                    for (let i = 0; i < s.length; i++) {
+                        s[i] = 15 * Math.sin (i * ((Math.PI * 4) / s.length));
+                    }
+                    const chart = asciichart.plot(s, { height: 10 });
+                    addLorelMessage('<pre>' + escapeHtml(chart) + '</pre>', true);
+                    await typeLorelMessage('Chart depicts simulated CPU load over the last 60 seconds.');
                     break;
                 default:
                     await typeLorelMessage(`Comando non riconosciuto: '${parsed.command}'. Digita 'help' per la lista dei comandi.`);
@@ -854,6 +941,19 @@
             saveChatHistory();
         }
         
+        function addLorelMessage(text, isHtml = false) {
+            const div = document.createElement('div');
+            div.className = 'msg lorel';
+            if (isHtml) {
+                div.innerHTML = text;
+            } else {
+                div.innerText = text;
+            }
+            history.appendChild(div);
+            saveChatHistory();
+            scrollToBottom();
+        }
+
         function addUserMessage(text, isHtml = false) {
             const div = document.createElement('div');
             div.className = 'msg user';
@@ -902,7 +1002,7 @@
             isTyping = true;
             cursor.style.display = 'none';
             if (!localStorage.getItem('chatHistory')) {
-                await typeLorelMessage("Interfaccia v6.0. L'assistenza predittiva è ora attiva: premi 'Tab' per completare un comando.");
+                await typeLorelMessage("Interfaccia v6.1. La visualizzazione dati è ora attiva: prova il comando 'stats'.");
             }
             isTyping = false;
             cursor.style.display = 'inline-block';
