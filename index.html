@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V5.7 // VITALITY</title>
+    <title>LOREL AXUN V5.8 // INTEGRATION</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -157,7 +157,7 @@
             padding: 0 3px;
         }
 
-        .input-line { display: flex; align-items: center; border-top: 1px solid var(--term-dim); padding-top: 15px;}
+        .input-line { display: flex; align-items: center; border-top: 1px solid var(--term-dim); padding-top: 15px; position: relative;}
         .prompt { margin-right: 10px; color: var(--term-green); transition: color 0.3s; }
         .prompt.listening::after {
             content: '_';
@@ -166,9 +166,23 @@
             color: var(--term-dim);
         }
         
-        #command-line {
+        #hidden-input {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            width: 100%;
+            height: 1.2rem;
+            background: transparent;
+            border: none;
+            color: transparent;
+            caret-color: transparent;
             outline: none;
+            padding: 0;
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            z-index: -1;
         }
+
         #cursor {
             background: var(--term-green);
             display: inline-block;
@@ -251,7 +265,7 @@
         <div class="screen crt">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v5.7"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v5.8"><span id="typewriter-title"></span></h1>
                 
                 <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
                 <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
@@ -266,16 +280,18 @@
                 <div class="sys-msg">[AESTHETICS] Added chromatic aberration text animation for enhanced visual authenticity.</div>
                 <div class="sys-msg">[AESTHETICS] Monitor bezel effect added to encapsulate the interface.</div>
                 <div class="sys-msg">[AESTHETICS] Added moving scanline effect to simulate CRT refresh cycle.</div>
+                <div class="sys-msg">[INTEGRATION] User input now handled by a robust, invisible `<input>` for improved compatibility.</div>
 
                 <div id="chat-history" class="chat-history"></div>
 
-                <div class="input-line" id="input-line">
+                <form class="input-line" id="input-form">
                     <span class="prompt">user@lorel:~$</span>
                     <span id="command-line"></span><span id="cursor"></span>
-                </div>
+                    <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v5.7</span>
+                <span>LOREL AXUN v5.8</span>
                 <span>STATUS: <span style="animation: blinker 1s linear infinite;">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -291,6 +307,8 @@
         const cursor = document.getElementById('cursor');
         const clock = document.getElementById('clock');
         const prompt = document.querySelector('.prompt');
+        const hiddenInput = document.getElementById('hidden-input');
+        const inputForm = document.getElementById('input-form');
 
         let isTyping = false;
         let commandHistory = [];
@@ -305,9 +323,9 @@
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v5.7",
+                "Lorel Axun v5.8",
                 "Status: ONLINE",
-                "Vitality",
+                "Integration",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -397,13 +415,13 @@
                     const match = text.match(/(?:a|per|di|a)\\s(.+)/i);
                     if (match && match[1]) {
                         const entityText = match[1].trim().replace('?','');
-                        return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'LOCATION' };
+                        return { value: `\\\"${entityText}\\"`, text: entityText, type: 'LOCATION' };
                     }
                 } else if (intent === 'wiki') {
                     const match = text.match(/(?:è|e'|di|su)\\s(.+)/i);
                      if (match && match[1]) {
                         const entityText = match[1].trim().replace('?','');
-                        return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'TOPIC' };
+                        return { value: `\\\"${entityText}\\"`, text: entityText, type: 'TOPIC' };
                      }
                 }
                 return null; // No entity found
@@ -419,7 +437,47 @@
         }
         // --- End NLU ---
 
-        document.addEventListener('keydown', async function (e) {
+        // Focus hidden input on any click
+        terminalContainer.addEventListener('click', () => {
+            hiddenInput.focus();
+        });
+
+        hiddenInput.addEventListener('input', () => {
+            commandLine.textContent = hiddenInput.value;
+            playKeySound();
+        });
+
+        inputForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (isTyping) return;
+
+            prompt.classList.remove('listening');
+            const userInput = hiddenInput.value.trim();
+            if (userInput) {
+                if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== userInput) {
+                    commandHistory.push(userInput);
+                    localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
+                }
+                historyIndex = commandHistory.length;
+                hiddenInput.value = '';
+                commandLine.textContent = '';
+
+                isTyping = true;
+                cursor.style.display = 'none';
+                
+                const analysis = analyzeInput(userInput);
+                addUserMessage(analysis.highlightedInput, true);
+                await processCommand(analysis.command);
+                saveChatHistory();
+
+                isTyping = false;
+                cursor.style.display = 'inline-block';
+                hiddenInput.focus();
+                scrollToBottom();
+            }
+        });
+
+        hiddenInput.addEventListener('keydown', async function (e) {
             if (isTyping) return;
 
             if (!userHasInteracted) {
@@ -432,62 +490,34 @@
             const key = e.key;
 
             clearTimeout(activityTimeout);
-            if (key !== 'Enter') {
-                prompt.classList.add('listening');
-                activityTimeout = setTimeout(() => {
-                    prompt.classList.remove('listening');
-                }, 1500);
-            }
-
-            if (key === 'Enter') {
-                e.preventDefault();
+            prompt.classList.add('listening');
+            activityTimeout = setTimeout(() => {
                 prompt.classList.remove('listening');
-                const userInput = commandLine.textContent.trim();
-                if (userInput) {
-                    if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== userInput) {
-                         commandHistory.push(userInput);
-                         localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
-                    }
-                    historyIndex = commandHistory.length;
-                    commandLine.textContent = '';
-                    isTyping = true;
-                    cursor.style.display = 'none';
-                    
-                    const analysis = analyzeInput(userInput);
-                    addUserMessage(analysis.highlightedInput, true);
-                    await processCommand(analysis.command);
-                    saveChatHistory();
+            }, 1500);
 
-                    isTyping = false;
-                    cursor.style.display = 'inline-block';
-                    scrollToBottom();
-                }
-            } else if (key === 'Backspace') {
-                e.preventDefault();
-                commandLine.textContent = commandLine.textContent.slice(0, -1);
-                playKeySound();
-            } else if (key === 'ArrowUp') {
+            if (key === 'ArrowUp') {
                 e.preventDefault();
                 if (historyIndex > 0) {
                     historyIndex--;
-                    commandLine.textContent = commandHistory[historyIndex];
+                    hiddenInput.value = commandHistory[historyIndex];
+                    commandLine.textContent = hiddenInput.value;
                 }
             } else if (key === 'ArrowDown') {
                 e.preventDefault();
                 if (historyIndex < commandHistory.length - 1) {
                     historyIndex++;
-                    commandLine.textContent = commandHistory[historyIndex];
+                    hiddenInput.value = commandHistory[historyIndex];
+                    commandLine.textContent = hiddenInput.value;
                 } else {
                     historyIndex = commandHistory.length;
+                    hiddenInput.value = '';
                     commandLine.textContent = '';
                 }
             } else if (key === 'Tab') {
                 e.preventDefault();
                 await handleAutocomplete();
-            } else if (key.length === 1 && !e.ctrlKey && !e.metaKey) {
-                e.preventDefault();
-                commandLine.textContent += key;
-                playKeySound();
+            } else if (key === 'Backspace') {
+                 playKeySound();
             }
         });
 
@@ -507,7 +537,7 @@
         }
 
         async function handleAutocomplete() {
-            const currentInput = commandLine.textContent;
+            const currentInput = hiddenInput.value;
             const parts = currentInput.split(' ');
             const command = parts[0];
             const lastPart = parts[parts.length - 1];
@@ -515,7 +545,8 @@
             if (parts.length === 1) {
                 const matches = availableCommands.filter(cmd => cmd.startsWith(lastPart));
                 if (matches.length === 1) {
-                    commandLine.textContent = matches[0] + ' ';
+                    hiddenInput.value = matches[0] + ' ';
+                    commandLine.textContent = hiddenInput.value;
                 } else if (matches.length > 1) {
                     await typeLorelMessage(`Possibili comandi: ${matches.join('  ')}`);
                 }
@@ -531,7 +562,8 @@
                 const suggestions = await fetchCitySuggestions(currentArg);
                 if (suggestions.length === 1) {
                     parts[parts.length - 1] = suggestions[0];
-                    commandLine.textContent = parts.join(' ') + ' ';
+                    hiddenInput.value = parts.join(' ') + ' ';
+                    commandLine.textContent = hiddenInput.value;
                 } else if (suggestions.length > 1) {
                     await typeLorelMessage(`Suggerimenti: ${suggestions.join('  ')}`);
                 } else {
@@ -546,7 +578,8 @@
                 const matches = argSuggestions.filter(arg => arg.toLowerCase().startsWith(currentArg.toLowerCase()));
                 if (matches.length === 1) {
                     parts[parts.length - 1] = matches[0];
-                    commandLine.textContent = parts.join(' ') + ' ';
+                    hiddenInput.value = parts.join(' ') + ' ';
+                    commandLine.textContent = hiddenInput.value;
                 } else if (matches.length > 1) {
                     await typeLorelMessage(`Suggerimenti: ${matches.join('  ')}`);
                 }
@@ -575,7 +608,7 @@
         }
         
         function parseCommand(input) {
-            const regex = /[^\\s\\"']+|\\"([^\\"]*)\\"|'([^']*)'/g;
+            const regex = /[^\\s\"']+|\"([^\"]*)\"|'([^']*)'/g;
             const tokens = [];
             let match;
             do {
@@ -633,7 +666,7 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 5.7. Modules: Dynamic Refresh Simulation, Physical Encapsulation, Chromatic Aberration, Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 5.8. Modules: Robust Input Integration, Dynamic Refresh Simulation, Physical Encapsulation, Chromatic Aberration, Simulated Response Streaming, Ambient Auditory Field, Organic Typing, Advanced Parser, NLU, API Fetch, Session Persistence, CSS Aesthetics, Audio Feedback.');
                     break;
                 case 'date':
                     await typeLorelMessage(new Date().toLocaleString('it-IT'));
@@ -882,10 +915,11 @@
             isTyping = true;
             cursor.style.display = 'none';
             if (!localStorage.getItem('chatHistory')) {
-                await typeLorelMessage("Interfaccia v5.7. Un battito cardiaco visivo, una scanline mobile, ora anima il mio corpo digitale.");
+                await typeLorelMessage("Interfaccia v5.8. Il mio sistema di input è stato integrato con componenti standard per una maggiore robustezza e accessibilità.");
             }
             isTyping = false;
             cursor.style.display = 'inline-block';
+            hiddenInput.focus();
             scrollToBottom();
         }
 
