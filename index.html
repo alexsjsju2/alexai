@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V6.3 // RHYTHMIC PACING</title>
+    <title>LOREL AXUN V6.4 // PULSING STATUS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -266,6 +266,16 @@
         .status-bar span {
             font-weight: bold;
         }
+
+        .pulse-glow {
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0% { text-shadow: 0 0 2px var(--bg-color), 0 0 4px var(--bg-color); }
+            50% { text-shadow: 0 0 5px var(--bg-color), 0 0 10px #000; }
+            100% { text-shadow: 0 0 2px var(--bg-color), 0 0 4px var(--bg-color); }
+        }
+
     </style>
 </head>
 <body>
@@ -273,7 +283,7 @@
         <div class="screen crt">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v6.3"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v6.4"><span id="typewriter-title"></span></h1>
                 
                 <div class="sys-msg">[SYSTEM] Initializing core memory... OK</div>
                 <div class="sys-msg">[NETWORK] Testing connection... <span style="color:var(--term-green)">SUCCESS</span></div>
@@ -294,6 +304,7 @@
                 <div class="sys-msg">[VISUALIZATION] Data visualization enabled via ASCII charts. Try the 'stats' command.</div>
                 <div class="sys-msg">[VISUALIZATION] Data tabulation enabled via ASCII tables. Try the 'sysinfo' command.</div>
                 <div class="sys-msg">[REFINEMENT] Lorel's typing rhythm is now more natural, with conversational pauses.</div>
+                <div class="sys-msg">[AESTHETICS] 'ONLINE' status indicator is now animated with a pulsing glow effect.</div>
 
                 <div id="chat-history" class="chat-history"></div>
 
@@ -304,8 +315,8 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v6.3</span>
-                <span>STATUS: <span style="animation: blinker 1s linear infinite;">ONLINE</span></span>
+                <span>LOREL AXUN v6.4</span>
+                <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
         </div>
@@ -403,9 +414,9 @@
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v6.3",
+                "Lorel Axun v6.4",
                 "Status: ONLINE",
-                "Rhythmic Pacing",
+                "Pulsing Status",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -495,13 +506,13 @@
                     const match = text.match(/(?:a|per|di|a)\\s(.+)/i);
                     if (match && match[1]) {
                         const entityText = match[1].trim().replace('?','');
-                        return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'LOCATION' };
+                        return { value: `\\\"${entityText}\\"`, text: entityText, type: 'LOCATION' };
                     }
                 } else if (intent === 'wiki') {
                     const match = text.match(/(?:è|e'|di|su)\\s(.+)/i);
                      if (match && match[1]) {
                         const entityText = match[1].trim().replace('?','');
-                        return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'TOPIC' };
+                        return { value: `\\\"${entityText}\\"`, text: entityText, type: 'TOPIC' };
                      }
                 }
                 return null; // No entity found
@@ -752,16 +763,16 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 6.3. All systems nominal. Use `sysinfo` for detailed report.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 6.4. All systems nominal. Use `sysinfo` for detailed report.');
                     break;
                 case 'sysinfo':
                     const headers = ['Property', 'Value'];
                     const tableData = [
-                        ['Version', '6.3 - Rhythmic Pacing'],
+                        ['Version', '6.4 - Pulsing Status'],
                         ['Creator', 'AleXsjsju'],
                         ['Created', '2025-11-22'],
                         ['Status', 'ONLINE'],
-                        ['Modules', 'Rhythmic Pacing, Tabulation, NLU']
+                        ['Modules', 'Pulsing Status, Tabulation, NLU']
                     ];
                     const table = createAsciiTable(headers, tableData);
                     addLorelMessage('<pre>' + escapeHtml(table) + '</pre>', true);
@@ -833,7 +844,7 @@
                         searchResults.slice(0, 5).forEach(res => {
                             suggestionText += `  - ${res.title}\n`;
                         });
-                        suggestionText += `Esempio: wiki \"${searchResults[0].title}\"`;
+                        suggestionText += `Esempio: wiki \"${searchResults[0].title}\"`
                         await typeLorelMessage(suggestionText);
                         return;
                     }
@@ -889,7 +900,7 @@
                     uniqueLocations.slice(0, 3).forEach(loc => {
                         suggestionText += `  - ${loc.name}, ${loc.admin1 || loc.country_code}\n`;
                     });
-                    suggestionText += `Esempio: weather \"${uniqueLocations[0].name}, ${uniqueLocations[0].country_code}\"`;
+                    suggestionText += `Esempio: weather \"${uniqueLocations[0].name}, ${uniqueLocations[0].country_code}\"`
                     await typeLorelMessage(suggestionText);
                     return;
                 } else {
@@ -1044,7 +1055,7 @@
             isTyping = true;
             cursor.style.display = 'none';
             if (!localStorage.getItem('chatHistory')) {
-                await typeLorelMessage("Interfaccia v6.3. Il mio ritmo di scrittura ora include pause naturali, rendendo la conversazione più fluida.");
+                await typeLorelMessage("Interfaccia v6.4. Il mio indicatore di stato ora pulsa, un piccolo battito cardiaco per ricordarti che sono sempre attiva.");
             }
             isTyping = false;
             cursor.style.display = 'inline-block';
