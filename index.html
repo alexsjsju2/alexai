@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V7.5 // INTERACTIVE FS</title>
+    <title>LOREL AXUN V7.6 // DESTRUCTIVE FS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -379,7 +379,7 @@
         <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v7.5"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v7.6"><span id="typewriter-title"></span></h1>
                 
                 <div id="initial-messages"></div>
 
@@ -392,7 +392,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v7.5</span>
+                <span>LOREL AXUN v7.6</span>
                 <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -505,7 +505,7 @@
             password: ''
         };
 
-        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot', 'whoami', 'ls', 'cd', 'cat', 'pwd', 'neofetch', 'mkdir', 'touch'];
+        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot', 'whoami', 'ls', 'cd', 'cat', 'pwd', 'neofetch', 'mkdir', 'touch', 'rm'];
         
         // --- Simulated File System ---
         let fileSystem = {
@@ -514,20 +514,20 @@
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt'] },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v7.5!\nQuesto è un file system simulato.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, e `touch` per esplorare e costruire.' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v7.6!\nQuesto è un file system simulato.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch` e `rm` per esplorare e gestire il sistema.' },
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 7.5 - Interactive FS\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 7.6 - Destructive FS\nCreatore: AleXsjsju' },
         };
 
         // --- Dynamic Title Engine ---
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v7.5",
+                "Lorel Axun v7.6",
                 "Status: ONLINE",
-                "Interactive FS",
+                "Destructive FS",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -649,7 +649,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v7.5 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v7.6 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -755,7 +755,7 @@
                 isTyping = true;
                 cursor.style.display = 'none';
                 if (!localStorage.getItem('chatHistory')) {
-                    await typeLorelMessage("Sessione utente '" + currentUser + "' attivata. Benvenuto nel sistema L.A.O.S. v7.5.");
+                    await typeLorelMessage("Sessione utente '" + currentUser + "' attivata. Benvenuto nel sistema L.A.O.S. v7.6.");
                     await processCommand({command: 'neofetch', args: []});
                 }
                 isTyping = false;
@@ -937,21 +937,22 @@
                                    `  cat <file>        - Mostra il contenuto di un file.\n` +
                                    `  pwd               - Mostra la directory corrente.\n` +
                                    `  mkdir <nome>      - Crea una nuova directory.\n` +
-                                   `  touch <nome>      - Crea un nuovo file vuoto.`;
+                                   `  touch <nome>      - Crea un nuovo file vuoto.\n` +
+                                   `  rm [-r] <nome>    - Rimuove un file o una directory.`;
                     await streamText(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 7.5. All systems nominal. User: ' + currentUser);
+                    await typeLorelMessage('STATUS: ONLINE. Version: 7.6. All systems nominal. User: ' + currentUser);
                     break;
                 case 'sysinfo':
                     const headers = ['Property', 'Value'];
                     const tableData = [
-                        ['Version', '7.5 - Interactive FS'],
+                        ['Version', '7.6 - Destructive FS'],
                         ['Creator', 'AleXsjsju'],
                         ['Created', '2025-11-22'],
                         ['Status', 'ONLINE'],
                         ['Logged User', currentUser],
-                        ['Modules', 'Interactive FS, Neofetch']
+                        ['Modules', 'Destructive FS, Neofetch']
                     ];
                     const table = createAsciiTable(headers, tableData);
                     await streamText(table);
@@ -973,7 +974,7 @@
                     const infoLines = [
                         `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                         '------------------',
-                        `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v7.5 Interactive FS`,
+                        `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v7.6 Destructive FS`,
                         `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                         `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                         `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
@@ -1104,6 +1105,56 @@
                     }
                     break;
                 }
+                case 'rm': {
+                    if (parsed.args.length === 0) {
+                        await typeLorelMessage(`rm: missing operand`);
+                        break;
+                    }
+                    const targetName = parsed.args[0];
+                    const targetPath = resolvePath(targetName);
+                    const targetNode = fileSystem[targetPath];
+
+                    if (!targetNode) {
+                        await typeLorelMessage(`rm: cannot remove '${targetName}': No such file or directory`);
+                        break;
+                    }
+
+                    const parentPath = resolvePath(targetPath + '/..');
+                    const parentNode = fileSystem[parentPath];
+                    const isRecursive = parsed.flags.r || parsed.flags.recursive;
+
+                    if (targetNode.type === 'dir' && targetNode.children.length > 0 && !isRecursive) {
+                        await typeLorelMessage(`rm: cannot remove '${targetName}': Directory not empty`);
+                        break;
+                    }
+
+                    // Recursive deletion function
+                    function deleteRecursively(path) {
+                        const node = fileSystem[path];
+                        if (node.type === 'dir') {
+                            // Copy children array as it will be modified
+                            [...node.children].forEach(child => {
+                                deleteRecursively((path === '/' ? '' : path) + '/' + child);
+                            });
+                        }
+                        delete fileSystem[path];
+                    }
+
+                    if (isRecursive && targetNode.type === 'dir') {
+                        deleteRecursively(targetPath);
+                    } else {
+                        delete fileSystem[targetPath];
+                    }
+
+                    // Remove from parent's children list
+                    if (parentNode && parentNode.children) {
+                         const index = parentNode.children.indexOf(targetName.split('/').pop());
+                         if (index > -1) {
+                             parentNode.children.splice(index, 1);
+                         }
+                    }
+                    break;
+                }
                 case 'stats':
                     let s = new Array(120).fill(0).map((_, i) => 15 * Math.sin(i * ((Math.PI * 4) / 120)));
                     const chart = asciichart.plot(s, { height: 10 });
@@ -1185,6 +1236,7 @@
                 '[SYSTEM] Identity module added. Try the new `neofetch` command for system info.',
                 '[REFINEMENT] Command output (help, stats) now streams line-by-line for greater immersion.',
                 '[INTERACTIVITY] File system is now writeable. Use `mkdir` and `touch` to create directories and files.',
+                '[DESTRUCTIVE] File system now supports deletion. Use `rm` to remove files and directories.',
             ];
             let content = '';
             messages.forEach(msg => {
