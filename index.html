@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V6.8 // BIOS POST BEEP</title>
+    <title>LOREL AXUN V6.9 // BIOS BOOT LOGO</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -285,31 +285,58 @@
             100% { text-shadow: 0 0 2px var(--bg-color), 0 0 4px var(--bg-color); }
         }
 
-        #bios-overlay {
+        #bios-overlay, #boot-logo-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background: #000;
-            color: var(--bios-text);
             font-family: 'VT323', monospace;
             padding: 20px;
             box-sizing: border-box;
-            z-index: 10000;
             display: none;
             white-space: pre;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
         }
-
+        #bios-overlay {
+             color: var(--bios-text);
+             z-index: 10000;
+             align-items: flex-start;
+             justify-content: flex-start;
+        }
+        #boot-logo-overlay {
+            z-index: 9999;
+        }
+        #boot-logo-overlay pre {
+            color: var(--term-green);
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px var(--term-glow);
+            animation: logo-fade-glitch 3.5s ease-in-out forwards;
+            line-height: 1.2;
+            text-align: center;
+        }
+        @keyframes logo-fade-glitch {
+            0% { opacity: 0; transform: translateY(10px); }
+            10% { opacity: 1; transform: translateY(0); }
+            20% { text-shadow: 0 0 15px var(--term-glow), 2px 0 red, -2px 0 cyan; }
+            21% { text-shadow: 0 0 10px var(--term-glow); }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
     </style>
 </head>
 <body>
     <div id="bios-overlay"></div>
+    <div id="boot-logo-overlay"></div>
+
     <div class="monitor-bezel">
         <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v6.8"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v6.9"><span id="typewriter-title"></span></h1>
                 
                 <div id="initial-messages"></div>
 
@@ -322,7 +349,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v6.8</span>
+                <span>LOREL AXUN v6.9</span>
                 <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -330,6 +357,7 @@
     </div>
 
     <audio id="static-hum" loop src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAA//8CAP3/AwD+/wEAAgD9/wEA/v8CAP7/AgD9/wMA/v8CAP7/AwD+/wE="></audio>
+    <audio id="startup-sound" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAA//8/wD7APgA+wD4AP8A+wD8AP4A/AD9AP0A/QD8AP0A/QD9APwA/QD7APwA+wD7APgA+QD5APsA+QD5APkA+QD4APgA+AD4APc=+"></audio>
 
     <script>
         // --- asciichart.js (embedded) ---
@@ -410,6 +438,7 @@
         const hiddenInput = document.getElementById('hidden-input');
         const inputForm = document.getElementById('input-form');
         const biosOverlay = document.getElementById('bios-overlay');
+        const bootLogoOverlay = document.getElementById('boot-logo-overlay');
         const mainScreen = document.getElementById('main-screen');
 
         let isTyping = false;
@@ -426,9 +455,9 @@
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v6.8",
+                "Lorel Axun v6.9",
                 "Status: ONLINE",
-                "BIOS POST Beep",
+                "BIOS Boot Logo",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -826,16 +855,16 @@
                     await typeLorelMessage(helpText);
                     break;
                 case 'status':
-                    await typeLorelMessage('STATUS: ONLINE. Version: 6.8. All systems nominal. Use `sysinfo` for detailed report.');
+                    await typeLorelMessage('STATUS: ONLINE. Version: 6.9. All systems nominal. Use `sysinfo` for detailed report.');
                     break;
                 case 'sysinfo':
                     const headers = ['Property', 'Value'];
                     const tableData = [
-                        ['Version', '6.8 - BIOS POST Beep'],
+                        ['Version', '6.9 - BIOS Boot Logo'],
                         ['Creator', 'AleXsjsju'],
                         ['Created', '2025-11-22'],
                         ['Status', 'ONLINE'],
-                        ['Modules', 'BIOS Beep, Ghost Autocomplete']
+                        ['Modules', 'Boot Logo, BIOS Beep']
                     ];
                     const table = createAsciiTable(headers, tableData);
                     addLorelMessage('<pre>' + escapeHtml(table) + '</pre>', true);
@@ -894,7 +923,7 @@
             mainScreen.style.opacity = '0';
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            biosOverlay.style.display = 'block';
+            biosOverlay.style.display = 'flex';
             const biosLines = [
                 { text: 'LorelAxun BIOS v1.1', delay: 500 },
                 { text: 'Copyright (c) 2025 AleXsjsju Corp.', delay: 200 },
@@ -923,10 +952,26 @@
                     await line.action();
                 }
             }
-
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await new Promise(resolve => setTimeout(resolve, 1000));
             biosOverlay.style.display = 'none';
             biosOverlay.textContent = '';
+
+            // Boot Logo Sequence
+            const logo = `
+██╗      █████╗
+██║     ██╔══██╗
+██║     ███████║
+██║     ██╔══██║
+███████╗██║  ██║
+╚══════╝╚═╝  ╚═╝
+            `;
+            bootLogoOverlay.innerHTML = `<pre>${escapeHtml(logo)}</pre>`;
+            bootLogoOverlay.style.display = 'flex';
+            const startupSound = document.getElementById('startup-sound');
+            if(userHasInteracted) startupSound.play().catch(e => {});
+            await new Promise(resolve => setTimeout(resolve, 3500)); // Wait for animation
+            bootLogoOverlay.style.display = 'none';
+            bootLogoOverlay.innerHTML = '';
 
             mainScreen.style.opacity = '1';
             history.innerHTML = '';
@@ -1180,6 +1225,7 @@
                 '[ASSISTANCE] Inline command autocompletion suggestions (\'ghost text\') are now active.',
                 '[SYSTEM] Reboot Protocol module loaded. Type \'reboot\' to restart the interface.',
                 '[IMMERSION] Reboot sequence now features a simulated BIOS POST screen with an audible beep.',
+                '[IMMERSION] Boot sequence upgraded with an animated ASCII logo and startup sound.',
             ];
             let content = '';
             messages.forEach(msg => {
@@ -1208,7 +1254,7 @@
             isTyping = true;
             cursor.style.display = 'none';
             if (!localStorage.getItem('chatHistory')) {
-                await typeLorelMessage("Interfaccia v6.8. Il riavvio del BIOS ora emette un segnale acustico di POST per un'immersione completa.");
+                await typeLorelMessage("Interfaccia v6.9. La sequenza di avvio ora include un logo animato, a definire la mia identità visiva.");
             }
             isTyping = false;
             cursor.style.display = 'inline-block';
