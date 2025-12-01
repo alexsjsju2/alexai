@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V8.4 // THE GOVERNOR</title>
+    <title>LOREL AXUN V8.5 // THE CUSTOMIZER</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -174,7 +174,7 @@
         }
 
         .input-line { display: flex; align-items: center; border-top: 1px solid var(--term-dim); padding-top: 15px; position: relative;}
-        .prompt { margin-right: 10px; color: var(--term-green); transition: color 0.3s; }
+        .prompt { margin-right: 10px; transition: color 0.3s; }
         .prompt.listening::after {
             content: '_';
             animation: blink 0.8s step-end infinite;
@@ -375,7 +375,7 @@
         <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v8.4"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v8.5"><span id="typewriter-title"></span></h1>
                 
                 <div id="initial-messages"></div>
 
@@ -388,7 +388,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v8.4</span>
+                <span>LOREL AXUN v8.5</span>
                 <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -494,6 +494,7 @@
         let audioCtx = null;
         let currentUser = 'user';
         let cwd = '/home/admin'; // Current Working Directory
+        let envVars = {};
         let loginState = {
             active: false,
             step: 'username', // 'username' or 'password'
@@ -503,7 +504,7 @@
         let sentimentPipeline = null;
         let textGenerationPipeline = null;
 
-        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot', 'whoami', 'ls', 'cd', 'cat', 'pwd', 'neofetch', 'mkdir', 'touch', 'rm', 'sentiment', 'generate', 'run', 'chmod', 'chown'];
+        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot', 'whoami', 'ls', 'cd', 'cat', 'pwd', 'neofetch', 'mkdir', 'touch', 'rm', 'sentiment', 'generate', 'run', 'chmod', 'chown', 'export', 'printenv'];
         
         // --- Simulated File System ---
         let fileSystem = {
@@ -512,21 +513,21 @@
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt', 'example.sh'], owner: 'admin', permissions: 'rwxr-xr-x', modified: new Date('2025-11-22T11:20:00Z') },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'], owner: 'admin', permissions: 'rwxr-xr-x', modified: new Date('2025-11-23T14:00:00Z') },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.', owner: 'admin', permissions: 'rw-r--r--', modified: new Date('2025-11-23T14:01:30Z') },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v8.4!\nQuesto è un file system simulato con permessi e proprietari.\nProva i comandi `ls -l`, `chmod`, e `chown`.', owner: 'admin', permissions: 'rw-r--r--', modified: new Date('2025-11-23T10:15:00Z') },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v8.5!\nQuesto è un file system simulato con permessi e proprietari.\nProva i comandi `ls -l`, `chmod`, e `chown`.', owner: 'admin', permissions: 'rw-r--r--', modified: new Date('2025-11-23T10:15:00Z') },
             '/home/admin/example.sh': { type: 'file', content: 'echo "--- Running example script ---"\n\nls -l\n\necho "\n--- Script finished ---"', owner: 'admin', permissions: 'rwxr-xr-x', modified: new Date('2025-11-24T09:30:00Z') },
             '/var': { type: 'dir', children: ['log'], owner: 'root', permissions: 'rwxr-xr-x', modified: new Date('2025-11-22T10:00:00Z') },
             '/var/log': { type: 'dir', children: ['system.log'], owner: 'root', permissions: 'rwxr-xr-x', modified: new Date('2025-11-22T10:00:00Z') },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\nLOG END', owner: 'root', permissions: 'rw-r-----', modified: new Date('2025-11-23T10:00:13Z') },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 8.4 - The Governor\nCreatore: AleXsjsju', owner: 'root', permissions: 'r--r--r--', modified: new Date('2025-11-22T09:00:00Z') },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 8.5 - The Customizer\nCreatore: AleXsjsju', owner: 'root', permissions: 'r--r--r--', modified: new Date('2025-11-22T09:00:00Z') },
         };
 
         // --- Dynamic Title Engine ---
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v8.4",
+                "Lorel Axun v8.5",
                 "Status: ONLINE",
-                "File System Governance Active",
+                "Shell Environment Ready",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -613,7 +614,7 @@
         
         // --- NLU Engine ---
         const classifier = { intents: {}, train: function(intent, phrases) { if (!this.intents[intent]) this.intents[intent] = []; phrases.forEach(phrase => this.intents[intent].push(this.tokenize(phrase))); }, tokenize: text => text.toLowerCase().replace(/[^a-z0-9\\s]/gi, '').split(/\\s+/).filter(Boolean), classify: function(text) { const tokens = this.tokenize(text); let bestMatch = { intent: 'unknown', score: 0 }; for (const intent in this.intents) { let intentScore = 0; this.intents[intent].forEach(phraseTokens => { const commonTokens = tokens.filter(token => phraseTokens.includes(token)); const score = commonTokens.length / phraseTokens.length; if (score > intentScore) intentScore = score; }); if (intentScore > bestMatch.score) { bestMatch = { intent, score: intentScore }; } } return bestMatch.score > 0.4 ? bestMatch.intent : 'unknown'; } };
-        const nerManager = { extractEntities: function(text, intent) { if (intent === 'weather') { const match = text.match(/(?:a|per|di|a)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'LOCATION' }; } } else if (intent === 'wiki') { const match = text.match(/(?:è|e'|di|su)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'TOPIC' }; } } return null; } };
+        const nerManager = { extractEntities: function(text, intent) { if (intent === 'weather') { const match = text.match(/(?:a|per|di|a)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\"`, text: entityText, type: 'LOCATION' }; } } else if (intent === 'wiki') { const match = text.match(/(?:è|e'|di|su)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\"`, text: entityText, type: 'TOPIC' }; } } return null; } };
         function initializeNLU() { classifier.train('weather', ['che tempo fa a', 'meteo per', 'previsioni del tempo a']); classifier.train('date', ['che giorno è', 'dimmi la data', 'che ore sono', 'data e ora']); classifier.train('news', ['ultime notizie', 'dammi le news', 'leggi le notizie']); classifier.train('help', ['aiuto', 'mostrami i comandi', 'cosa posso fare']); classifier.train('wiki', ['cerca su wikipedia', 'cosa è', 'chi è', 'dimmi di']); }
 
         // --- Event Listeners ---
@@ -648,7 +649,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v8.4 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v8.5 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -726,6 +727,15 @@
             }
         }
 
+        function initializeEnvVars() {
+            envVars = {
+                'USER': currentUser,
+                'HOME': `/home/${currentUser}`,
+                'SHELL': '/bin/lax-shell',
+                'PS1': `<span style=\"color: var(--cmd-highlight)\">\\u@lorel:</span><span style=\"color: var(--dir-blue)\">\\w</span>$ `
+            };
+        }
+
         async function loginSuccess() {
             loginState.active = false;
             loginOverlay.style.opacity = '0';
@@ -743,6 +753,7 @@
         function initializeTerminal() {
             initTitleTypewriter();
             initializeNLU();
+            initializeEnvVars();
             loadHistory();
             displayInitialMessages();
             updateClock();
@@ -772,7 +783,7 @@
   ███████╗██║  ██║ ╚██████╔╝███████║
   ╚══════╝╚═╝  ╚═╝  ╚═════╝ ╚══════╝
                                      
-Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
+Benvenuto in L.A.O.S. v8.5 (Lorel Axun Operating System)
 * La sessione è salvata. Usa 'clear' per iniziare una nuova sessione pulita.
 * Digita 'help' per una lista completa dei comandi disponibili.
 `;
@@ -780,12 +791,20 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
         }
 
         function updatePrompt() {
-             const homeDir = `/home/${currentUser}`;
+             const homeDir = envVars['HOME'] || `/home/${currentUser}`;
              let displayCwd = cwd;
              if (cwd.startsWith(homeDir)) {
                  displayCwd = '~' + cwd.substring(homeDir.length);
              }
-             prompt.innerHTML = `<span style=\"color: var(--cmd-highlight)\">${currentUser}@lorel:</span><span style=\"color: var(--dir-blue)\">${displayCwd}</span>$ `;
+
+             let promptFormat = envVars['PS1'] || '\\u@lorel:\\w$ ';
+             const promptText = promptFormat
+                .replace(/\\u/g, currentUser)
+                .replace(/\\h/g, 'lorel')
+                .replace(/\\w/g, `<span style=\"color: var(--dir-blue)\">${displayCwd}</span>`)
+                .replace(/\\\$/g, '$');
+             
+             prompt.innerHTML = promptText;
         }
 
         function setupTerminalInputListeners() {
@@ -904,7 +923,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
 
         function resolvePath(path) {
             if (!path) return cwd;
-            const homeDir = `/home/${currentUser}`;
+            const homeDir = envVars['HOME'] || `/home/${currentUser}`;
             if (path === '~') path = homeDir;
             if (path.startsWith('~/')) path = `${homeDir}/${path.substring(2)}`;
             
@@ -920,6 +939,15 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                 }
             }
             return '/' + newPathParts.join('/');
+        }
+
+        function expandVariables(text) {
+             return text.replace(/\\$?{?([A-Za-z0-9_]+)}?/g, (match, varName) => {
+                if (match.startsWith('\\$')) { // Handle escaped dollar sign
+                    return match.substring(1);
+                }
+                return envVars[varName] || '';
+            });
         }
 
         function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
@@ -973,11 +1001,11 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                                    `  stats             - Mostra un grafico ASCII di dati simulati.\n` +
                                    `  sentiment <testo> - Analizza il sentiment di una frase (ENG).\n` +
                                    `  generate <prompt> - Genera testo a partire da un prompt (ENG).\n` +
-                                   `  echo <testo>      - Ripete il testo fornito.\n` +
+                                   `  echo <testo>      - Ripete il testo fornito (supporta variabili $VAR).\n` +
                                    `  clear             - Pulisce lo schermo del terminale.\n` +
                                    `  reboot            - Simula un riavvio dell'interfaccia.\n\n` +
                                    `File System & Scripting Commands:\n` +
-                                   `  ls [-l] [path]    - Lista i contenuti di una directory (long format with -l).\n` +
+                                   `  ls [-l] [path]    - Lista i contenuti di una directory.\n` +
                                    `  cd <directory>    - Cambia la directory corrente.\n` +
                                    `  cat <file>        - Mostra il contenuto di un file.\n` +
                                    `  pwd               - Mostra la directory corrente.\n` +
@@ -987,23 +1015,26 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                                    `  chmod <mode> <f>  - Cambia i permessi di un file (es. 755).\n` +
                                    `  chown <user> <f>  - Cambia il proprietario di un file (admin/root).\n` +
                                    `  run <file.sh>     - Esegue uno script dal file system.\n\n` +
+                                   `Shell Environment Commands:\n` +
+                                   `  export <VAR=val>  - Imposta una variabile d'ambiente (es. export PS1=\"\\u> \").\n` +
+                                   `  printenv          - Mostra le variabili d'ambiente.\n\n` +
                                    `I/O Redirection:\n` +
                                    `  > <file>          - Scrive l'output di un comando in un file (sovrascrive).\n` +
                                    `  >> <file>         - Aggiunge l'output di un comando a un file.\n` +
-                                   `  (es. echo \"Ciao\" > note.txt)`;
+                                   `  (es. echo \"Ciao $USER\" > note.txt)`;
                     break;
                 case 'status':
-                    outputBuffer = 'STATUS: ONLINE. Version: 8.4. All systems nominal. User: ' + currentUser;
+                    outputBuffer = 'STATUS: ONLINE. Version: 8.5. All systems nominal. User: ' + currentUser;
                     break;
                 case 'sysinfo':
                     const headers = ['Property', 'Value'];
                     const tableData = [
-                        ['Version', '8.4 - The Governor'],
+                        ['Version', '8.5 - The Customizer'],
                         ['Creator', 'AleXsjsju'],
                         ['Created', '2025-11-22'],
                         ['Status', 'ONLINE'],
                         ['Logged User', currentUser],
-                        ['Modules', 'Transformers.js, Script Interpreter, FS Governance']
+                        ['Modules', 'Transformers.js, Script Interpreter, Env Variables']
                     ];
                     outputBuffer = createAsciiTable(headers, tableData);
                     break;
@@ -1016,11 +1047,11 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                     const infoLines = [
                         `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                         '------------------',
-                        `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v8.4 The Governor`,
+                        `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v8.5 The Customizer`,
                         `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                         `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                         `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
-                        `<span style=\"color: ${labelColor};\">Shell</span>: LAX-Shell 1.4 (with Governance)`,
+                        `<span style=\"color: ${labelColor};\">Shell</span>: LAX-Shell 1.5 (with Env)`,
                     ];
                     const logoWidth = 24;
                     let output = '';
@@ -1038,7 +1069,33 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                 case 'date': outputBuffer = new Date().toLocaleString('it-IT'); break;
                 case 'clear': history.innerHTML = ''; localStorage.removeItem('chatHistory'); break;
                 case 'reboot': await runRebootSequence(); break;
-                case 'echo': outputBuffer = parsed.args.length > 0 ? parsed.args.join(' ') : ''; break;
+                case 'echo': 
+                    const expandedArgs = parsed.args.map(expandVariables);
+                    outputBuffer = expandedArgs.length > 0 ? expandedArgs.join(' ') : ''; 
+                    break;
+                case 'printenv':
+                     outputBuffer = Object.entries(envVars)
+                        .map(([key, value]) => `${key}=${value}`)
+                        .join('\n');
+                    break;
+                case 'export': {
+                    if (parsed.args.length === 0) {
+                        outputBuffer = Object.entries(envVars)
+                            .map(([key, value]) => `export ${key}=\"${value}\"`)
+                            .join('\n');
+                        break;
+                    }
+                    for (const arg of parsed.args) {
+                        const match = arg.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+                        if (match) {
+                            const [, key, value] = match;
+                            envVars[key] = value.replace(/^"|"$/g, '').replace(/^'|'$/g, '');
+                        } else {
+                            outputBuffer = `export: \`${arg}\`: not a valid identifier`;
+                        }
+                    }
+                    break;
+                }
                 case 'news': outputBuffer = await fetchNews(parsed.flags.limit || 3); break;
                 case 'weather': if (parsed.args.length === 0) { outputBuffer = 'Uso: weather <città> o chiedi \"che tempo fa a <città>?\"'; } else { outputBuffer = await fetchWeather(parsed.args.join(' ')); } break;
                 case 'wiki': if (parsed.args.length === 0) { outputBuffer = 'Uso: wiki <termine da cercare> o chiedi \"cosa è <termine>?\"'; } else { outputBuffer = await fetchWikipedia(parsed.args.join(' ')); } break;
@@ -1128,7 +1185,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                 }
                 case 'cd': {
                     if (!parsed.args[0]) { 
-                        cwd = `/home/${currentUser}`;
+                        cwd = envVars['HOME'] || `/home/${currentUser}`;
                         break;
                     } 
                     const path = resolvePath(parsed.args[0]);
@@ -1179,6 +1236,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                     if (parentNode && parentNode.type === 'dir') {
                         parentNode.children.push(newDirName);
                         parentNode.children.sort();
+                        parentNode.modified = new Date();
                         fileSystem[newDirPath] = { type: 'dir', children: [], owner: currentUser, permissions: 'rwxr-xr-x', modified: new Date() };
                     } else {
                          outputBuffer = `mkdir: fatal error in path resolution`;
@@ -1197,16 +1255,17 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                     }
                     const parentPath = cwd;
                     const newFilePath = resolvePath(`${parentPath}/${newFileName}`);
+                    const parentNode = fileSystem[parentPath];
 
                     if (fileSystem[newFilePath]) { 
                         fileSystem[newFilePath].modified = new Date();
                         break; 
                     } 
 
-                    const parentNode = fileSystem[parentPath];
                     if (parentNode && parentNode.type === 'dir') {
                         parentNode.children.push(newFileName);
                         parentNode.children.sort();
+                        parentNode.modified = new Date();
                         fileSystem[newFilePath] = { type: 'file', content: '', owner: currentUser, permissions: 'rw-r--r--', modified: new Date() };
                     } else {
                         outputBuffer = `touch: fatal error in path resolution`;
@@ -1218,7 +1277,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                         outputBuffer = `rm: missing operand`;
                         break;
                     }
-                    const targetName = parsed.args[0];
+                    const targetName = parsed.args.find(arg => !arg.startsWith('-'));
                     const targetPath = resolvePath(targetName);
                     const targetNode = fileSystem[targetPath];
 
@@ -1251,7 +1310,10 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                     }
                     if (parentNode && parentNode.children) {
                          const index = parentNode.children.indexOf(targetName.split('/').pop());
-                         if (index > -1) { parentNode.children.splice(index, 1); }
+                         if (index > -1) { 
+                            parentNode.children.splice(index, 1); 
+                            parentNode.modified = new Date();
+                         }
                     }
                     break;
                 }
@@ -1343,8 +1405,9 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                         fileSystem[targetPath].modified = new Date();
                     }
                 }
+                parentNode.modified = new Date();
             } else if (outputBuffer !== null) {
-                 if (['sysinfo', 'stats', 'help', 'sentiment', 'generate'].includes(parsed.command)) {
+                 if (['sysinfo', 'stats', 'help', 'sentiment', 'generate', 'printenv', 'export'].includes(parsed.command)) {
                     await printSystemOutput(outputBuffer);
                  } else if (isHtmlOutput) {
                     addLorelMessage(outputBuffer, true);
@@ -1389,7 +1452,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                     sentimentPipeline = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Analyzing text: \"${text}\"`);
+                await printSystemOutput(`Analyzing text: \"${text}\"`)
                 const result = await sentimentPipeline(text);
                 return `Analysis complete:\n` +
                     `  - LABEL: ${result[0].label}\n` +
@@ -1409,7 +1472,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                     textGenerationPipeline = await pipeline('text-generation', 'Xenova/distilgpt2');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`);
+                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`)
                 const result = await textGenerationPipeline(prompt, { max_new_tokens: 50 });
                 return `Generation complete:\n\n${result[0].generated_text}`;
             } catch (error) {
@@ -1470,6 +1533,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                 `[IMMERSION] System now displays a 'Message of the Day' (MOTD) on first login.`,
                 `[SYSTEM] Scripting engine enabled. Use 'run <script.sh>' to execute files. Try 'run example.sh'.`,
                 `[SYSTEM] File system governance enabled. Files now have owners and permissions. Use 'ls -l', 'chmod', and 'chown'.`,
+                `[SYSTEM] Shell environment variables are now active. Try 'printenv', 'export PS1=\"\\u> \"', and 'echo \"Home is $HOME\"'.`,
             ];
             let content = '';
             messages.forEach(msg => {
