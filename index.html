@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V8.1 // TEXT GENERATION PIPELINE</title>
+    <title>LOREL AXUN V8.2 // MESSAGE OF THE DAY</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -375,7 +375,7 @@
         <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v8.1"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v8.2"><span id="typewriter-title"></span></h1>
                 
                 <div id="initial-messages"></div>
 
@@ -388,7 +388,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v8.1</span>
+                <span>LOREL AXUN v8.2</span>
                 <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -512,18 +512,18 @@
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt'] },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v8.1!\nQuesto è un file system simulato.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` e la redirezione dell'output (es. `echo "hello" > newfile.txt`) per esplorare e gestire il sistema.' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v8.2!\nQuesto è un file system simulato.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` e la redirezione dell\'output (es. `echo "hello" > newfile.txt`) per esplorare e gestire il sistema.' },
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 8.1 - Text Generation Pipeline\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 8.2 - Message of the Day\nCreatore: AleXsjsju' },
         };
 
         // --- Dynamic Title Engine ---
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v8.1",
+                "Lorel Axun v8.2",
                 "Status: ONLINE",
                 "Text Generation Ready",
                 "Awaiting input..."
@@ -612,7 +612,7 @@
         
         // --- NLU Engine ---
         const classifier = { intents: {}, train: function(intent, phrases) { if (!this.intents[intent]) this.intents[intent] = []; phrases.forEach(phrase => this.intents[intent].push(this.tokenize(phrase))); }, tokenize: text => text.toLowerCase().replace(/[^a-z0-9\\s]/gi, '').split(/\\s+/).filter(Boolean), classify: function(text) { const tokens = this.tokenize(text); let bestMatch = { intent: 'unknown', score: 0 }; for (const intent in this.intents) { let intentScore = 0; this.intents[intent].forEach(phraseTokens => { const commonTokens = tokens.filter(token => phraseTokens.includes(token)); const score = commonTokens.length / phraseTokens.length; if (score > intentScore) intentScore = score; }); if (intentScore > bestMatch.score) { bestMatch = { intent, score: intentScore }; } } return bestMatch.score > 0.4 ? bestMatch.intent : 'unknown'; } };
-        const nerManager = { extractEntities: function(text, intent) { if (intent === 'weather') { const match = text.match(/(?:a|per|di|a)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\"`, text: entityText, type: 'LOCATION' }; } } else if (intent === 'wiki') { const match = text.match(/(?:è|e'|di|su)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\"`, text: entityText, type: 'TOPIC' }; } } return null; } };
+        const nerManager = { extractEntities: function(text, intent) { if (intent === 'weather') { const match = text.match(/(?:a|per|di|a)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'LOCATION' }; } } else if (intent === 'wiki') { const match = text.match(/(?:è|e'|di|su)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'TOPIC' }; } } return null; } };
         function initializeNLU() { classifier.train('weather', ['che tempo fa a', 'meteo per', 'previsioni del tempo a']); classifier.train('date', ['che giorno è', 'dimmi la data', 'che ore sono', 'data e ora']); classifier.train('news', ['ultime notizie', 'dammi le news', 'leggi le notizie']); classifier.train('help', ['aiuto', 'mostrami i comandi', 'cosa posso fare']); classifier.train('wiki', ['cerca su wikipedia', 'cosa è', 'chi è', 'dimmi di']); }
 
         // --- Event Listeners ---
@@ -647,7 +647,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v8.1 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v8.2 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -753,8 +753,7 @@
                 isTyping = true;
                 cursor.style.display = 'none';
                 if (!localStorage.getItem('chatHistory')) {
-                    await typeLorelMessage("Sessione utente '" + currentUser + "' attivata. Benvenuto nel sistema L.A.O.S. v8.1.");
-                    await processCommandFromInput('neofetch');
+                    await displayMOTD();
                 }
                 isTyping = false;
                 cursor.style.display = 'inline-block';
@@ -763,6 +762,22 @@
             })();
         }
         
+        async function displayMOTD() {
+            const motdContent = `
+  ██╗      █████╗   ██████╗ ███████╗
+  ██║     ██╔══██╗ ██╔═══██╗██╔════╝
+  ██║     ███████║ ██║   ██║███████╗
+  ██║     ██╔══██║ ██║   ██║╚════██║
+  ███████╗██║  ██║ ╚██████╔╝███████║
+  ╚══════╝╚═╝  ╚═╝  ╚═════╝ ╚══════╝
+                                     
+Benvenuto in L.A.O.S. v8.2 (Lorel Axun Operating System)
+* La sessione è salvata. Usa 'clear' per iniziare una nuova sessione pulita.
+* Digita 'help' per una lista completa dei comandi disponibili.
+`;
+            await printSystemOutput(motdContent);
+        }
+
         function updatePrompt() {
              const homeDir = `/home/${currentUser}`;
              let displayCwd = cwd;
@@ -914,12 +929,12 @@
             let redirect = null;
             let commandStr = input;
 
-            const appendMatch = input.match(/(.*)>>\s*(.+)$/);
+            const appendMatch = input.match(/(.*)>>\\s*(.+)$/);
             if (appendMatch) {
                 commandStr = appendMatch[1].trim();
                 redirect = { operator: '>>', target: appendMatch[2].trim() };
             } else {
-                const overwriteMatch = input.match(/(.*)>\s*(.+)$/);
+                const overwriteMatch = input.match(/(.*)>\\s*(.+)$/);
                 if (overwriteMatch) {
                     commandStr = overwriteMatch[1].trim();
                     redirect = { operator: '>', target: overwriteMatch[2].trim() };
@@ -928,7 +943,7 @@
             return { commandStr, redirect };
         }
 
-        function parseCommand(input) { const regex = /[^\\s"']+|"([^"]*)"|'([^']*)'/g; const tokens = []; let match; do { match = regex.exec(input); if (match !== null) { tokens.push(match[1] || match[2] || match[0]); } } while (match !== null); const command = tokens[0] ? tokens[0].toLowerCase() : ''; const args = []; const flags = {}; for (let i = 1; i < tokens.length; i++) { const token = tokens[i]; if (token.startsWith('--')) { const flagName = token.substring(2); const nextToken = tokens[i + 1]; if (nextToken && !nextToken.startsWith('-')) { flags[flagName] = nextToken; i++; } else { flags[flagName] = true; } } else if (token.startsWith('-')) { const flagName = token.substring(1); const nextToken = tokens[i + 1]; if (nextToken && !nextToken.startsWith('-')) { flags[flagName] = nextToken; i++; } else { flags[flagName] = true; } } else { args.push(token); } } return { command, args, flags }; }
+        function parseCommand(input) { const regex = /[^\\s\"']+|\"([^\"]*)\"|'([^']*)'/g; const tokens = []; let match; do { match = regex.exec(input); if (match !== null) { tokens.push(match[1] || match[2] || match[0]); } } while (match !== null); const command = tokens[0] ? tokens[0].toLowerCase() : ''; const args = []; const flags = {}; for (let i = 1; i < tokens.length; i++) { const token = tokens[i]; if (token.startsWith('--')) { const flagName = token.substring(2); const nextToken = tokens[i + 1]; if (nextToken && !nextToken.startsWith('-')) { flags[flagName] = nextToken; i++; } else { flags[flagName] = true; } } else if (token.startsWith('-')) { const flagName = token.substring(1); const nextToken = tokens[i + 1]; if (nextToken && !nextToken.startsWith('-')) { flags[flagName] = nextToken; i++; } else { flags[flagName] = true; } } else { args.push(token); } } return { command, args, flags }; }
         function createAsciiTable(headers, data) { const colWidths = headers.map((header, i) => { return Math.max(header.length, ...data.map(row => String(row[i]).length)); }); const separator = '+' + colWidths.map(w => '-'.repeat(w + 2)).join('+') + '+'; let table = separator + '\n'; table += '|' + headers.map((h, i) => ` ${h.padEnd(colWidths[i])} `).join('|') + '|\n'; table += separator + '\n'; data.forEach(row => { table += '|' + row.map((cell, i) => ` ${String(cell).padEnd(colWidths[i])} `).join('|') + '|\n'; }); table += separator; return table; }
 
         async function processCommandFromInput(userInput) {
@@ -970,12 +985,12 @@
                                    `  (es. echo \"Ciao\" > note.txt)`;
                     break;
                 case 'status':
-                    outputBuffer = 'STATUS: ONLINE. Version: 8.1. All systems nominal. User: ' + currentUser;
+                    outputBuffer = 'STATUS: ONLINE. Version: 8.2. All systems nominal. User: ' + currentUser;
                     break;
                 case 'sysinfo':
                     const headers = ['Property', 'Value'];
                     const tableData = [
-                        ['Version', '8.1 - Text Generation Pipeline'],
+                        ['Version', '8.2 - Message of the Day'],
                         ['Creator', 'AleXsjsju'],
                         ['Created', '2025-11-22'],
                         ['Status', 'ONLINE'],
@@ -993,7 +1008,7 @@
                     const infoLines = [
                         `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                         '------------------',
-                        `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v8.1 Text Generation`,
+                        `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v8.2 Message of the Day`,
                         `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                         `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                         `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
@@ -1268,7 +1283,7 @@
                     sentimentPipeline = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Analyzing text: \"${text}\"`);
+                await printSystemOutput(`Analyzing text: \"${text}\"`)
                 const result = await sentimentPipeline(text);
                 return `Analysis complete:\n` +
                     `  - LABEL: ${result[0].label}\n` +
@@ -1288,7 +1303,7 @@
                     textGenerationPipeline = await pipeline('text-generation', 'Xenova/distilgpt2');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`);
+                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`)
                 const result = await textGenerationPipeline(prompt, { max_new_tokens: 50 });
                 return `Generation complete:\n\n${result[0].generated_text}`;
             } catch (error) {
@@ -1346,6 +1361,7 @@
                 `[IMMERSION] System command output now uses a mechanical 'print' effect, distinct from Lorel's conversational typing.`,
                 `[AI CORE] Transformers.js library integrated. New 'sentiment' command available for testing.`,
                 `[AI CORE] Text generation pipeline integrated. Use the 'generate' command to create text.`,
+                `[IMMERSION] System now displays a 'Message of the Day' (MOTD) on first login.`,
             ];
             let content = '';
             messages.forEach(msg => {
