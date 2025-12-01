@@ -905,7 +905,7 @@ Benvenuto in L.A.O.S. v8.2 (Lorel Axun Operating System)
             if (!path) return cwd;
             const homeDir = `/home/${currentUser}`;
             if (path === '~') path = homeDir;
-            if (path.startsWith('~/')) path = `${homeDir}/${path.substring(2)}`:
+            if (path.startsWith('~/')) path = `${homeDir}/${path.substring(2)}`;
             
             const newPathParts = path.startsWith('/') ? [] : cwd.split('/').filter(p => p);
             const pathParts = path.split('/').filter(p => p);
@@ -1276,7 +1276,7 @@ Benvenuto in L.A.O.S. v8.2 (Lorel Axun Operating System)
 
         async function analyzeSentiment(text) {
             try {
-                const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1');
+                const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1/dist/transformers.min.js');
 
                 if (!sentimentPipeline) {
                     await printSystemOutput('Loading sentiment analysis model (this may take a moment on first run)...');
@@ -1296,7 +1296,7 @@ Benvenuto in L.A.O.S. v8.2 (Lorel Axun Operating System)
 
         async function generateText(prompt) {
             try {
-                const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1');
+                const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1/dist/transformers.min.js');
 
                 if (!textGenerationPipeline) {
                     await printSystemOutput('Loading text generation model (this may take a moment on first run)...');
