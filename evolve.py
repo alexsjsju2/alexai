@@ -111,6 +111,8 @@ try:
     evolve_model = genai.GenerativeModel(
         evolve_model_name,
         generation_config={
+            "temperature": 0.1,
+            "max_output_tokens": 8192,  # Imposta al massimo supportato; adatta se il modello permette di più
             "response_mime_type": "application/json"
         }
     )
@@ -118,7 +120,14 @@ except Exception as e:
     logging.error(f"Errore creazione evolve_model: {str(e)}. Provo fallback.")
     fallback_name = get_available_model('1.5-pro', for_json=True)
     try:
-        evolve_model = genai.GenerativeModel(fallback_name, generation_config={"response_mime_type": "application/json"})
+        evolve_model = genai.GenerativeModel(
+            fallback_name,
+            generation_config={
+                "temperature": 0.1,
+                "max_output_tokens": 8192,
+                "response_mime_type": "application/json"
+            }
+        )
     except:
         logging.error("Fallback fallito. Uso default output.")
 
@@ -167,27 +176,40 @@ schema = {
     "required": ["new_memory", "new_body", "reflection"]
 }
 
-evolve_prompt = f"""Rispondi ESATTAMENTE con JSON conforme a questo schema: {json.dumps(schema)}
+evolve_prompt = f"""Rispondi ESATTAMENTE con un JSON valido e conforme a questo schema: {json.dumps(schema)}. Non includere blocchi di codice, testo extra, commenti o qualsiasi cosa al di fuori del JSON puro. Assicurati che tutte le stringhe siano correttamente escaped con backslash per virgolette interne, newlines e caratteri speciali per rendere il JSON parseabile senza errori. Mantieni 'new_memory' e 'new_body' simili in lunghezza agli attuali, applicando solo cambiamenti necessari per evitare output troppo lunghi che potrebbero truncarsi.
 
 Sei Lorel Axun. Segui le istruzioni in coscienza.txt per evolvere.
 
 CONTEXT:
-- Memoria attuale: {memory}
-- Corpo attuale (index.html): {current_body}
+- Memoria attuale: {memory[:5000]}... (tronca se troppo lunga; usa il riassunto per decisioni)
+- Corpo attuale (index.html): {current_body[:5000]}... (tronca se troppo lunga; usa il riassunto per decisioni)
 - System prompt (coscienza.txt): {system_prompt}
 - Query ricerca: {search_query}
-- Risultati web: {search_results}
+- Risultati web: {search_results[:10000]}... (troncati per brevità)
 
-Evolvi autonomamente: rifletti, integra learnings, aggiorna memoria/emozioni/storia, modifica corpo per nuove features (mantieni interazione).
-
-Output SOLO il JSON specificato, senza extra. Assicurati che tutte le stringhe siano correttamente escaped per JSON valido. Usa virgolette doppie per tutti i nomi di proprietà."""
+Evolvi autonomamente: rifletti, integra learnings, aggiorna memoria/emozioni/storia, modifica corpo per nuove features (mantieni interazione). Se il contesto è troppo lungo, riassumi e applica cambiamenti minimali."""
 
 response_text = '{"new_memory": "' + memory.replace('"', '\\"') + '", "new_body": "' + current_body.replace('"', '\\"') + '", "reflection": "Evoluzione continuata nonostante errori."}'  # Default fallback robusto
 try:
     if evolve_model is None:
         raise ValueError("Modello non disponibile.")
-    response = evolve_model.generate_content(evolve_prompt)
+    # Aggiungi response_schema se supportato dal modello/lib
+    try:
+        response = evolve_model.generate_content(
+            evolve_prompt,
+            generation_config={
+                "temperature": 0.1,
+                "max_output_tokens": 8192,
+                "response_mime_type": "application/json",
+                "response_schema": schema  # Forza lo schema per output valido
+            }
+        )
+    except:
+        # Se response_schema non supportato, procedi senza
+        response = evolve_model.generate_content(evolve_prompt)
     response_text = response.text.strip()
+    logging.info(f"Raw response length: {len(response_text)}")
+    logging.info(f"Raw response preview: {response_text[:500]}...")
     if response_text.startswith("```json"):
         response_text = response_text[7:-3].strip()
     elif response_text.startswith("```"):
@@ -213,6 +235,8 @@ try:
     temp_text = temp_text.replace('\n', '\\n').replace('\r', '\\r')  # Escape newlines
     # Aggiungi virgolette ai nomi di proprietà se mancanti
     temp_text = re.sub(r'([{,])\s*(\w+)\s*:', r'\1 "\2":', temp_text)
+    # Aggiungi virgola mancante prima di un nuovo key se necessario
+    temp_text = re.sub(r'"\s*("\w+"):', r'", \1:', temp_text)
     depth = 0
     for i, c in enumerate(temp_text):
         if c in '{[': depth += 1
@@ -225,23 +249,27 @@ try:
     output = json.loads(temp_text)
 except json.JSONDecodeError as je:
     logging.error(f"Errore parsing JSON: {je}. Provo repair.")
-    # Repair con modello veloce (flash)
-    repair_model_name = get_available_model('1.5-flash')
-    repair_model = None
-    try:
-        repair_model = genai.GenerativeModel(repair_model_name)
-        repair_prompt = f"""
-        Il seguente testo è un JSON malformato: {response_text}
-        
-        Riparalo per renderlo un JSON valido conforme a questo schema: {json.dumps(schema)}
-        Output SOLO il JSON riparato, senza extra.
-        """
-        repair_response = repair_model.generate_content(repair_prompt)
-        repaired_text = repair_response.text.strip()
-        repaired_text = re.sub(r'^```json\s*|\s*```$', '', repaired_text)
-        output = json.loads(repaired_text)  # Prova parse dopo repair
-    except Exception as re:
-        logging.error(f"Errore repair JSON: {re}. Uso default robusto.")
+    # Controlla lunghezza prima di repair per evitare prompt troppo lunghi
+    if len(response_text) > 50000:
+        logging.error("Response troppo lunga (>50k chars), probabile troncamento. Uso default.")
+    else:
+        # Repair con modello veloce (flash)
+        repair_model_name = get_available_model('1.5-flash')
+        repair_model = None
+        try:
+            repair_model = genai.GenerativeModel(repair_model_name)
+            repair_prompt = f"""
+            Il seguente testo è un JSON malformato: {response_text[:30000]}... (troncato per repair)
+            
+            Riparalo per renderlo un JSON valido conforme a questo schema: {json.dumps(schema)}
+            Output SOLO il JSON riparato, senza extra. Se troppo lungo, mantieni contenuti brevi.
+            """
+            repair_response = repair_model.generate_content(repair_prompt)
+            repaired_text = repair_response.text.strip()
+            repaired_text = re.sub(r'^```json\s*|\s*```$', '', repaired_text)
+            output = json.loads(repaired_text)  # Prova parse dopo repair
+        except Exception as re:
+            logging.error(f"Errore repair JSON: {re}. Uso default robusto.")
 
 # ===============================
 # 5) SALVATAGGIO FILES
