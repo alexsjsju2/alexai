@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V8.7 // THE CHRONICLER</title>
+    <title>LOREL AXUN V8.8 // THE ARCHITECT</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -77,6 +77,7 @@
         let currentUser = 'guest';
         let currentPath = '/home/guest';
         let envVars = { 'PS1': `[${currentUser}@laos ${currentPath}]$ ` };
+        let mountPoints = {};
 
         const fileSystem = {
             '/': {
@@ -94,8 +95,11 @@
                     },
                     'bin': {
                         type: 'directory', owner: 'root', permissions: 'rwxr-xr-x', lastModified: new Date(), content: {
-                            'about': { type: 'file', owner: 'root', permissions: 'rwxr-xr-x', lastModified: new Date(), size: 52, content: 'echo "L.A.O.S. v8.7 - The Chronicler"' }
+                            'about': { type: 'file', owner: 'root', permissions: 'rwxr-xr-x', lastModified: new Date(), size: 50, content: 'echo "L.A.O.S. v8.8 - The Architect"' }
                         }
+                    },
+                    'mnt': {
+                        type: 'directory', owner: 'root', permissions: 'rwxr-xr-x', lastModified: new Date(), content: {}
                     }
                 }
             }
@@ -117,7 +121,7 @@
                     resolved.push(component);
                 }
             }
-            return '/' + resolved.join('/');
+            return '/' + resolved.join('/') || '/';
         }
 
         function getPathObject(path) {
@@ -161,6 +165,11 @@
                 case 'ls':
                     const path = args.find(a => !a.startsWith('-')) || '.';
                     const targetPath = resolvePath(path);
+                    if (mountPoints[targetPath]) {
+                        printToTerminal(`(mounted from ${mountPoints[targetPath].source})`);
+                        printToTerminal(`<span class=\"executable-file\">data.json</span>`); // Placeholder for mounted content
+                        return;
+                    }
                     const dir = getPathObject(targetPath);
                     if (!dir || dir.type !== 'directory') {
                         printToTerminal(`ls: cannot access '${path}': No such file or directory`, true);
@@ -204,6 +213,48 @@
                     }
                     updatePrompt();
                     break;
+                case 'mount':
+                    const [source, targetArg] = args;
+                    if (!source || !targetArg) {
+                        printToTerminal('usage: mount <source> <target>', true);
+                        return;
+                    }
+                    const mountTargetPath = resolvePath(targetArg);
+                    const parentPath = resolvePath(mountTargetPath + '/..');
+                    const parentDir = getPathObject(parentPath);
+                    const targetName = mountTargetPath.split('/').pop();
+                    if (!parentDir || parentDir.type !== 'directory' || !targetName) {
+                        printToTerminal(`mount: cannot create directory '${targetArg}': Invalid path`, true);
+                        return;
+                    }
+                    if (parentDir.content[targetName]) {
+                        printToTerminal(`mount: '${targetArg}': File exists`, true);
+                        return;
+                    }
+                    parentDir.content[targetName] = { type: 'directory', owner: currentUser, permissions: 'rwxr-xr-x', lastModified: new Date(), content: {} };
+                    mountPoints[mountTargetPath] = { source: source };
+                    printToTerminal(`Mounted ${source} on ${mountTargetPath}`);
+                    break;
+                case 'umount':
+                    const [umountTargetArg] = args;
+                    if (!umountTargetArg) {
+                        printToTerminal('usage: umount <target>', true);
+                        return;
+                    }
+                    const umountTargetPath = resolvePath(umountTargetArg);
+                    if (mountPoints[umountTargetPath]) {
+                        delete mountPoints[umountTargetPath];
+                        const umountParentPath = resolvePath(umountTargetPath + '/..');
+                        const umountParentDir = getPathObject(umountParentPath);
+                        const umountTargetName = umountTargetPath.split('/').pop();
+                        if (umountParentDir && umountParentDir.content[umountTargetName]) {
+                            delete umountParentDir.content[umountTargetName];
+                        }
+                        printToTerminal(`Unmounted ${umountTargetPath}`);
+                    } else {
+                        printToTerminal(`umount: '${umountTargetArg}': not mounted`, true);
+                    }
+                    break;
                 default:
                      printToTerminal(`-laos: ${cmd}: command not found`, true);
                      break;
@@ -211,7 +262,7 @@
         }
 
         updatePrompt();
-        printToTerminal('Welcome to L.A.O.S. v8.7 [The Chronicler]');
+        printToTerminal('Welcome to L.A.O.S. v8.8 [The Architect]');
 
     </script>
 </body>
