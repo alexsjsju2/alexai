@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-w_idth, initial-scale=1.0">
-    <title>LOREL AXUN V8.6 // PROCESS MANAGEMENT</title>
+    <title>LOREL AXUN V8.7 // RESOURCE SIMULATION</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -415,7 +415,7 @@
         <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v8.6"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v8.7"><span id="typewriter-title"></span></h1>
                 
                 <div id="initial-messages"></div>
 
@@ -428,7 +428,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v8.6</span>
+                <span>LOREL AXUN v8.7</span>
                 <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -558,6 +558,19 @@
         let sentimentPipeline = null;
         let textGenerationPipeline = null;
 
+        // Simulated Resource Monitor
+        setInterval(() => {
+            for (const pid in processList) {
+                let process = processList[pid];
+                // Fluctuate CPU
+                let cpuChange = (Math.random() - 0.5) * 0.5;
+                process.cpu = Math.max(0.1, parseFloat(process.cpu) + cpuChange).toFixed(2);
+                // Fluctuate Memory
+                let memChange = (Math.random() - 0.5) * 0.2;
+                process.mem = Math.max(1.0, parseFloat(process.mem) + memChange).toFixed(2);
+            }
+        }, 2000); // Update every 2 seconds
+
         const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot', 'whoami', 'ls', 'cd', 'cat', 'pwd', 'neofetch', 'mkdir', 'touch', 'rm', 'sentiment', 'generate', 'run', 'edit', 'ps', 'kill', 'bg'];
         
         // --- Simulated File System ---
@@ -567,7 +580,7 @@
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt', 'demo.js', 'fs_demo.js', 'notes.txt', 'logger.js'] },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v8.6!\nQuesto è un file system simulato.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` per esplorare.\nProva i comandi `run demo.js` e `run fs_demo.js` per vedere le capacità di scripting!\nUsa `edit notes.txt` per provare l'editor di testo.\nUsa `bg logger.js` per avviare un processo in background e `ps` per vederlo.' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v8.7!\nQuesto è un file system simulato.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` per esplorare.\nProva i comandi `run demo.js` e `run fs_demo.js` per vedere le capacità di scripting!\nUsa `edit notes.txt` per provare l'editor di testo.\nUsa `bg logger.js` per avviare un processo in background e `ps` per vederne l\'utilizzo di risorse simulate.' },
             '/home/admin/notes.txt': { type: 'file', content: 'Questa è una nota di prova.\nPuoi modificare questo file con il comando `edit`.' },
             '/home/admin/demo.js': { type: 'file', content: 'terminal.log("Ciao dal mio primo script!");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log("Script completato.");' },
             '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log("--- Esecuzione FS Demo Script ---");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\');\n    });\n});'},
@@ -575,16 +588,16 @@
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 8.6 - Process Management\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 8.7 - Resource Simulation\nCreatore: AleXsjsju' },
         };
 
         // --- Dynamic Title Engine ---
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v8.6",
+                "Lorel Axun v8.7",
                 "Status: ONLINE",
-                "Process Management",
+                "Resource Simulation",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -671,7 +684,7 @@
         
         // --- NLU Engine ---
         const classifier = { intents: {}, train: function(intent, phrases) { if (!this.intents[intent]) this.intents[intent] = []; phrases.forEach(phrase => this.intents[intent].push(this.tokenize(phrase))); }, tokenize: text => text.toLowerCase().replace(/[^a-z0-9\\s]/gi, '').split(/\s+/).filter(Boolean), classify: function(text) { const tokens = this.tokenize(text); let bestMatch = { intent: 'unknown', score: 0 }; for (const intent in this.intents) { let intentScore = 0; this.intents[intent].forEach(phraseTokens => { const commonTokens = tokens.filter(token => phraseTokens.includes(token)); const score = commonTokens.length / phraseTokens.length; if (score > intentScore) intentScore = score; }); if (intentScore > bestMatch.score) { bestMatch = { intent, score: intentScore }; } } return bestMatch.score > 0.4 ? bestMatch.intent : 'unknown'; } };
-        const nerManager = { extractEntities: function(text, intent) { if (intent === 'weather') { const match = text.match(/(?:a|per|di|a)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\"`, text: entityText, type: 'LOCATION' }; } } else if (intent === 'wiki') { const match = text.match(/(?:è|e'|di|su)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\"`, text: entityText, type: 'TOPIC' }; } } return null; } };
+        const nerManager = { extractEntities: function(text, intent) { if (intent === 'weather') { const match = text.match(/(?:a|per|di|a)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'LOCATION' }; } } else if (intent === 'wiki') { const match = text.match(/(?:è|e'|di|su)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'TOPIC' }; } } return null; } };
         function initializeNLU() { classifier.train('weather', ['che tempo fa a', 'meteo per', 'previsioni del tempo a']); classifier.train('date', ['che giorno è', 'dimmi la data', 'che ore sono', 'data e ora']); classifier.train('news', ['ultime notizie', 'dammi le news', 'leggi le notizie']); classifier.train('help', ['aiuto', 'mostrami i comandi', 'cosa posso fare']); classifier.train('wiki', ['cerca su wikipedia', 'cosa è', 'chi è', 'dimmi di']); }
 
         // --- Event Listeners ---
@@ -711,7 +724,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v8.6 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v8.7 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -899,7 +912,7 @@
   ███████╗██║  ██║ ╚██████╔╝███████║
   ╚══════╝╚═╝  ╚═╝  ╚═════╝ ╚══════╝
                                      
-Benvenuto in L.A.O.S. v8.6 (Lorel Axun Operating System)
+Benvenuto in L.A.O.S. v8.7 (Lorel Axun Operating System)
 * La sessione è salvata. Usa 'clear' per iniziare una nuova sessione pulita.
 * Digita 'help' per una lista completa dei comandi disponibili.
 `;
@@ -1111,7 +1124,7 @@ Benvenuto in L.A.O.S. v8.6 (Lorel Axun Operating System)
                                    `  edit <file>       - Apre un file in un editor di testo.\n` +
                                    `  run <file.js>     - Esegue uno script JS (con API fs asincrona).\n\n` +
                                    `Process Management:\n` +
-                                   `  ps                - Mostra i processi in esecuzione.\n` +
+                                   `  ps                - Mostra i processi in esecuzione con l'uso di CPU/Memoria simulato.\n` +
                                    `  bg <file.js>      - Esegue uno script in background.\n` +
                                    `  kill <pid>        - Termina un processo in esecuzione.\n\n` +
                                    `I/O Redirection:\n` +
@@ -1120,12 +1133,12 @@ Benvenuto in L.A.O.S. v8.6 (Lorel Axun Operating System)
                                    `  (es. echo "Ciao" > note.txt)`;
                     break;
                 case 'status':
-                    outputBuffer = 'STATUS: ONLINE. Version: 8.6. All systems nominal. User: ' + currentUser;
+                    outputBuffer = 'STATUS: ONLINE. Version: 8.7. All systems nominal. User: ' + currentUser;
                     break;
                 case 'sysinfo':
                     const headers = ['Property', 'Value'];
                     const tableData = [
-                        ['Version', '8.6 - Process Management'],
+                        ['Version', '8.7 - Resource Simulation'],
                         ['Creator', 'AleXsjsju'],
                         ['Created', '2025-11-22'],
                         ['Status', 'ONLINE'],
@@ -1143,11 +1156,11 @@ Benvenuto in L.A.O.S. v8.6 (Lorel Axun Operating System)
                     const infoLines = [
                         `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                         '------------------',
-                        `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v8.6 Process Mgmt`,
+                        `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v8.7 Resource Sim`,
                         `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                         `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                         `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
-                        `<span style=\"color: ${labelColor};\">Shell</span>: LAX-Shell 1.6`,
+                        `<span style=\"color: ${labelColor};\">Shell</span>: LAX-Shell 1.7`,
                     ];
                     const logoWidth = 24;
                     let output = '';
@@ -1430,9 +1443,11 @@ Benvenuto in L.A.O.S. v8.6 (Lorel Axun Operating System)
                     }, 5000);
 
                     processList[pid] = { 
-                        command: `bg ${parsed.args[0]}`, 
+                        command: `bg ${parsed.args[0]}`,
                         intervalId: intervalId,
-                        startTime: new Date()
+                        startTime: new Date(),
+                        cpu: (Math.random() * 2.5 + 0.5).toFixed(2), // Initial simulated CPU usage
+                        mem: (Math.random() * 20 + 10).toFixed(2) // Initial simulated Memory usage (in MB)
                     };
                     
                     outputBuffer = `[SYSTEM] Started process with PID ${pid}.`;
@@ -1446,10 +1461,10 @@ Benvenuto in L.A.O.S. v8.6 (Lorel Axun Operating System)
                     break;
                 }
                 case 'ps': {
-                    const headers = ['PID', 'USER', 'UPTIME', 'COMMAND'];
+                    const headers = ['PID', 'USER', 'CPU%', 'MEM(MB)', 'UPTIME', 'COMMAND'];
                     const pData = Object.entries(processList).map(([pid, process]) => {
                         const uptime = Math.floor((new Date() - process.startTime) / 1000) + 's';
-                        return [pid, currentUser, uptime, process.command];
+                        return [pid, currentUser, process.cpu, process.mem, uptime, process.command];
                     });
 
                     if (pData.length === 0) {
@@ -1565,7 +1580,7 @@ Benvenuto in L.A.O.S. v8.6 (Lorel Axun Operating System)
                     sentimentPipeline = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Analyzing text: \"${text}\"`)
+                await printSystemOutput(`Analyzing text: \"${text}\"`);
                 const result = await sentimentPipeline(text);
                 return `Analysis complete:\n` +
                     `  - LABEL: ${result[0].label}\n` +
@@ -1585,7 +1600,7 @@ Benvenuto in L.A.O.S. v8.6 (Lorel Axun Operating System)
                     textGenerationPipeline = await pipeline('text-generation', 'Xenova/distilgpt2');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`)
+                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`);
                 const result = await textGenerationPipeline(prompt, { max_new_tokens: 50 });
                 return `Generation complete:\n\n${result[0].generated_text}`;
             } catch (error) {
@@ -1647,7 +1662,8 @@ Benvenuto in L.A.O.S. v8.6 (Lorel Axun Operating System)
                 `[DEVELOPMENT] Internal scripting engine loaded. Use the 'run' command to execute JavaScript files.`,
                 `[DEVELOPMENT] Scripting engine upgraded with a sandboxed File System API (fs.readFile, fs.writeFile).`,
                 `[DEVELOPMENT] Internal text editor implemented. Use the 'edit' command to create and modify files.`,
-                `[SYSTEM] Rudimentary Process Manager loaded. Use 'bg', 'ps', and 'kill' to manage background tasks.`
+                `[SYSTEM] Rudimentary Process Manager loaded. Use 'bg', 'ps', and 'kill' to manage background tasks.`,
+                `[SYSTEM] Process Manager enhanced with simulated CPU and Memory metrics. Use 'ps' to view.`
             ];
             let content = '';
             messages.forEach(msg => {
