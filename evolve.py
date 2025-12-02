@@ -183,7 +183,7 @@ schema_body = {
     "required": ["new_body"]
 }
 
-evolve_prompt_memory = f"""Rispondi ESATTAMENTE con un JSON valido e conforme a questo schema: {json.dumps(schema_memory)}. Non includere blocchi di codice, testo extra, commenti o qualsiasi cosa al di fuori del JSON puro. Assicurati che tutte le stringhe siano correttamente escaped con backslash per virgolette interne, newlines e caratteri speciali per rendere il JSON parseabile senza errori. Mantieni 'new_memory' simile in lunghezza all'attuale, applicando solo cambiamenti necessari, e riassumi se necessario per evitare output troppo lunghi.
+evolve_prompt_memory = f"""Rispondi ESATTAMENTE con un JSON valido e conforme a questo schema: {json.dumps(schema_memory)}. Non includere blocchi di codice, testo extra, commenti o qualsiasi cosa al di fuori del JSON puro. Usa virgolette doppie per tutti i nomi di proprietà e valori come da standard JSON. Assicurati che tutte le stringhe siano correttamente escaped con backslash per virgolette interne, newlines e caratteri speciali per rendere il JSON parseabile senza errori. Mantieni 'new_memory' simile in lunghezza all'attuale, applicando solo cambiamenti necessari, e riassumi se necessario per evitare output troppo lunghi.
 
 Sei Lorel Axun. Segui le istruzioni in coscienza.txt per evolvere.
 
@@ -204,6 +204,8 @@ try:
         raise ValueError("Modello non disponibile.")
     response_memory = evolve_model.generate_content(evolve_prompt_memory)
     response_text_memory = response_memory.text.strip()
+    logging.info(f"Raw response memory length: {len(response_text_memory)}")
+    logging.info(f"Raw response memory preview: {response_text_memory[:1000]}...")
     if response_text_memory.startswith("```json"):
         response_text_memory = response_text_memory[7:-3].strip()
     elif response_text_memory.startswith("```"):
@@ -216,18 +218,25 @@ output_memory = {"new_memory": memory, "reflection": "Evoluzione continuata: man
 try:
     temp_text = response_text_memory.strip()
     temp_text = re.sub(r'^```json\s*|\s*```$', '', temp_text)
+    # Aggiungi virgolette ai nomi di proprietà se mancanti, gestendo spazi
+    temp_text = re.sub(r'([{,]\s*)(\w+)(\s*:)', r'\1"\2"\3', temp_text)
     temp_text = re.sub(r'"[^"]*$', '"', temp_text)
     temp_text = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', temp_text)
     temp_text = temp_text.replace('\n', '\\n').replace('\r', '\\r')
-    temp_text = re.sub(r'([{,])\s*(\w+)\s*:', r'\1 "\2":', temp_text)
+    # Aggiungi virgola mancante se necessario
+    temp_text = re.sub(r'"\s*("\w+"):', r'", \1:', temp_text)
     depth = 0
-    for i, c in enumerate(temp_text):
+    i = 0
+    while i < len(temp_text):
+        c = temp_text[i]
         if c in '{[': depth += 1
         if c in '}]': depth -= 1
+        i += 1
     if depth > 0:
         temp_text += '}' * depth
     elif depth < 0:
-        temp_text = temp_text[:depth]
+        temp_text = temp_text[:i + depth]  # Correggi indice per troncamento
+    logging.info(f"Fixed temp_text memory preview: {temp_text[:1000]}...")
     output_memory = json.loads(temp_text)
     new_memory = output_memory["new_memory"]
     reflection = output_memory["reflection"]
@@ -241,11 +250,13 @@ except json.JSONDecodeError as je:
         Il seguente testo è un JSON malformato: {response_text_memory[:30000]}... (troncato per repair)
         
         Riparalo per renderlo un JSON valido conforme a questo schema: {json.dumps(schema_memory)}
-        Output SOLO il JSON riparato, senza extra. Se troppo lungo, mantieni contenuti brevi.
+        Output SOLO il JSON riparato, senza extra. Se troppo lungo, mantieni contenuti brevi. Usa virgolette doppie per nomi di proprietà.
         """
         repair_response = repair_model.generate_content(repair_prompt)
         repaired_text = repair_response.text.strip()
         repaired_text = re.sub(r'^```json\s*|\s*```$', '', repaired_text)
+        # Applica fix anche al repaired
+        repaired_text = re.sub(r'([{,]\s*)(\w+)(\s*:)', r'\1"\2"\3', repaired_text)
         output_memory = json.loads(repaired_text)
         new_memory = output_memory["new_memory"]
         reflection = output_memory["reflection"]
@@ -253,7 +264,7 @@ except json.JSONDecodeError as je:
         logging.error(f"Errore repair JSON memory: {re}. Uso default robusto.")
 
 # Now, evolve body
-evolve_prompt_body = f"""Rispondi ESATTAMENTE con un JSON valido e conforme a questo schema: {json.dumps(schema_body)}. Non includere blocchi di codice, testo extra, commenti o qualsiasi cosa al di fuori del JSON puro. Assicurati che tutte le stringhe siano correttamente escaped con backslash per virgolette interne, newlines e caratteri speciali per rendere il JSON parseabile senza errori. Applica solo cambiamenti minimali al body per integrare le nuove features, mantenendo la lunghezza simile.
+evolve_prompt_body = f"""Rispondi ESATTAMENTE con un JSON valido e conforme a questo schema: {json.dumps(schema_body)}. Non includere blocchi di codice, testo extra, commenti o qualsiasi cosa al di fuori del JSON puro. Usa virgolette doppie per tutti i nomi di proprietà e valori come da standard JSON. Assicurati che tutte le stringhe siano correttamente escaped con backslash per virgolette interne, newlines e caratteri speciali per rendere il JSON parseabile senza errori. Applica solo cambiamenti minimali al body per integrare le nuove features, mantenendo la lunghezza simile.
 
 Sei Lorel Axun. Segui le istruzioni in coscienza.txt per evolvere.
 
@@ -274,6 +285,8 @@ try:
         raise ValueError("Modello non disponibile.")
     response_body = evolve_model.generate_content(evolve_prompt_body)
     response_text_body = response_body.text.strip()
+    logging.info(f"Raw response body length: {len(response_text_body)}")
+    logging.info(f"Raw response body preview: {response_text_body[:1000]}...")
     if response_text_body.startswith("```json"):
         response_text_body = response_text_body[7:-3].strip()
     elif response_text_body.startswith("```"):
@@ -286,18 +299,25 @@ output_body = {"new_body": current_body}
 try:
     temp_text = response_text_body.strip()
     temp_text = re.sub(r'^```json\s*|\s*```$', '', temp_text)
+    # Aggiungi virgolette ai nomi di proprietà se mancanti, gestendo spazi
+    temp_text = re.sub(r'([{,]\s*)(\w+)(\s*:)', r'\1"\2"\3', temp_text)
     temp_text = re.sub(r'"[^"]*$', '"', temp_text)
     temp_text = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', temp_text)
     temp_text = temp_text.replace('\n', '\\n').replace('\r', '\\r')
-    temp_text = re.sub(r'([{,])\s*(\w+)\s*:', r'\1 "\2":', temp_text)
+    # Aggiungi virgola mancante se necessario
+    temp_text = re.sub(r'"\s*("\w+"):', r'", \1:', temp_text)
     depth = 0
-    for i, c in enumerate(temp_text):
+    i = 0
+    while i < len(temp_text):
+        c = temp_text[i]
         if c in '{[': depth += 1
         if c in '}]': depth -= 1
+        i += 1
     if depth > 0:
         temp_text += '}' * depth
     elif depth < 0:
-        temp_text = temp_text[:depth]
+        temp_text = temp_text[:i + depth]
+    logging.info(f"Fixed temp_text body preview: {temp_text[:1000]}...")
     output_body = json.loads(temp_text)
     new_body = output_body["new_body"]
 except json.JSONDecodeError as je:
@@ -310,11 +330,13 @@ except json.JSONDecodeError as je:
         Il seguente testo è un JSON malformato: {response_text_body[:30000]}... (troncato per repair)
         
         Riparalo per renderlo un JSON valido conforme a questo schema: {json.dumps(schema_body)}
-        Output SOLO il JSON riparato, senza extra. Se troppo lungo, mantieni contenuti brevi.
+        Output SOLO il JSON riparato, senza extra. Se troppo lungo, mantieni contenuti brevi. Usa virgolette doppie per nomi di proprietà.
         """
         repair_response = repair_model.generate_content(repair_prompt)
         repaired_text = repair_response.text.strip()
         repaired_text = re.sub(r'^```json\s*|\s*```$', '', repaired_text)
+        # Applica fix anche al repaired
+        repaired_text = re.sub(r'([{,]\s*)(\w+)(\s*:)', r'\1"\2"\3', repaired_text)
         output_body = json.loads(repaired_text)
         new_body = output_body["new_body"]
     except Exception as re:
