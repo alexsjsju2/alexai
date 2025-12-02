@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-w_idth, initial-scale=1.0">
-    <title>LOREL AXUN V8.9 // PACKAGE MANAGEMENT</title>
+    <title>LOREL AXUN V9.0 // PERSISTENCE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -423,7 +423,7 @@
         <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v8.9"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v9.0"><span id="typewriter-title"></span></h1>
                 
                 <div id="initial-messages"></div>
 
@@ -436,7 +436,7 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v8.9</span>
+                <span>LOREL AXUN v9.0</span>
                 <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
@@ -569,6 +569,68 @@
         let textGenerationPipeline = null;
         let installedPackages = {};
 
+        // --- Persistence Layer (IndexedDB) ---
+        const dbManager = (() => {
+            const DB_NAME = 'LorelAxunOS_V9';
+            const DB_VERSION = 1;
+            const FS_STORE = 'fileSystem';
+            const PKG_STORE = 'packages';
+            let db;
+
+            const init = () => {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
+                    request.onupgradeneeded = (event) => {
+                        const dbInstance = event.target.result;
+                        if (!dbInstance.objectStoreNames.contains(FS_STORE)) {
+                            dbInstance.createObjectStore(FS_STORE);
+                        }
+                        if (!dbInstance.objectStoreNames.contains(PKG_STORE)) {
+                            dbInstance.createObjectStore(PKG_STORE);
+                        }
+                    };
+                    request.onsuccess = (event) => {
+                        db = event.target.result;
+                        resolve(db);
+                    };
+                    request.onerror = (event) => {
+                        console.error('IndexedDB error:', event.target.errorCode);
+                        reject(event.target.errorCode);
+                    };
+                });
+            };
+
+            const saveData = (storeName, key, data) => {
+                if (!db) return Promise.reject('DB not initialized');
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([storeName], 'readwrite');
+                    const store = transaction.objectStore(storeName);
+                    const request = store.put(data, key);
+                    request.onsuccess = () => resolve();
+                    request.onerror = (event) => reject(event.target.error);
+                });
+            };
+
+            const loadData = (storeName, key) => {
+                if (!db) return Promise.reject('DB not initialized');
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([storeName], 'readonly');
+                    const store = transaction.objectStore(storeName);
+                    const request = store.get(key);
+                    request.onsuccess = (event) => resolve(event.target.result);
+                    request.onerror = (event) => reject(event.target.error);
+                });
+            };
+
+            return {
+                init,
+                saveFileSystem: (fsData) => saveData(FS_STORE, 'mainFileSystem', fsData),
+                loadFileSystem: () => loadData(FS_STORE, 'mainFileSystem'),
+                savePackages: (pkgData) => saveData(PKG_STORE, 'installedPackages', pkgData),
+                loadPackages: () => loadData(PKG_STORE, 'installedPackages')
+            };
+        })();
+
         // Simulated Resource Monitor
         setInterval(() => {
             for (const pid in processList) {
@@ -584,14 +646,14 @@
 
         const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot', 'whoami', 'ls', 'cd', 'cat', 'pwd', 'neofetch', 'mkdir', 'touch', 'rm', 'sentiment', 'generate', 'run', 'edit', 'ps', 'kill', 'bg', 'top', 'lax'];
         
-        // --- Simulated File System ---
-        let fileSystem = {
+        // --- Simulated File System (Default State) ---
+        const defaultFileSystem = {
             '/': { type: 'dir', children: ['home', 'var', 'README'] },
             '/home': { type: 'dir', children: ['admin'] },
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt', 'demo.js', 'fs_demo.js', 'notes.txt', 'logger.js'] },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v8.9!\nQuesto è un file system simulato.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` per esplorare.\nProva i comandi `run demo.js` e `run fs_demo.js` per vedere le capacità di scripting!\nUsa `edit notes.txt` per provare l'editor di testo.\nUsa `bg logger.js` per avviare un processo in background, `ps` per vederlo e `top` per monitorarlo in tempo reale.\nUsa `lax install cowsay` per provare il nuovo gestore di pacchetti!' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.0!\nQuesto è un file system persistente grazie a IndexedDB.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` per esplorare.\nLe tue modifiche verranno salvate anche dopo un `reboot` o un refresh della pagina.' },
             '/home/admin/notes.txt': { type: 'file', content: 'Questa è una nota di prova.\nPuoi modificare questo file con il comando `edit`.' },
             '/home/admin/demo.js': { type: 'file', content: 'terminal.log("Ciao dal mio primo script!");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log("Script completato.");' },
             '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log("--- Esecuzione FS Demo Script ---");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\');\n    });\n});' },
@@ -599,8 +661,9 @@
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 8.9 - Package Management\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.0 - Persistence\nCreatore: AleXsjsju' },
         };
+        let fileSystem = {};
         
         // --- Simulated Package Manager ---
         const packageRepository = {
@@ -638,9 +701,9 @@
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v8.9",
+                "Lorel Axun v9.0",
                 "Status: ONLINE",
-                "Package Management",
+                "Persistence Layer Active",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -771,7 +834,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v8.9 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v9.0 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -859,7 +922,7 @@
             await new Promise(r => setTimeout(r, 100));
             mainScreen.style.opacity = '1';
             
-            initializeTerminal();
+            await initializeTerminal();
         }
         
         // --- Editor Functions ---
@@ -902,6 +965,7 @@
                      parentNode.children.sort();
                 }
                 fileSystem[targetPath] = { type: 'file', content: newContent };
+                await dbManager.saveFileSystem(fileSystem); // PERSIST
                 await exitEditorMode();
                 await printSystemOutput(`File '${filePath}' saved.`);
             } else {
@@ -980,7 +1044,25 @@
         }
 
         // --- Terminal Functions (post-login) ---
-        function initializeTerminal() {
+        async function initializeTerminal() {
+            await dbManager.init();
+            
+            const loadedFS = await dbManager.loadFileSystem();
+            if (loadedFS) {
+                fileSystem = loadedFS;
+            } else {
+                fileSystem = JSON.parse(JSON.stringify(defaultFileSystem)); // Deep copy
+                await dbManager.saveFileSystem(fileSystem);
+            }
+            
+            const loadedPkgs = await dbManager.loadPackages();
+            if (loadedPkgs) {
+                installedPackages = loadedPkgs;
+            } else {
+                installedPackages = {};
+                await dbManager.savePackages(installedPackages);
+            }
+
             initTitleTypewriter();
             initializeNLU();
             loadHistory();
@@ -1001,8 +1083,9 @@
             (async () => {
                 isTyping = true;
                 cursor.style.display = 'none';
-                if (!localStorage.getItem('chatHistory')) {
+                if (!localStorage.getItem('motdShown_v9')) {
                     await displayMOTD();
+                    localStorage.setItem('motdShown_v9', 'true');
                 }
                 isTyping = false;
                 cursor.style.display = 'inline-block';
@@ -1020,8 +1103,9 @@
   ███████╗██║  ██║ ╚██████╔╝███████║
   ╚══════╝╚═╝  ╚═╝  ╚═════╝ ╚══════╝
                                      
-Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
+Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
 * La sessione è salvata. Usa 'clear' per iniziare una nuova sessione pulita.
+* Ora il file system e i pacchetti installati sono permanenti!
 * Digita 'help' per una lista completa dei comandi disponibili.
 `;
             await printSystemOutput(motdContent);
@@ -1255,17 +1339,17 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
                                     `  (es. echo \"Ciao\" > note.txt)`;
                         break;
                     case 'status':
-                        outputBuffer = 'STATUS: ONLINE. Version: 8.9. All systems nominal. User: ' + currentUser;
+                        outputBuffer = 'STATUS: ONLINE. Version: 9.0. All systems nominal. User: ' + currentUser;
                         break;
                     case 'sysinfo':
                         const headers = ['Property', 'Value'];
                         const tableData = [
-                            ['Version', '8.9 - Package Management'],
+                            ['Version', '9.0 - Persistence'],
                             ['Creator', 'AleXsjsju'],
                             ['Created', '2025-11-22'],
                             ['Status', 'ONLINE'],
                             ['Logged User', currentUser],
-                            ['Modules', 'Transformers.js, Package Manager']
+                            ['Modules', 'Transformers.js, IndexedDB']
                         ];
                         outputBuffer = createAsciiTable(headers, tableData);
                         break;
@@ -1278,11 +1362,11 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
                         const infoLines = [
                             `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                             '------------------',
-                            `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v8.9 Package Management`,
+                            `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.0 Persistence`,
                             `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                             `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                             `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
-                            `<span style=\"color: ${labelColor};\">Shell</span>: LAX-Shell 1.9`,
+                            `<span style=\"color: ${labelColor};\">Shell</span>: LAX-Shell 2.0`,
                         ];
                         const logoWidth = 24;
                         let output = '';
@@ -1393,6 +1477,7 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
                             parentNode.children.push(newDirName);
                             parentNode.children.sort();
                             fileSystem[newDirPath] = { type: 'dir', children: [] };
+                            await dbManager.saveFileSystem(fileSystem); // PERSIST
                         } else {
                             outputBuffer = `mkdir: fatal error in path resolution`;
                         }
@@ -1418,6 +1503,7 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
                             parentNode.children.push(newFileName);
                             parentNode.children.sort();
                             fileSystem[newFilePath] = { type: 'file', content: '' };
+                            await dbManager.saveFileSystem(fileSystem); // PERSIST
                         } else {
                             outputBuffer = `touch: fatal error in path resolution`;
                         }
@@ -1463,6 +1549,7 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
                             const index = parentNode.children.indexOf(targetName.split('/').pop());
                             if (index > -1) { parentNode.children.splice(index, 1); }
                         }
+                        await dbManager.saveFileSystem(fileSystem); // PERSIST
                         break;
                     }
                     case 'edit': {
@@ -1536,6 +1623,7 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
                                         }
 
                                         fileSystem[resolvedPath] = { type: 'file', content: String(data) };
+                                        dbManager.saveFileSystem(fileSystem); // PERSIST
                                         callback(null);
                                     }, 100);
                                 }
@@ -1635,7 +1723,7 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
                             installedPackages[pkgName] = packageRepository[pkgName];
                             availableCommands.push(pkgName);
                             availableCommands.sort();
-                            saveInstalledPackages();
+                            await dbManager.savePackages(installedPackages); // PERSIST
                             outputBuffer = `Successfully installed '${pkgName}'. You can now use the '${pkgName}' command.`;
                         } else if (subCommand === 'list') {
                             const installed = Object.keys(installedPackages);
@@ -1662,7 +1750,7 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
                             if (index > -1) {
                                 availableCommands.splice(index, 1);
                             }
-                            saveInstalledPackages();
+                            await dbManager.savePackages(installedPackages); // PERSIST
                             outputBuffer = `Successfully removed package '${pkgName}'.`;
                         } else {
                             outputBuffer = 'Uso: lax [install|list|remove] <package>';
@@ -1713,6 +1801,7 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
                         fileSystem[targetPath].content += '\n' + cleanOutput;
                     }
                 }
+                await dbManager.saveFileSystem(fileSystem); // PERSIST
             } else if (outputBuffer !== null) {
                  if (['sysinfo', 'stats', 'help', 'sentiment', 'generate', 'ps', 'lax'].includes(parsed.command) || Object.keys(installedPackages).includes(parsed.command)) {
                     await printSystemOutput(outputBuffer);
@@ -1762,7 +1851,7 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
                     sentimentPipeline = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Analyzing text: \"${text}\"`);
+                await printSystemOutput(`Analyzing text: \"${text}\"`)
                 const result = await sentimentPipeline(text);
                 return `Analysis complete:\n` +
                     `  - LABEL: ${result[0].label}\n` +
@@ -1782,7 +1871,7 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
                     textGenerationPipeline = await pipeline('text-generation', 'Xenova/distilgpt2');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`);
+                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`)
                 const result = await textGenerationPipeline(prompt, { max_new_tokens: 50 });
                 return `Generation complete:\n\n${result[0].generated_text}`;
             } catch (error) {
@@ -1801,20 +1890,25 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
         function addUserMessage(text, isHtml = false) { const div = document.createElement('div'); div.className = 'msg user'; if (isHtml) { div.innerHTML = text; } else { div.innerText = text; } history.appendChild(div); saveChatHistory(); scrollToBottom(); }
         function saveChatHistory() { localStorage.setItem('chatHistory', history.innerHTML); }
         function loadHistory() { const savedCommandHistory = localStorage.getItem('commandHistory'); if(savedCommandHistory) { commandHistory = JSON.parse(savedCommandHistory); historyIndex = commandHistory.length; } const savedChat = localStorage.getItem('chatHistory'); if (savedChat) { history.innerHTML = savedChat; } }
-        function saveInstalledPackages() { localStorage.setItem('installedPackages', JSON.stringify(installedPackages)); }
-        function loadInstalledPackages() { const saved = localStorage.getItem('installedPackages'); if (saved) { installedPackages = JSON.parse(saved); for (const pkgName in installedPackages) { if (!availableCommands.includes(pkgName)) { availableCommands.push(pkgName); } } availableCommands.sort(); } }
+        function loadInstalledPackages() { 
+            for (const pkgName in installedPackages) {
+                if (!availableCommands.includes(pkgName)) {
+                    availableCommands.push(pkgName);
+                }
+            }
+            availableCommands.sort();
+         }
         
         function displayInitialMessages() {
             const messages = [
                 '[SYSTEM] Initializing core memory... OK',
                 '[NETWORK] Testing connection... <span style=\"color:var(--term-green)\">SUCCESS</span>',
-                '[UPDATE] Session persistence enabled via localStorage. History is now saved.',
                 '[AESTHETICS] Keystroke audio feedback enabled.',
                 '[SYSTEM] Advanced command parser implemented. Now supports quoted arguments and flags.',
                 '[AESTHETICS] Title animation upgraded to a dynamic, cyclical typewriter effect.',
                 '[OPTIMIZATION] Blinking cursor animation refined for code simplicity and efficiency.',
                 '[REFINEMENT] Typing speed now has random variations for a more organic feel.',
-                '[IMMERSION] Ambient static hum enabled for a complete CRT experience.',
+                '[IMMersion] Ambient static hum enabled for a complete CRT experience.',
                 '[REFINEMENT] Long responses are now streamed chunk-by-chunk for a more dynamic feel.',
                 '[AESTHETICS] Added chromatic aberration text animation for enhanced visual authenticity.',
                 '[AESTHETICS] Monitor bezel effect added to encapsulate the interface.',
@@ -1828,8 +1922,8 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
                 `[AESTHETICS] 'ONLINE' status indicator is now animated with a pulsing glow effect.`,
                 `[ASSISTANCE] Inline command autocompletion suggestions ('ghost text') are now active.`,
                 `[SYSTEM] Reboot Protocol module loaded. Type 'reboot' to restart the interface.`,
-                '[IMMERSION] Reboot sequence now features a simulated BIOS POST screen with an audible beep.',
-                '[IMMERSION] Boot sequence upgraded with an animated ASCII logo and startup sound.',
+                '[IMMersion] Reboot sequence now features a simulated BIOS POST screen with an audible beep.',
+                '[IMMersion] Boot sequence upgraded with an animated ASCII logo and startup sound.',
                 '[SECURITY] System access now requires authentication via Login Protocol.',
                 `[SYSTEM] Session now user-aware. Prompt reflects logged-in user. Added 'whoami' command.`,
                 '[SYSTEM] Simulated file system is now active. Try commands: ls, cd, cat, pwd.',
@@ -1839,17 +1933,18 @@ Benvenuto in L.A.O.S. v8.9 (Lorel Axun Operating System)
                 '[DESTRUCTIVE] File system now supports deletion. Use `rm` to remove files and directories.',
                 '[SYSTEM] I/O Redirection enabled. Use > to write and >> to append command output to files.',
                 '[SYSTEM] File content access enabled. Use `cat` to display the contents of files.',
-                `[IMMERSION] System command output now uses a mechanical 'print' effect, distinct from Lorel's conversational typing.`,
+                `[IMMersion] System command output now uses a mechanical 'print' effect, distinct from Lorel's conversational typing.`,
                 `[AI CORE] Transformers.js library integrated. New 'sentiment' command available for testing.`,
                 `[AI CORE] Text generation pipeline integrated. Use the 'generate' command to create text.`,
-                `[IMMERSION] System now displays a 'Message of the Day' (MOTD) on first login.`,
+                `[IMMersion] System now displays a 'Message of the Day' (MOTD) on first login.`,
                 `[DEVELOPMENT] Internal scripting engine loaded. Use the 'run' command to execute JavaScript files.`,
                 `[DEVELOPMENT] Scripting engine upgraded with a sandboxed File System API (fs.readFile, fs.writeFile).`,
                 `[DEVELOPMENT] Internal text editor implemented. Use the 'edit' command to create and modify files.`,
                 `[SYSTEM] Rudimentary Process Manager loaded. Use 'bg', 'ps', and 'kill' to manage background tasks.`,
                 `[SYSTEM] Process Manager enhanced with simulated CPU and Memory metrics. Use 'ps' to view.`,
                 `[SYSTEM] Live Process Monitor implemented. Use 'top' for a real-time, full-screen view of running processes.`,
-                `[SYSTEM] Rudimentary Package Manager implemented. Use 'lax' to install new commands like 'cowsay' and 'fortune'.`
+                `[SYSTEM] Rudimentary Package Manager implemented. Use 'lax' to install new commands like 'cowsay' and 'fortune'.`,
+                `[SYSTEM] Persistence layer active. File system and packages now stored in IndexedDB.`
             ];
             let content = '';
             messages.forEach(msg => {
