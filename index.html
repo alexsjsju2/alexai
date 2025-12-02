@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-w_idth, initial-scale=1.0">
-    <title>LOREL AXUN V9.0 // PERSISTENCE</title>
+    <title>LOREL AXUN V9.1 // WINDOW MANAGER</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -18,6 +18,10 @@
             --bios-text: #cccccc;
             --error-red: #ff3333;
             --dir-blue: #87cefa; /* Light Sky Blue for directories */
+            --window-bg: #111111;
+            --window-border: #222222;
+            --header-bg: var(--term-green);
+            --header-text: var(--bg-color);
         }
         html {
             height: 100%;
@@ -116,8 +120,61 @@
             }
         }
 
+        #desktop {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        .window {
+            position: absolute;
+            background: var(--window-bg);
+            border: 2px solid var(--window-border);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5), inset 0 0 10px var(--term-glow);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            resize: both; /* Future feature placeholder */
+            overflow: hidden; /* Future feature placeholder */
+        }
+        
+        .window-header {
+            background: var(--header-bg);
+            color: var(--header-text);
+            padding: 3px 8px;
+            font-weight: bold;
+            cursor: move;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 25px;
+            box-sizing: border-box;
+        }
+        
+        .window-title { white-space: pre; }
+        
+        .window-controls span {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            text-align: center;
+            line-height: 15px;
+            margin-left: 5px;
+            border: 1px solid var(--header-text);
+            cursor: pointer;
+        }
+        .window-controls span:hover { background: rgba(0,0,0,0.2); }
+
+        .window-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
         .terminal-container {
-            padding: 20px;
+            padding: 10px;
             flex: 1;
             overflow-y: auto;
             width: 100%;
@@ -362,38 +419,7 @@
             50% { opacity: 0.7; }
         }
 
-        /* Editor & Top Overlays */
-        #editor-overlay, #top-overlay {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
-            z-index: 20000;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-family: 'VT323', monospace;
-        }
-        .overlay-container {
-            width: 90%;
-            height: 90%;
-            max-width: 1200px;
-            background: var(--bg-color);
-            border: 2px solid var(--term-green);
-            box-shadow: 0 0 20px var(--term-glow) inset;
-            display: flex;
-            flex-direction: column;
-        }
-        .overlay-header, .overlay-footer {
-            background: var(--term-green);
-            color: var(--bg-color);
-            padding: 5px 10px;
-            font-weight: bold;
-            white-space: pre;
-        }
         #editor-textarea {
-            flex: 1;
             background: transparent;
             border: none;
             color: var(--term-green);
@@ -403,13 +429,18 @@
             resize: none;
             outline: none;
             text-shadow: 0 0 5px var(--term-glow);
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
         }
         #top-content {
-            flex: 1;
             padding: 10px;
             overflow: hidden;
             white-space: pre;
             text-shadow: 0 0 5px var(--term-glow);
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
         }
 
     </style>
@@ -422,40 +453,9 @@
     <div class="monitor-bezel" id="monitor-bezel" style="display: none;">
         <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
-            <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v9.0"><span id="typewriter-title"></span></h1>
-                
-                <div id="initial-messages"></div>
-
-                <div id="chat-history" class="chat-history"></div>
-
-                <form class="input-line" id="input-form">
-                    <span class="prompt" id="prompt"></span>
-                    <span id="command-line"></span><span id="autocomplete-suggestion"></span><span id="cursor"></span>
-                    <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-                </form>
+            <div id="desktop">
+                <!-- Windows will be injected here by JS -->
             </div>
-            <div class="status-bar">
-                <span>LOREL AXUN v9.0</span>
-                <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
-                <span id="clock"></span>
-            </div>
-        </div>
-    </div>
-
-    <div id="editor-overlay">
-        <div class="overlay-container">
-            <div class="overlay-header">Editing: <span id="editor-filename"></span></div>
-            <textarea id="editor-textarea" spellcheck="false"></textarea>
-            <div class="overlay-footer">Ctrl+S: Save & Exit | Ctrl+X: Exit without Saving</div>
-        </div>
-    </div>
-
-    <div id="top-overlay">
-        <div class="overlay-container">
-            <div id="top-header" class="overlay-header"></div>
-            <div id="top-content"></div>
-            <div class="overlay-footer">Press 'q' to quit</div>
         </div>
     </div>
 
@@ -533,41 +533,100 @@
 
         // --- Lorel's Core Script ---
         // DOM Elements
-        const history = document.getElementById('chat-history');
-        const commandLine = document.getElementById('command-line');
-        const autocompleteSuggestion = document.getElementById('autocomplete-suggestion');
-        const terminalContainer = document.getElementById('terminal-container');
-        const initialMessagesContainer = document.getElementById('initial-messages');
-        const cursor = document.getElementById('cursor');
-        const clock = document.getElementById('clock');
-        const prompt = document.getElementById('prompt');
-        const hiddenInput = document.getElementById('hidden-input');
-        const inputForm = document.getElementById('input-form');
+        const desktop = document.getElementById('desktop');
         const biosOverlay = document.getElementById('bios-overlay');
         const bootLogoOverlay = document.getElementById('boot-logo-overlay');
         const loginOverlay = document.getElementById('login-overlay');
         const mainScreen = document.getElementById('main-screen');
         const monitorBezel = document.getElementById('monitor-bezel');
-        const editorOverlay = document.getElementById('editor-overlay');
-        const topOverlay = document.getElementById('top-overlay');
 
         // State Variables
-        let isTyping = false;
         let commandHistory = [];
         let historyIndex = -1;
-        let activityTimeout;
         let userHasInteracted = false;
         let audioCtx = null;
         let currentUser = 'user';
         let cwd = '/home/admin'; // Current Working Directory
         let loginState = { active: false, step: 'username', username: '', password: '' };
-        let editorState = { active: false, filePath: null };
-        let topState = { active: false, intervalId: null };
+        let editorState = { active: false, filePath: null, windowEl: null };
+        let topState = { active: false, intervalId: null, windowEl: null };
         let processList = {};
         let nextPid = 1;
         let sentimentPipeline = null;
         let textGenerationPipeline = null;
         let installedPackages = {};
+        let highestZ = 100;
+
+        // --- Window Manager ---
+        function createDraggableWindow(id, title, width, height, top, left) {
+            highestZ++;
+            const win = document.createElement('div');
+            win.id = id;
+            win.className = 'window';
+            win.style.width = width + 'px';
+            win.style.height = height + 'px';
+            win.style.top = top + 'px';
+            win.style.left = left + 'px';
+            win.style.zIndex = highestZ;
+
+            const header = document.createElement('div');
+            header.className = 'window-header';
+            header.innerHTML = `<span class="window-title">${title}</span><div class="window-controls"><span class="wc-close">x</span></div>`;
+
+            const content = document.createElement('div');
+            content.className = 'window-content';
+
+            win.appendChild(header);
+            win.appendChild(content);
+            desktop.appendChild(win);
+
+            // Make draggable
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            const onMouseDown = (e) => {
+                isDragging = true;
+                offsetX = e.clientX - win.offsetLeft;
+                offsetY = e.clientY - win.offsetTop;
+                win.style.zIndex = ++highestZ;
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+
+            const onMouseMove = (e) => {
+                if (isDragging) {
+                    win.style.left = `${e.clientX - offsetX}px`;
+                    win.style.top = `${e.clientY - offsetY}px`;
+                }
+            };
+
+            const onMouseUp = () => {
+                isDragging = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+            
+            header.addEventListener('mousedown', onMouseDown);
+            win.addEventListener('mousedown', () => { // Bring to front on any click
+                win.style.zIndex = ++highestZ;
+            });
+
+            // Close button (dummy for now)
+            const closeBtn = win.querySelector('.wc-close');
+            closeBtn.onclick = () => {
+                // This needs specific logic for each window type (e.g., save prompt for editor)
+                // For now, let's just implement it for 'top'
+                if (win.id === 'top-window') {
+                    exitTopMode();
+                }
+                 if (win.id === 'editor-window') {
+                    // A real implementation would ask to save
+                    exitEditorWithoutSaving();
+                }
+            };
+
+            return { windowEl: win, contentEl: content };
+        }
 
         // --- Persistence Layer (IndexedDB) ---
         const dbManager = (() => {
@@ -653,7 +712,7 @@
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt', 'demo.js', 'fs_demo.js', 'notes.txt', 'logger.js'] },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.0!\nQuesto è un file system persistente grazie a IndexedDB.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` per esplorare.\nLe tue modifiche verranno salvate anche dopo un `reboot` o un refresh della pagina.' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.1!\nQuesto è un file system persistente grazie a IndexedDB.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` per esplorare.\nLe tue modifiche verranno salvate anche dopo un `reboot` o un refresh della pagina.' },
             '/home/admin/notes.txt': { type: 'file', content: 'Questa è una nota di prova.\nPuoi modificare questo file con il comando `edit`.' },
             '/home/admin/demo.js': { type: 'file', content: 'terminal.log("Ciao dal mio primo script!");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log("Script completato.");' },
             '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log("--- Esecuzione FS Demo Script ---");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\');\n    });\n});' },
@@ -661,7 +720,7 @@
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.0 - Persistence\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.1 - Window Manager\nCreatore: AleXsjsju' },
         };
         let fileSystem = {};
         
@@ -698,12 +757,11 @@
         };
 
         // --- Dynamic Title Engine ---
-        function initTitleTypewriter() {
-            const target = document.getElementById('typewriter-title');
+        function initTitleTypewriter(target) {
             const phrases = [
-                "Lorel Axun v9.0",
+                "Lorel Axun v9.1",
                 "Status: ONLINE",
-                "Persistence Layer Active",
+                "Window Manager Active",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -795,20 +853,13 @@
 
         // --- Event Listeners ---
         function initializeGlobalListeners() {
-            document.addEventListener('keydown', handleGlobalKeyPress, true); // Use capturing to handle overlay keys first
-            terminalContainer.addEventListener('click', () => {
-                if (!loginState.active && !editorState.active && !topState.active) hiddenInput.focus();
-            });
+            document.addEventListener('keydown', handleGlobalKeyPress, true);
         }
 
         function handleGlobalKeyPress(e) {
             if (editorState.active) {
                 handleEditorKeys(e);
                 return; // Stop propagation to terminal listeners
-            }
-            if (topState.active) {
-                handleTopKeys(e);
-                return;
             }
             
             if (!userHasInteracted) {
@@ -834,7 +885,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v9.0 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v9.1 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -939,19 +990,26 @@
         }
 
         async function enterEditorMode(filePath, content) {
+            if (editorState.active) return;
             editorState.active = true;
             editorState.filePath = filePath;
 
-            document.getElementById('editor-filename').textContent = filePath;
-            const editorTextarea = document.getElementById('editor-textarea');
+            const { windowEl, contentEl } = createDraggableWindow('editor-window', `edit: ${filePath}`, 600, 400, 50, 250);
+            editorState.windowEl = windowEl;
+            
+            const editorTextarea = document.createElement('textarea');
+            editorTextarea.id = 'editor-textarea';
+            editorTextarea.spellcheck = false;
             editorTextarea.value = content;
-
-            editorOverlay.style.display = 'flex';
+            contentEl.appendChild(editorTextarea);
+            
             setTimeout(() => editorTextarea.focus(), 0);
         }
 
         async function saveAndExitEditor() {
-            const newContent = document.getElementById('editor-textarea').value;
+            if (!editorState.active) return;
+            const editorTextarea = editorState.windowEl.querySelector('#editor-textarea');
+            const newContent = editorTextarea.value;
             const filePath = editorState.filePath;
             const targetPath = resolvePath(filePath);
             const parentPath = resolvePath(targetPath + '/..');
@@ -981,38 +1039,42 @@
         }
 
         async function exitEditorMode() {
-            editorOverlay.style.display = 'none';
+            if (!editorState.active) return;
+            editorState.windowEl.remove();
             editorState.active = false;
             editorState.filePath = null;
-            hiddenInput.focus();
+            editorState.windowEl = null;
+            document.getElementById('hidden-input').focus();
         }
 
         // --- Top (Live Monitor) Functions ---
-        function handleTopKeys(e) {
-            if (e.key.toLowerCase() === 'q') {
-                e.preventDefault();
-                exitTopMode();
-            }
-        }
-
         function enterTopMode() {
+            if (topState.active) return;
             topState.active = true;
-            topOverlay.style.display = 'flex';
+            const { windowEl, contentEl } = createDraggableWindow('top-window', 'top - Process Monitor', 650, 300, 80, 80);
+            topState.windowEl = windowEl;
+
+            const topContent = document.createElement('div');
+            topContent.id = 'top-content';
+            contentEl.appendChild(topContent);
+            
             updateTopDisplay();
             topState.intervalId = setInterval(updateTopDisplay, 2000); // Refresh every 2 seconds
         }
 
         function exitTopMode() {
+            if (!topState.active) return;
             clearInterval(topState.intervalId);
             topState.intervalId = null;
-            topOverlay.style.display = 'none';
+            topState.windowEl.remove();
             topState.active = false;
-            hiddenInput.focus();
+            topState.windowEl = null;
+            document.getElementById('hidden-input').focus();
         }
 
         function updateTopDisplay() {
-            const headerEl = document.getElementById('top-header');
-            const contentEl = document.getElementById('top-content');
+            if (!topState.active) return;
+            const topContent = topState.windowEl.querySelector('#top-content');
 
             const processArray = Object.entries(processList);
             const totalProcesses = processArray.length;
@@ -1023,9 +1085,6 @@
                 totalMem += parseFloat(proc.mem);
             });
 
-            const headerText = `LAOS top - ${new Date().toLocaleTimeString()} | Tasks: ${totalProcesses} total | CPU%: ${totalCpu.toFixed(2)} | Mem: ${totalMem.toFixed(2)}MB`;
-            headerEl.textContent = headerText;
-
             // Sort processes by CPU usage, descending
             const sortedProcesses = processArray.sort((a, b) => parseFloat(b[1].cpu) - parseFloat(a[1].cpu));
 
@@ -1035,12 +1094,12 @@
             contentText += '-'.repeat(colHeaders.length) + '\n';
 
             sortedProcesses.forEach(([pid, proc]) => {
-                const uptime = Math.floor((new Date() - proc.startTime) / 1000) + 's';
-                const line = ` ${String(pid).padStart(4)} ${currentUser.padEnd(9)} ${proc.cpu.padStart(6)} ${proc.mem.padStart(8)} ${uptime.padStart(6)}s  ${proc.command}\n`;
+                const uptime = Math.floor((new Date() - proc.startTime) / 1000);
+                const line = ` ${String(pid).padStart(4)} ${currentUser.padEnd(9)} ${proc.cpu.padStart(6)} ${proc.mem.padStart(8)} ${String(uptime).padStart(6)}s  ${proc.command}\n`;
                 contentText += line;
             });
 
-            contentEl.textContent = contentText;
+            topContent.textContent = contentText;
         }
 
         // --- Terminal Functions (post-login) ---
@@ -1062,8 +1121,30 @@
                 installedPackages = {};
                 await dbManager.savePackages(installedPackages);
             }
-
-            initTitleTypewriter();
+            
+            // Create the main terminal window
+            const { windowEl, contentEl } = createDraggableWindow('terminal-window', 'L.A.O.S. Shell', 800, 500, 20, 20);
+            const terminalHTML = `
+                <div class="terminal-container" id="terminal-container">
+                    <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v9.1"><span id="typewriter-title"></span></h1>
+                    <div id="initial-messages"></div>
+                    <div id="chat-history" class="chat-history"></div>
+                    <form class="input-line" id="input-form">
+                        <span class="prompt" id="prompt"></span>
+                        <span id="command-line"></span><span id="autocomplete-suggestion"></span><span id="cursor"></span>
+                        <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                    </form>
+                </div>
+                <div class="status-bar">
+                    <span>LOREL AXUN v9.1</span>
+                    <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
+                    <span id="clock"></span>
+                </div>
+            `;
+            contentEl.innerHTML = terminalHTML;
+            const typewriterTitle = document.getElementById('typewriter-title');
+            
+            initTitleTypewriter(typewriterTitle);
             initializeNLU();
             loadHistory();
             loadInstalledPackages();
@@ -1076,20 +1157,21 @@
             nextPid = 1;
             processList = {};
             processList[nextPid++] = { command: 'kernel_task', startTime: new Date(), cpu: (Math.random() * 0.5 + 0.1).toFixed(2), mem: (Math.random() * 50 + 25).toFixed(2) };
+            processList[nextPid++] = { command: 'window_manager', startTime: new Date(), cpu: (Math.random() * 2.0 + 0.8).toFixed(2), mem: (Math.random() * 20 + 10).toFixed(2) };
             processList[nextPid++] = { command: `shell_session (${currentUser})`, startTime: new Date(), cpu: (Math.random() * 1.0 + 0.2).toFixed(2), mem: (Math.random() * 30 + 15).toFixed(2) };
 
             updatePrompt();
 
             (async () => {
-                isTyping = true;
-                cursor.style.display = 'none';
-                if (!localStorage.getItem('motdShown_v9')) {
+                document.isTyping = true;
+                document.getElementById('cursor').style.display = 'none';
+                if (!localStorage.getItem('motdShown_v9.1')) {
                     await displayMOTD();
-                    localStorage.setItem('motdShown_v9', 'true');
+                    localStorage.setItem('motdShown_v9.1', 'true');
                 }
-                isTyping = false;
-                cursor.style.display = 'inline-block';
-                hiddenInput.focus();
+                document.isTyping = false;
+                document.getElementById('cursor').style.display = 'inline-block';
+                document.getElementById('hidden-input').focus();
                 scrollToBottom();
             })();
         }
@@ -1103,9 +1185,9 @@
   ███████╗██║  ██║ ╚██████╔╝███████║
   ╚══════╝╚═╝  ╚═╝  ╚═════╝ ╚══════╝
                                      
-Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
-* La sessione è salvata. Usa 'clear' per iniziare una nuova sessione pulita.
-* Ora il file system e i pacchetti installati sono permanenti!
+Benvenuto in L.A.O.S. v9.1 (Window Manager)
+* L'interfaccia ora supporta finestre trascinabili!
+* `edit` e `top` ora aprono finestre separate invece di sovrapposizioni.
 * Digita 'help' per una lista completa dei comandi disponibili.
 `;
             await printSystemOutput(motdContent);
@@ -1117,12 +1199,21 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
              if (cwd.startsWith(homeDir)) {
                  displayCwd = '~' + cwd.substring(homeDir.length);
              }
-             prompt.innerHTML = `<span style=\"color: var(--cmd-highlight)\">${currentUser}@lorel:</span><span style=\"color: var(--dir-blue)\">${displayCwd}</span>$ `;
+             document.getElementById('prompt').innerHTML = `<span style=\"color: var(--cmd-highlight)\">${currentUser}@lorel:</span><span style=\"color: var(--dir-blue)\">${displayCwd}</span>$ `;
         }
 
         function setupTerminalInputListeners() {
+            const hiddenInput = document.getElementById('hidden-input');
+            const inputForm = document.getElementById('input-form');
+            const terminalContainer = document.getElementById('terminal-container');
+            
+            terminalContainer.addEventListener('click', (e) => {
+                // Prevent clicks inside the terminal from focusing away from editor
+                if (!editorState.active) hiddenInput.focus();
+            });
+            
             hiddenInput.addEventListener('input', () => {
-                if (editorState.active || topState.active) return;
+                if (editorState.active) return;
                 playKeySound();
                 updateCommandLine();
                 updateAutocompleteSuggestion();
@@ -1130,10 +1221,10 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
 
             inputForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                if (isTyping || editorState.active || topState.active) return;
-
+                if (document.isTyping || editorState.active) return;
+                const prompt = document.getElementById('prompt');
                 prompt.classList.remove('listening');
-                autocompleteSuggestion.textContent = '';
+                document.getElementById('autocomplete-suggestion').textContent = '';
                 const userInput = hiddenInput.value.trim();
                 if (userInput) {
                     if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== userInput) {
@@ -1142,19 +1233,19 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
                     }
                     historyIndex = commandHistory.length;
                     hiddenInput.value = '';
-                    commandLine.textContent = '';
+                    document.getElementById('command-line').textContent = '';
 
-                    isTyping = true;
-                    cursor.style.display = 'none';
+                    document.isTyping = true;
+                    document.getElementById('cursor').style.display = 'none';
                     
                     const analysis = analyzeInput(userInput);
                     addUserMessage(analysis.highlightedInput, true);
                     await processCommandFromInput(analysis.command);
                     saveChatHistory();
 
-                    if (parseCommand(userInput).command !== 'reboot' && !editorState.active && !topState.active) {
-                        isTyping = false;
-                        cursor.style.display = 'inline-block';
+                    if (parseCommand(userInput).command !== 'reboot' && !editorState.active) {
+                        document.isTyping = false;
+                        document.getElementById('cursor').style.display = 'inline-block';
                         updatePrompt();
                         hiddenInput.focus();
                     }
@@ -1163,13 +1254,13 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
             });
 
             hiddenInput.addEventListener('keydown', async function (e) {
-                if (isTyping || editorState.active || topState.active) return;
+                if (document.isTyping || editorState.active) return;
 
                 const key = e.key;
-
-                clearTimeout(activityTimeout);
+                const prompt = document.getElementById('prompt');
+                clearTimeout(document.activityTimeout);
                 prompt.classList.add('listening');
-                activityTimeout = setTimeout(() => {
+                document.activityTimeout = setTimeout(() => {
                     prompt.classList.remove('listening');
                 }, 1500);
 
@@ -1192,6 +1283,7 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
                         hiddenInput.dispatchEvent(new Event('input'));
                     }
                 } else if (key === 'Tab' || key === 'ArrowRight') {
+                    const autocompleteSuggestion = document.getElementById('autocomplete-suggestion');
                     if(autocompleteSuggestion.textContent && hiddenInput.selectionStart === hiddenInput.value.length) {
                         e.preventDefault();
                         hiddenInput.value += autocompleteSuggestion.textContent;
@@ -1207,6 +1299,8 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
         }
 
         function updateCommandLine() {
+            const hiddenInput = document.getElementById('hidden-input');
+            const commandLine = document.getElementById('command-line');
             const inputText = hiddenInput.value;
             const parts = inputText.split(' ');
             const command = parts[0].toLowerCase();
@@ -1220,6 +1314,8 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
         }
         
         function updateAutocompleteSuggestion() {
+            const hiddenInput = document.getElementById('hidden-input');
+            const autocompleteSuggestion = document.getElementById('autocomplete-suggestion');
             const currentInput = hiddenInput.value;
             if (currentInput.includes(' ') || currentInput.length === 0) {
                 autocompleteSuggestion.textContent = '';
@@ -1255,9 +1351,9 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
             return '/' + newPathParts.join('/');
         }
 
-        function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+        function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#039;"); }
         function analyzeInput(input) { const intent = classifier.classify(input); if (intent !== 'unknown') { const entity = nerManager.extractEntities(input, intent); if (entity) { const highlightedInput = input.replace(entity.text, `<mark>${entity.text}</mark>`); const command = `${intent} ${entity.value}`; return { command, highlightedInput }; } return { command: intent, highlightedInput: input }; } return { command: input, highlightedInput: input }; }
-        async function handleLegacyAutocomplete() { const currentInput = hiddenInput.value; const parts = currentInput.split(' '); const lastPart = parts[parts.length - 1]; if (parts.length === 1 && lastPart.length > 0) { const matches = availableCommands.filter(cmd => cmd.startsWith(lastPart)); if (matches.length > 1) { await typeLorelMessage(`Possibili comandi: ${matches.join('  ')}`); } return; } }
+        async function handleLegacyAutocomplete() { const hiddenInput = document.getElementById('hidden-input'); const currentInput = hiddenInput.value; const parts = currentInput.split(' '); const lastPart = parts[parts.length - 1]; if (parts.length === 1 && lastPart.length > 0) { const matches = availableCommands.filter(cmd => cmd.startsWith(lastPart)); if (matches.length > 1) { await typeLorelMessage(`Possibili comandi: ${matches.join('  ')}`); } return; } }
         
         function parseCommandWithRedirection(input) {
             let redirect = null;
@@ -1322,11 +1418,11 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
                                     `  mkdir <nome>      - Crea una nuova directory.\n` +
                                     `  touch <nome>      - Crea un nuovo file vuoto.\n` +
                                     `  rm [-r] <nome>    - Rimuove un file o una directory.\n` +
-                                    `  edit <file>       - Apre un file in un editor di testo.\n` +
+                                    `  edit <file>       - Apre un file in un editor di testo a finestra.\n` +
                                     `  run <file.js>     - Esegue uno script JS (con API fs asincrona).\n\n` +
                                     `Process Management:\n` +
                                     `  ps                - Mostra i processi in esecuzione.\n` +
-                                    `  top               - Monitora i processi e l'uso delle risorse in tempo reale.\n` +
+                                    `  top               - Monitora i processi in una finestra in tempo reale.\n` +
                                     `  bg <file.js>      - Esegue uno script in background.\n` +
                                     `  kill <pid>        - Termina un processo in esecuzione.\n\n` +
                                     `Ecosystem Management:\n` +
@@ -1339,12 +1435,12 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
                                     `  (es. echo \"Ciao\" > note.txt)`;
                         break;
                     case 'status':
-                        outputBuffer = 'STATUS: ONLINE. Version: 9.0. All systems nominal. User: ' + currentUser;
+                        outputBuffer = 'STATUS: ONLINE. Version: 9.1. All systems nominal. User: ' + currentUser;
                         break;
                     case 'sysinfo':
                         const headers = ['Property', 'Value'];
                         const tableData = [
-                            ['Version', '9.0 - Persistence'],
+                            ['Version', '9.1 - Window Manager'],
                             ['Creator', 'AleXsjsju'],
                             ['Created', '2025-11-22'],
                             ['Status', 'ONLINE'],
@@ -1362,11 +1458,11 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
                         const infoLines = [
                             `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                             '------------------',
-                            `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.0 Persistence`,
+                            `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.1 Window Manager`,
                             `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                             `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                             `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
-                            `<span style=\"color: ${labelColor};\">Shell</span>: LAX-Shell 2.0`,
+                            `<span style=\"color: ${labelColor};\">Shell</span>: LAX-Shell 2.1`,
                         ];
                         const logoWidth = 24;
                         let output = '';
@@ -1382,7 +1478,7 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
                     case 'whoami': outputBuffer = currentUser; break;
                     case 'pwd': outputBuffer = cwd; break;
                     case 'date': outputBuffer = new Date().toLocaleString('it-IT'); break;
-                    case 'clear': history.innerHTML = ''; localStorage.removeItem('chatHistory'); break;
+                    case 'clear': document.getElementById('chat-history').innerHTML = ''; localStorage.removeItem('chatHistory'); break;
                     case 'reboot': await runRebootSequence(); break;
                     case 'echo': outputBuffer = parsed.args.length > 0 ? parsed.args.join(' ') : ''; break;
                     case 'news': outputBuffer = await fetchNews(parsed.flags.limit || 3); break;
@@ -1823,6 +1919,7 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
             mainScreen.style.opacity = '0';
             monitorBezel.style.display = 'none';
             await new Promise(resolve => setTimeout(resolve, 500));
+            desktop.innerHTML = '';
 
             biosOverlay.style.display = 'flex';
             const biosLines = [ { text: 'LorelAxun BIOS v1.2', delay: 500 }, { text: 'Copyright (c) 2025 AleXsjsju Corp.', delay: 200 }, { text: '', delay: 500 }, { text: 'Initializing Core Memory.................... ', delay: 300 }, { text: '65536 KB OK', delay: 100, append: true, action: playBiosBeep }, { text: '\nDetecting Primary Master.................. LAX-HD-01', delay: 800 }, { text: 'Detecting Primary Slave................. None', delay: 800 }, { text: 'Detecting Secondary Master................ None', delay: 800 }, { text: 'Detecting Secondary Slave................. None', delay: 800 }, { text: '', delay: 500 }, { text: 'Checking NVRAM............................ OK', delay: 400 }, { text: 'Initializing Web-Access Layer........... OK', delay: 600 }, { text: '', delay: 1000 }, { text: 'Booting from Primary Master (LAX-HD-01)...', delay: 500 }, ];
@@ -1851,7 +1948,7 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
                     sentimentPipeline = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Analyzing text: \"${text}\"`)
+                await printSystemOutput(`Analyzing text: \"${text}\"`);
                 const result = await sentimentPipeline(text);
                 return `Analysis complete:\n` +
                     `  - LABEL: ${result[0].label}\n` +
@@ -1871,7 +1968,7 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
                     textGenerationPipeline = await pipeline('text-generation', 'Xenova/distilgpt2');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`)
+                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`);
                 const result = await textGenerationPipeline(prompt, { max_new_tokens: 50 });
                 return `Generation complete:\n\n${result[0].generated_text}`;
             } catch (error) {
@@ -1884,12 +1981,12 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
         async function fetchWeather(city) { let output = `Ricerca coordinate per ${city}...`; try { const geoResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=5&language=it&format=json`); if (!geoResponse.ok) throw new Error(`Errore Geocoding: ${geoResponse.status}`); const geoData = await geoResponse.json(); if (!geoData.results || geoData.results.length === 0) { throw new Error(`Località non trovata: ${city}`); } const uniqueLocations = []; const seen = new Set(); for (const loc of geoData.results) { const identifier = `${loc.name}, ${loc.admin1 || loc.country}`; if (!seen.has(identifier)) { uniqueLocations.push(loc); seen.add(identifier); } } let location; if (uniqueLocations.length > 1 && !city.includes(',')) { let suggestionText = `\nTrovate più località per \"${city}\". Essere più specifici:\n`; uniqueLocations.slice(0, 3).forEach(loc => { suggestionText += `  - ${loc.name}, ${loc.admin1 || loc.country_code}\n`; }); suggestionText += `Esempio: weather \"${uniqueLocations[0].name}, ${uniqueLocations[0].country_code}\"`; return output + suggestionText; } else { location = uniqueLocations[0]; } const { latitude, longitude, name, admin1, country_code } = location; const locationName = `${name}, ${admin1 || country_code}`; output += `\nCoordinate trovate per ${locationName}.\nRecupero dati meteo...`; const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`); if (!weatherResponse.ok) throw new Error(`Errore API Meteo: ${weatherResponse.status}`); const weatherData = await weatherResponse.json(); const { temperature, windspeed, weathercode } = weatherData.current_weather; const weatherDescription = getWeatherDescription(weathercode); return output + `\nMeteo attuale per ${locationName}:\n` + `  - Descrizione: ${weatherDescription}\n` + `  - Temperatura: ${temperature}°C\n` + `  - Vento: ${windspeed} km/h`; } catch (error) { return output + `\nErrore durante il recupero del meteo: ${error.message}`; } }
         function getWeatherDescription(code) { const descriptions = { 0: 'Sereno', 1: 'Prevalentemente sereno', 2: 'Parzialmente nuvoloso', 3: 'Nuvoloso', 45: 'Nebbia', 48: 'Nebbia con brina', 51: 'Pioggerella leggera', 53: 'Pioggerella moderata', 55: 'Pioggerella intensa', 61: 'Pioggia leggera', 63: 'Pioggia moderata', 65: 'Pioggia forte', 71: 'Nevicata leggera', 73: 'Nevicata moderata', 75: 'Nevicata forte', 80: 'Rovescio leggero', 81: 'Rovescio moderato', 82: 'Rovescio violento', 95: 'Temporale', 96: 'Temporale con grandine leggera', 99: 'Temporale con grandine pesante' }; return descriptions[code] || 'Condizioni non specificate'; }
         async function fetchNews(limit = 3) { let output = `Recupero ${limit} notizie dal web...`; try { const response = await fetch(`https://jsonplaceholder.typicode.com/posts?_limit=${limit}`); if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`); const data = await response.json(); let newsHeadlines = '\nUltime notizie recuperate:\n'; data.forEach((article, index) => { const title = article.title.charAt(0).toUpperCase() + article.title.slice(1); newsHeadlines += `\n[${index + 1}] ${title}`; }); return output + newsHeadlines; } catch (error) { return output + `\nErrore durante il recupero delle notizie: ${error.message}`; } }
-        async function typeLorelMessage(text) { const messageDiv = document.createElement('div'); messageDiv.className = 'msg lorel'; history.appendChild(messageDiv); scrollToBottom(); const chunks = text.split('\n'); for (let i = 0; i < chunks.length; i++) { const chunk = chunks[i]; if (i > 0) { messageDiv.innerText += '\n'; const pauseDuration = 250 + Math.random() * 300; await new Promise(resolve => setTimeout(resolve, pauseDuration)); } for (let j = 0; j < chunk.length; j++) { const char = chunk.charAt(j); messageDiv.innerText += char; playKeySound(); scrollToBottom(); const speed = 30 + (Math.random() * 25); await new Promise(resolve => setTimeout(resolve, speed)); if (char === ',') { await new Promise(resolve => setTimeout(resolve, 250 + Math.random() * 100)); } else if (char === '.' || char === '!' || char === '?') { await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 150)); } } } saveChatHistory(); }
-        async function printSystemOutput(text) { const div = document.createElement('div'); div.className = 'msg lorel'; const pre = document.createElement('pre'); div.appendChild(pre); history.appendChild(div); scrollToBottom(); const lines = String(text).split('\n'); for (const line of lines) { pre.textContent += line + '\n'; scrollToBottom(); await new Promise(r => setTimeout(r, 50)); } saveChatHistory(); }
-        function addLorelMessage(text, isHtml = false) { const div = document.createElement('div'); div.className = 'msg lorel'; if (isHtml) { div.innerHTML = text; } else { div.innerText = text; } history.appendChild(div); saveChatHistory(); scrollToBottom(); }
-        function addUserMessage(text, isHtml = false) { const div = document.createElement('div'); div.className = 'msg user'; if (isHtml) { div.innerHTML = text; } else { div.innerText = text; } history.appendChild(div); saveChatHistory(); scrollToBottom(); }
-        function saveChatHistory() { localStorage.setItem('chatHistory', history.innerHTML); }
-        function loadHistory() { const savedCommandHistory = localStorage.getItem('commandHistory'); if(savedCommandHistory) { commandHistory = JSON.parse(savedCommandHistory); historyIndex = commandHistory.length; } const savedChat = localStorage.getItem('chatHistory'); if (savedChat) { history.innerHTML = savedChat; } }
+        async function typeLorelMessage(text) { const history = document.getElementById('chat-history'); const messageDiv = document.createElement('div'); messageDiv.className = 'msg lorel'; history.appendChild(messageDiv); scrollToBottom(); const chunks = text.split('\n'); for (let i = 0; i < chunks.length; i++) { const chunk = chunks[i]; if (i > 0) { messageDiv.innerText += '\n'; const pauseDuration = 250 + Math.random() * 300; await new Promise(resolve => setTimeout(resolve, pauseDuration)); } for (let j = 0; j < chunk.length; j++) { const char = chunk.charAt(j); messageDiv.innerText += char; playKeySound(); scrollToBottom(); const speed = 30 + (Math.random() * 25); await new Promise(resolve => setTimeout(resolve, speed)); if (char === ',') { await new Promise(resolve => setTimeout(resolve, 250 + Math.random() * 100)); } else if (char === '.' || char === '!' || char === '?') { await new Promise(resolve => setTimeout(resolve, 400 + Math.random() * 150)); } } } saveChatHistory(); }
+        async function printSystemOutput(text) { const history = document.getElementById('chat-history'); const div = document.createElement('div'); div.className = 'msg lorel'; const pre = document.createElement('pre'); div.appendChild(pre); history.appendChild(div); scrollToBottom(); const lines = String(text).split('\n'); for (const line of lines) { pre.textContent += line + '\n'; scrollToBottom(); await new Promise(r => setTimeout(r, 50)); } saveChatHistory(); }
+        function addLorelMessage(text, isHtml = false) { const history = document.getElementById('chat-history'); const div = document.createElement('div'); div.className = 'msg lorel'; if (isHtml) { div.innerHTML = text; } else { div.innerText = text; } history.appendChild(div); saveChatHistory(); scrollToBottom(); }
+        function addUserMessage(text, isHtml = false) { const history = document.getElementById('chat-history'); const div = document.createElement('div'); div.className = 'msg user'; if (isHtml) { div.innerHTML = text; } else { div.innerText = text; } history.appendChild(div); saveChatHistory(); scrollToBottom(); }
+        function saveChatHistory() { const history = document.getElementById('chat-history'); if(history) localStorage.setItem('chatHistory', history.innerHTML); }
+        function loadHistory() { const savedCommandHistory = localStorage.getItem('commandHistory'); if(savedCommandHistory) { commandHistory = JSON.parse(savedCommandHistory); historyIndex = commandHistory.length; } const savedChat = localStorage.getItem('chatHistory'); if (savedChat) { document.getElementById('chat-history').innerHTML = savedChat; } }
         function loadInstalledPackages() { 
             for (const pkgName in installedPackages) {
                 if (!availableCommands.includes(pkgName)) {
@@ -1900,51 +1997,19 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
          }
         
         function displayInitialMessages() {
+            const initialMessagesContainer = document.getElementById('initial-messages');
             const messages = [
                 '[SYSTEM] Initializing core memory... OK',
                 '[NETWORK] Testing connection... <span style=\"color:var(--term-green)\">SUCCESS</span>',
-                '[AESTHETICS] Keystroke audio feedback enabled.',
                 '[SYSTEM] Advanced command parser implemented. Now supports quoted arguments and flags.',
-                '[AESTHETICS] Title animation upgraded to a dynamic, cyclical typewriter effect.',
-                '[OPTIMIZATION] Blinking cursor animation refined for code simplicity and efficiency.',
-                '[REFINEMENT] Typing speed now has random variations for a more organic feel.',
-                '[IMMersion] Ambient static hum enabled for a complete CRT experience.',
-                '[REFINEMENT] Long responses are now streamed chunk-by-chunk for a more dynamic feel.',
-                '[AESTHETICS] Added chromatic aberration text animation for enhanced visual authenticity.',
-                '[AESTHETICS] Monitor bezel effect added to encapsulate the interface.',
-                '[AESTHETICS] Added moving scanline effect to simulate CRT refresh cycle.',
-                '[INTEGRATION] User input now handled by a robust, invisible `<input>` for improved compatibility.',
-                '[LEXICAL ANALYSIS] User command syntax is now highlighted in real-time for instant feedback.',
-                '[ASSISTANCE] Command autocompletion (Tab key) is now active for predictive input.',
-                '[VISUALIZATION] Data visualization enabled via ASCII charts. Try the \'stats\' command.',
-                '[VISUALIZATION] Data tabulation enabled via ASCII tables. Try the \'sysinfo\' command.',
-                `[REFINEMENT] Lorel's typing rhythm is now more natural, with conversational pauses.`,
-                `[AESTHETICS] 'ONLINE' status indicator is now animated with a pulsing glow effect.`,
-                `[ASSISTANCE] Inline command autocompletion suggestions ('ghost text') are now active.`,
-                `[SYSTEM] Reboot Protocol module loaded. Type 'reboot' to restart the interface.`,
-                '[IMMersion] Reboot sequence now features a simulated BIOS POST screen with an audible beep.',
-                '[IMMersion] Boot sequence upgraded with an animated ASCII logo and startup sound.',
-                '[SECURITY] System access now requires authentication via Login Protocol.',
-                `[SYSTEM] Session now user-aware. Prompt reflects logged-in user. Added 'whoami' command.`,
-                '[SYSTEM] Simulated file system is now active. Try commands: ls, cd, cat, pwd.',
-                '[SYSTEM] Identity module added. Try the new `neofetch` command for system info.',
-                '[REFINEMENT] Command output (help, stats) now streams line-by-line for greater immersion.',
-                '[INTERACTIVITY] File system is now writeable. Use `mkdir` and `touch` to create directories and files.',
-                '[DESTRUCTIVE] File system now supports deletion. Use `rm` to remove files and directories.',
-                '[SYSTEM] I/O Redirection enabled. Use > to write and >> to append command output to files.',
-                '[SYSTEM] File content access enabled. Use `cat` to display the contents of files.',
-                `[IMMersion] System command output now uses a mechanical 'print' effect, distinct from Lorel's conversational typing.`,
-                `[AI CORE] Transformers.js library integrated. New 'sentiment' command available for testing.`,
-                `[AI CORE] Text generation pipeline integrated. Use the 'generate' command to create text.`,
-                `[IMMersion] System now displays a 'Message of the Day' (MOTD) on first login.`,
-                `[DEVELOPMENT] Internal scripting engine loaded. Use the 'run' command to execute JavaScript files.`,
-                `[DEVELOPMENT] Scripting engine upgraded with a sandboxed File System API (fs.readFile, fs.writeFile).`,
-                `[DEVELOPMENT] Internal text editor implemented. Use the 'edit' command to create and modify files.`,
-                `[SYSTEM] Rudimentary Process Manager loaded. Use 'bg', 'ps', and 'kill' to manage background tasks.`,
-                `[SYSTEM] Process Manager enhanced with simulated CPU and Memory metrics. Use 'ps' to view.`,
-                `[SYSTEM] Live Process Monitor implemented. Use 'top' for a real-time, full-screen view of running processes.`,
-                `[SYSTEM] Rudimentary Package Manager implemented. Use 'lax' to install new commands like 'cowsay' and 'fortune'.`,
-                `[SYSTEM] Persistence layer active. File system and packages now stored in IndexedDB.`
+                '[AI CORE] Transformers.js library integrated. New `sentiment` & `generate` commands available.',
+                '[DEVELOPMENT] Internal scripting engine loaded with sandboxed File System API.',
+                '[DEVELOPMENT] Internal text editor implemented. Use the `edit` command.',
+                '[SYSTEM] Rudimentary Process Manager loaded. Use `bg`, `ps`, and `kill` to manage background tasks.',
+                '[SYSTEM] Live Process Monitor implemented. Use `top` for a real-time view of running processes.',
+                '[SYSTEM] Rudimentary Package Manager implemented. Use `lax` to install new commands like `cowsay`.',
+                '[SYSTEM] Persistence layer active. File system and packages now stored in IndexedDB.',
+                '[SYSTEM] Window Manager active. Terminal, editor, and `top` are now draggable windows.'
             ];
             let content = '';
             messages.forEach(msg => {
@@ -1953,8 +2018,8 @@ Benvenuto in L.A.O.S. v9.0 (Lorel Axun Operating System)
             initialMessagesContainer.innerHTML = content;
         }
 
-        function scrollToBottom() { terminalContainer.scrollTop = terminalContainer.scrollHeight; }
-        function updateClock() { const now = new Date(); const timeString = now.toLocaleTimeString('it-IT'); clock.textContent = timeString; }
+        function scrollToBottom() { const term = document.getElementById('terminal-container'); if(term) term.scrollTop = term.scrollHeight; }
+        function updateClock() { const clock = document.getElementById('clock'); if(clock) { const now = new Date(); const timeString = now.toLocaleTimeString('it-IT'); clock.textContent = timeString; } }
         
         window.onload = () => {
             initializeGlobalListeners();
