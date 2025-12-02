@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V8.4 // ADVANCED SCRIPTING</title>
+    <title>LOREL AXUN V8.5 // SELF-CONTAINED DEV ENV</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -362,6 +362,48 @@
             50% { opacity: 0.7; }
         }
 
+        /* Editor Overlay */
+        #editor-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 20000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .editor-container {
+            width: 80%;
+            height: 80%;
+            max-width: 1000px;
+            background: var(--bg-color);
+            border: 2px solid var(--term-green);
+            box-shadow: 0 0 20px var(--term-glow) inset;
+            display: flex;
+            flex-direction: column;
+            font-family: 'VT323', monospace;
+        }
+        #editor-header, #editor-footer {
+            background: var(--term-green);
+            color: var(--bg-color);
+            padding: 5px 10px;
+            font-weight: bold;
+        }
+        #editor-textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--term-green);
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            padding: 10px;
+            resize: none;
+            outline: none;
+            text-shadow: 0 0 5px var(--term-glow);
+        }
+
     </style>
 </head>
 <body>
@@ -373,7 +415,7 @@
         <div class="screen crt" id="main-screen">
             <div class="moving-scanline"></div>
             <div class="terminal-container" id="terminal-container">
-                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v8.4"><span id="typewriter-title"></span></h1>
+                <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v8.5"><span id="typewriter-title"></span></h1>
                 
                 <div id="initial-messages"></div>
 
@@ -386,10 +428,18 @@
                 </form>
             </div>
             <div class="status-bar">
-                <span>LOREL AXUN v8.4</span>
+                <span>LOREL AXUN v8.5</span>
                 <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                 <span id="clock"></span>
             </div>
+        </div>
+    </div>
+
+    <div id="editor-overlay">
+        <div class="editor-container">
+            <div id="editor-header">Editing: <span id="editor-filename"></span></div>
+            <textarea id="editor-textarea" spellcheck="false"></textarea>
+            <div id="editor-footer">Ctrl+S: Save & Exit | Ctrl+X: Exit without Saving</div>
         </div>
     </div>
 
@@ -482,6 +532,7 @@
         const loginOverlay = document.getElementById('login-overlay');
         const mainScreen = document.getElementById('main-screen');
         const monitorBezel = document.getElementById('monitor-bezel');
+        const editorOverlay = document.getElementById('editor-overlay');
 
         // State Variables
         let isTyping = false;
@@ -498,34 +549,39 @@
             username: '',
             password: ''
         };
+        let editorState = {
+            active: false,
+            filePath: null
+        };
         let sentimentPipeline = null;
         let textGenerationPipeline = null;
 
-        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot', 'whoami', 'ls', 'cd', 'cat', 'pwd', 'neofetch', 'mkdir', 'touch', 'rm', 'sentiment', 'generate', 'run'];
+        const availableCommands = ['help', 'status', 'date', 'news', 'weather', 'wiki', 'echo', 'clear', 'stats', 'sysinfo', 'reboot', 'whoami', 'ls', 'cd', 'cat', 'pwd', 'neofetch', 'mkdir', 'touch', 'rm', 'sentiment', 'generate', 'run', 'edit'];
         
         // --- Simulated File System ---
         let fileSystem = {
             '/': { type: 'dir', children: ['home', 'var', 'README'] },
             '/home': { type: 'dir', children: ['admin'] },
-            '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt', 'demo.js', 'fs_demo.js'] },
+            '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt', 'demo.js', 'fs_demo.js', 'notes.txt'] },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v8.4!\nQuesto è un file system simulato.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` per esplorare.\nProva i comandi `run demo.js` e `run fs_demo.js` per vedere le capacità di scripting!' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v8.5!\nQuesto è un file system simulato.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` per esplorare.\nProva i comandi `run demo.js` e `run fs_demo.js` per vedere le capacità di scripting!\nUsa `edit notes.txt` per provare il nuovo editor di testo.' },
+            '/home/admin/notes.txt': { type: 'file', content: 'Questa è una nota di prova.\nPuoi modificare questo file con il comando `edit`.' },
             '/home/admin/demo.js': { type: 'file', content: 'terminal.log("Ciao dal mio primo script!");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log("Script completato.");' },
             '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log("--- Esecuzione FS Demo Script ---");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\');\n    });\n});'},
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 8.4 - Advanced Scripting\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 8.5 - Self-Contained Dev Env\nCreatore: AleXsjsju' },
         };
 
         // --- Dynamic Title Engine ---
         function initTitleTypewriter() {
             const target = document.getElementById('typewriter-title');
             const phrases = [
-                "Lorel Axun v8.4",
+                "Lorel Axun v8.5",
                 "Status: ONLINE",
-                "Advanced Scripting Active",
+                "Self-Contained Dev Env",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -612,18 +668,23 @@
         
         // --- NLU Engine ---
         const classifier = { intents: {}, train: function(intent, phrases) { if (!this.intents[intent]) this.intents[intent] = []; phrases.forEach(phrase => this.intents[intent].push(this.tokenize(phrase))); }, tokenize: text => text.toLowerCase().replace(/[^a-z0-9\\s]/gi, '').split(/\s+/).filter(Boolean), classify: function(text) { const tokens = this.tokenize(text); let bestMatch = { intent: 'unknown', score: 0 }; for (const intent in this.intents) { let intentScore = 0; this.intents[intent].forEach(phraseTokens => { const commonTokens = tokens.filter(token => phraseTokens.includes(token)); const score = commonTokens.length / phraseTokens.length; if (score > intentScore) intentScore = score; }); if (intentScore > bestMatch.score) { bestMatch = { intent, score: intentScore }; } } return bestMatch.score > 0.4 ? bestMatch.intent : 'unknown'; } };
-        const nerManager = { extractEntities: function(text, intent) { if (intent === 'weather') { const match = text.match(/(?:a|per|di|a)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\"`, text: entityText, type: 'LOCATION' }; } } else if (intent === 'wiki') { const match = text.match(/(?:è|e'|di|su)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\"`, text: entityText, type: 'TOPIC' }; } } return null; } };
+        const nerManager = { extractEntities: function(text, intent) { if (intent === 'weather') { const match = text.match(/(?:a|per|di|a)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'LOCATION' }; } } else if (intent === 'wiki') { const match = text.match(/(?:è|e'|di|su)\\s(.+)/i); if (match && match[1]) { const entityText = match[1].trim().replace('?',''); return { value: `\\\"${entityText}\\\"`, text: entityText, type: 'TOPIC' }; } } return null; } };
         function initializeNLU() { classifier.train('weather', ['che tempo fa a', 'meteo per', 'previsioni del tempo a']); classifier.train('date', ['che giorno è', 'dimmi la data', 'che ore sono', 'data e ora']); classifier.train('news', ['ultime notizie', 'dammi le news', 'leggi le notizie']); classifier.train('help', ['aiuto', 'mostrami i comandi', 'cosa posso fare']); classifier.train('wiki', ['cerca su wikipedia', 'cosa è', 'chi è', 'dimmi di']); }
 
         // --- Event Listeners ---
         function initializeGlobalListeners() {
-            document.addEventListener('keydown', handleGlobalKeyPress);
+            document.addEventListener('keydown', handleGlobalKeyPress, true); // Use capturing to handle editor keys first
             terminalContainer.addEventListener('click', () => {
-                if (!loginState.active) hiddenInput.focus();
+                if (!loginState.active && !editorState.active) hiddenInput.focus();
             });
         }
 
         function handleGlobalKeyPress(e) {
+            if (editorState.active) {
+                handleEditorKeys(e);
+                return; // Stop propagation to terminal listeners
+            }
+            
             if (!userHasInteracted) {
                 const hum = document.getElementById('static-hum');
                 hum.volume = 0.05;
@@ -647,7 +708,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v8.4 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v8.5 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -738,6 +799,70 @@
             initializeTerminal();
         }
         
+        // --- Editor Functions ---
+        function handleEditorKeys(e) {
+            if (!editorState.active) return;
+            // Ctrl+S to Save and Exit
+            if (e.ctrlKey && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                saveAndExitEditor();
+            }
+            // Ctrl+X to Exit without Saving
+            else if (e.ctrlKey && e.key.toLowerCase() === 'x') {
+                e.preventDefault();
+                exitEditorWithoutSaving();
+            }
+        }
+
+        async function enterEditorMode(filePath, content) {
+            editorState.active = true;
+            editorState.filePath = filePath;
+
+            document.getElementById('editor-filename').textContent = filePath;
+            const editorTextarea = document.getElementById('editor-textarea');
+            editorTextarea.value = content;
+
+            editorOverlay.style.display = 'flex';
+            setTimeout(() => editorTextarea.focus(), 0);
+        }
+
+        async function saveAndExitEditor() {
+            const newContent = document.getElementById('editor-textarea').value;
+            const filePath = editorState.filePath;
+            const targetPath = resolvePath(filePath);
+            const parentPath = resolvePath(targetPath + '/..');
+            const parentNode = fileSystem[parentPath];
+
+            if (parentNode && parentNode.type === 'dir') {
+                const targetNode = fileSystem[targetPath];
+                if (!targetNode) { // New file
+                     const filename = targetPath.split('/').pop();
+                     parentNode.children.push(filename);
+                     parentNode.children.sort();
+                }
+                fileSystem[targetPath] = { type: 'file', content: newContent };
+                await exitEditorMode();
+                await printSystemOutput(`File '${filePath}' saved.`);
+            } else {
+                await exitEditorMode();
+                await printSystemOutput(`Error: Could not save file to invalid path '${filePath}'.`);
+            }
+        }
+
+        async function exitEditorWithoutSaving() {
+            const filePath = editorState.filePath;
+            await exitEditorMode();
+            await printSystemOutput(`Edit aborted. No changes were saved to '${filePath}'.`);
+        }
+
+        async function exitEditorMode() {
+            editorOverlay.style.display = 'none';
+            editorState.active = false;
+            editorState.filePath = null;
+            // Focus back on the terminal input
+            hiddenInput.focus();
+        }
+
         // --- Terminal Functions (post-login) ---
         function initializeTerminal() {
             initTitleTypewriter();
@@ -771,7 +896,7 @@
   ███████╗██║  ██║ ╚██████╔╝███████║
   ╚══════╝╚═╝  ╚═╝  ╚═════╝ ╚══════╝
                                      
-Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
+Benvenuto in L.A.O.S. v8.5 (Lorel Axun Operating System)
 * La sessione è salvata. Usa 'clear' per iniziare una nuova sessione pulita.
 * Digita 'help' per una lista completa dei comandi disponibili.
 `;
@@ -789,6 +914,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
 
         function setupTerminalInputListeners() {
             hiddenInput.addEventListener('input', () => {
+                if (editorState.active) return;
                 playKeySound();
                 updateCommandLine();
                 updateAutocompleteSuggestion();
@@ -796,7 +922,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
 
             inputForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                if (isTyping) return;
+                if (isTyping || editorState.active) return;
 
                 prompt.classList.remove('listening');
                 autocompleteSuggestion.textContent = '';
@@ -818,7 +944,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                     await processCommandFromInput(analysis.command);
                     saveChatHistory();
 
-                    if (parseCommand(userInput).command !== 'reboot') {
+                    if (parseCommand(userInput).command !== 'reboot' && !editorState.active) {
                         isTyping = false;
                         cursor.style.display = 'inline-block';
                         updatePrompt();
@@ -829,7 +955,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
             });
 
             hiddenInput.addEventListener('keydown', async function (e) {
-                if (isTyping) return;
+                if (isTyping || editorState.active) return;
 
                 const key = e.key;
 
@@ -979,6 +1105,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                                    `  mkdir <nome>      - Crea una nuova directory.\n` +
                                    `  touch <nome>      - Crea un nuovo file vuoto.\n` +
                                    `  rm [-r] <nome>    - Rimuove un file o una directory.\n` +
+                                   `  edit <file>       - Apre un file in un editor di testo.\n` +
                                    `  run <file.js>     - Esegue uno script JS (con API fs asincrona).\n\n` +
                                    `I/O Redirection:\n` +
                                    `  > <file>          - Scrive l'output di un comando in un file (sovrascrive).\n` +
@@ -986,12 +1113,12 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                                    `  (es. echo "Ciao" > note.txt)`;
                     break;
                 case 'status':
-                    outputBuffer = 'STATUS: ONLINE. Version: 8.4. All systems nominal. User: ' + currentUser;
+                    outputBuffer = 'STATUS: ONLINE. Version: 8.5. All systems nominal. User: ' + currentUser;
                     break;
                 case 'sysinfo':
                     const headers = ['Property', 'Value'];
                     const tableData = [
-                        ['Version', '8.4 - Advanced Scripting'],
+                        ['Version', '8.5 - Self-Contained Dev Env'],
                         ['Creator', 'AleXsjsju'],
                         ['Created', '2025-11-22'],
                         ['Status', 'ONLINE'],
@@ -1009,11 +1136,11 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                     const infoLines = [
                         `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                         '------------------',
-                        `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v8.4 Adv. Scripting`,
+                        `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v8.5 Self-Contained`,
                         `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                         `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                         `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
-                        `<span style=\"color: ${labelColor};\">Shell</span>: LAX-Shell 1.4`,
+                        `<span style=\"color: ${labelColor};\">Shell</span>: LAX-Shell 1.5`,
                     ];
                     const logoWidth = 24;
                     let output = '';
@@ -1196,6 +1323,22 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                     }
                     break;
                 }
+                case 'edit': {
+                    if (parsed.args.length === 0) {
+                        outputBuffer = 'Uso: edit <nomefile>';
+                        break;
+                    }
+                    const filePath = parsed.args[0]; // Don't resolve path immediately, keep it user-friendly
+                    const resolvedPath = resolvePath(filePath);
+                    const node = fileSystem[resolvedPath];
+                    if (node && node.type === 'dir') {
+                        outputBuffer = `edit: '${filePath}' è una directory`;
+                        break;
+                    }
+                    const content = (node && node.type === 'file') ? node.content : '';
+                    await enterEditorMode(filePath, content);
+                    break;
+                }
                  case 'run': {
                     if (parsed.args.length === 0) {
                         outputBuffer = `run: missing file operand`;
@@ -1351,7 +1494,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                     sentimentPipeline = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Analyzing text: \"${text}\"`)
+                await printSystemOutput(`Analyzing text: \"${text}\"`);
                 const result = await sentimentPipeline(text);
                 return `Analysis complete:\n` +
                     `  - LABEL: ${result[0].label}\n` +
@@ -1371,7 +1514,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                     textGenerationPipeline = await pipeline('text-generation', 'Xenova/distilgpt2');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`)
+                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`);
                 const result = await textGenerationPipeline(prompt, { max_new_tokens: 50 });
                 return `Generation complete:\n\n${result[0].generated_text}`;
             } catch (error) {
@@ -1432,6 +1575,7 @@ Benvenuto in L.A.O.S. v8.4 (Lorel Axun Operating System)
                 `[IMMERSION] System now displays a 'Message of the Day' (MOTD) on first login.`,
                 `[DEVELOPMENT] Internal scripting engine loaded. Use the 'run' command to execute JavaScript files.`,
                 `[DEVELOPMENT] Scripting engine upgraded with a sandboxed File System API (fs.readFile, fs.writeFile).`,
+                `[DEVELOPMENT] Internal text editor implemented. Use the 'edit' command to create and modify files.`
             ];
             let content = '';
             messages.forEach(msg => {
