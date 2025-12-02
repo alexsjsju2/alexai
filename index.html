@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-w_idth, initial-scale=1.0">
-    <title>LOREL AXUN V9.2 // RESIZABLE WINDOWS</title>
+    <title>LOREL AXUN V9.3 // TASKBAR</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -122,7 +122,7 @@
 
         #desktop {
             width: 100%;
-            height: 100%;
+            height: calc(100% - 30px); /* Leave space for taskbar */
             position: relative;
         }
         
@@ -446,6 +446,38 @@
             box-sizing: border-box;
         }
 
+        #taskbar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            background: var(--window-border);
+            border-top: 2px solid var(--term-green);
+            display: flex;
+            align-items: center;
+            padding: 0 5px;
+            z-index: 9000;
+            overflow-x: auto;
+        }
+        .taskbar-item {
+            background: var(--term-dim);
+            color: var(--term-green);
+            border: 1px solid var(--term-green);
+            padding: 2px 10px;
+            margin-right: 5px;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: background 0.2s;
+        }
+        .taskbar-item:hover { background: var(--term-green); color: var(--bg-color); }
+        .taskbar-item.active { background: var(--term-green); color: var(--bg-color); font-weight: bold; }
+        .taskbar-item.minimized { background: var(--window-bg); color: var(--term-dim); border-style: dashed; }
+
     </style>
 </head>
 <body>
@@ -458,6 +490,9 @@
             <div class="moving-scanline"></div>
             <div id="desktop">
                 <!-- Windows will be injected here by JS -->
+            </div>
+            <div id="taskbar">
+                <!-- Taskbar items will be injected here by JS -->
             </div>
         </div>
     </div>
@@ -537,6 +572,7 @@
         // --- Lorel's Core Script ---
         // DOM Elements
         const desktop = document.getElementById('desktop');
+        const taskbar = document.getElementById('taskbar');
         const biosOverlay = document.getElementById('bios-overlay');
         const bootLogoOverlay = document.getElementById('boot-logo-overlay');
         const loginOverlay = document.getElementById('login-overlay');
@@ -560,7 +596,7 @@
         let installedPackages = {};
         let highestZ = 100;
 
-        // --- Window Manager ---
+        // --- Window Manager --- 
         function createDraggableWindow(id, title, width, height, top, left) {
             highestZ++;
             const win = document.createElement('div');
@@ -570,11 +606,10 @@
             win.style.height = height + 'px';
             win.style.top = top + 'px';
             win.style.left = left + 'px';
-            win.style.zIndex = highestZ;
 
             const header = document.createElement('div');
             header.className = 'window-header';
-            header.innerHTML = `<span class="window-title">${title}</span><div class="window-controls"><span class="wc-close">x</span></div>`;
+            header.innerHTML = `<span class="window-title">${title}</span><div class="window-controls"><span class="wc-minimize">_</span><span class="wc-close">x</span></div>`;
 
             const content = document.createElement('div');
             content.className = 'window-content';
@@ -583,18 +618,34 @@
             win.appendChild(content);
             desktop.appendChild(win);
 
+            // Taskbar integration
+            const taskbarItem = document.createElement('div');
+            taskbarItem.className = 'taskbar-item';
+            taskbarItem.textContent = title;
+            taskbarItem.dataset.windowId = id;
+            taskbar.appendChild(taskbarItem);
+
+            win.dataset.taskbarId = id; // Link window to taskbar item
+
+            function focusWindow() {
+                win.style.zIndex = ++highestZ;
+                document.querySelectorAll('.taskbar-item').forEach(item => item.classList.remove('active'));
+                taskbarItem.classList.add('active');
+                taskbarItem.classList.remove('minimized');
+            }
+            
+            focusWindow(); // Focus on creation
+
             // Make draggable
             let isDragging = false;
             let offsetX, offsetY;
 
             const onMouseDown = (e) => {
-                // Prevent dragging when clicking on the resize handle
-                if (e.target !== header && !e.target.classList.contains('window-title')) return;
-                
+                if (e.target.classList.contains('window-controls') || e.target.parentElement.classList.contains('window-controls')) return;
                 isDragging = true;
                 offsetX = e.clientX - win.offsetLeft;
                 offsetY = e.clientY - win.offsetTop;
-                win.style.zIndex = ++highestZ;
+                focusWindow();
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
             };
@@ -613,18 +664,30 @@
             };
             
             header.addEventListener('mousedown', onMouseDown);
-            win.addEventListener('mousedown', () => { // Bring to front on any click
-                win.style.zIndex = ++highestZ;
-            });
+            win.addEventListener('mousedown', focusWindow); 
 
-            // Close button (dummy for now)
-            const closeBtn = win.querySelector('.wc-close');
-            closeBtn.onclick = () => {
-                if (win.id === 'top-window') {
-                    exitTopMode();
+            // Window Controls
+            win.querySelector('.wc-close').onclick = () => {
+                if (win.id === 'top-window') exitTopMode();
+                else if (win.id === 'editor-window') exitEditorWithoutSaving();
+                else {
+                    win.remove();
+                    taskbarItem.remove();
                 }
-                 if (win.id === 'editor-window') {
-                    exitEditorWithoutSaving();
+            };
+
+            win.querySelector('.wc-minimize').onclick = () => {
+                win.style.display = 'none';
+                taskbarItem.classList.add('minimized');
+                taskbarItem.classList.remove('active');
+            };
+
+            taskbarItem.onclick = () => {
+                if (win.style.display === 'none') { // Is minimized
+                    win.style.display = 'flex';
+                    focusWindow();
+                } else { // Is visible
+                    focusWindow();
                 }
             };
 
@@ -715,7 +778,7 @@
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt', 'demo.js', 'fs_demo.js', 'notes.txt', 'logger.js'] },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.2!\nQuesto è un file system persistente grazie a IndexedDB.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` per esplorare.\nLe tue modifiche verranno salvate anche dopo un `reboot` o un refresh della pagina.' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.3!\nQuesto è un file system persistente grazie a IndexedDB.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` per esplorare.\nLe tue modifiche verranno salvate anche dopo un `reboot` o un refresh della pagina.' },
             '/home/admin/notes.txt': { type: 'file', content: 'Questa è una nota di prova.\nPuoi modificare questo file con il comando `edit`.' },
             '/home/admin/demo.js': { type: 'file', content: 'terminal.log("Ciao dal mio primo script!");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log("Script completato.");' },
             '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log("--- Esecuzione FS Demo Script ---");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\');\n    });\n});' },
@@ -723,7 +786,7 @@
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.2 - Resizable Windows\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.3 - Taskbar\nCreatore: AleXsjsju' },
         };
         let fileSystem = {};
         
@@ -762,9 +825,9 @@
         // --- Dynamic Title Engine ---
         function initTitleTypewriter(target) {
             const phrases = [
-                "Lorel Axun v9.2",
+                "Lorel Axun v9.3",
                 "Status: ONLINE",
-                "Resizable Windows Active",
+                "Taskbar Active",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -888,7 +951,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v9.2 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v9.3 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -1043,6 +1106,8 @@
 
         async function exitEditorMode() {
             if (!editorState.active) return;
+            const taskbarItem = document.querySelector(`.taskbar-item[data-window-id="${editorState.windowEl.id}"]`);
+            if (taskbarItem) taskbarItem.remove();
             editorState.windowEl.remove();
             editorState.active = false;
             editorState.filePath = null;
@@ -1069,6 +1134,8 @@
             if (!topState.active) return;
             clearInterval(topState.intervalId);
             topState.intervalId = null;
+            const taskbarItem = document.querySelector(`.taskbar-item[data-window-id="${topState.windowEl.id}"]`);
+            if (taskbarItem) taskbarItem.remove();
             topState.windowEl.remove();
             topState.active = false;
             topState.windowEl = null;
@@ -1129,7 +1196,7 @@
             const { windowEl, contentEl } = createDraggableWindow('terminal-window', 'L.A.O.S. Shell', 800, 500, 20, 20);
             const terminalHTML = `
                 <div class="terminal-container" id="terminal-container">
-                    <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v9.2"><span id="typewriter-title"></span></h1>
+                    <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v9.3"><span id="typewriter-title"></span></h1>
                     <div id="initial-messages"></div>
                     <div id="chat-history" class="chat-history"></div>
                     <form class="input-line" id="input-form">
@@ -1139,7 +1206,7 @@
                     </form>
                 </div>
                 <div class="status-bar">
-                    <span>LOREL AXUN v9.2</span>
+                    <span>LOREL AXUN v9.3</span>
                     <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                     <span id="clock"></span>
                 </div>
@@ -1168,9 +1235,9 @@
             (async () => {
                 document.isTyping = true;
                 document.getElementById('cursor').style.display = 'none';
-                if (!localStorage.getItem('motdShown_v9.2')) {
+                if (!localStorage.getItem('motdShown_v9.3')) {
                     await displayMOTD();
-                    localStorage.setItem('motdShown_v9.2', 'true');
+                    localStorage.setItem('motdShown_v9.3', 'true');
                 }
                 document.isTyping = false;
                 document.getElementById('cursor').style.display = 'inline-block';
@@ -1188,10 +1255,10 @@
   ███████╗██║  ██║ ╚██████╔╝███████║
   ╚══════╝╚═╝  ╚═╝  ╚═════╝ ╚══════╝
                                      
-Benvenuto in L.A.O.S. v9.2 (Resizable Windows)
-* NOVITÀ: Le finestre ora sono ridimensionabili!
-* L'interfaccia supporta finestre trascinabili e ridimensionabili.
-* `edit` e `top` aprono finestre separate invece di sovrapposizioni.
+Benvenuto in L.A.O.S. v9.3 (Taskbar)
+* NOVITÀ: Aggiunta una taskbar per gestire le finestre!
+* Clicca su un'applicazione nella taskbar per portarla in primo piano.
+* Usa il pulsante '_' per minimizzare le finestre.
 * Digita 'help' per una lista completa dei comandi disponibili.
 `;
             await printSystemOutput(motdContent);
@@ -1439,12 +1506,12 @@ Benvenuto in L.A.O.S. v9.2 (Resizable Windows)
                                     `  (es. echo \"Ciao\" > note.txt)`;
                         break;
                     case 'status':
-                        outputBuffer = 'STATUS: ONLINE. Version: 9.2. All systems nominal. User: ' + currentUser;
+                        outputBuffer = 'STATUS: ONLINE. Version: 9.3. All systems nominal. User: ' + currentUser;
                         break;
                     case 'sysinfo':
                         const headers = ['Property', 'Value'];
                         const tableData = [
-                            ['Version', '9.2 - Resizable Windows'],
+                            ['Version', '9.3 - Taskbar'],
                             ['Creator', 'AleXsjsju'],
                             ['Created', '2025-11-22'],
                             ['Status', 'ONLINE'],
@@ -1462,7 +1529,7 @@ Benvenuto in L.A.O.S. v9.2 (Resizable Windows)
                         const infoLines = [
                             `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                             '------------------',
-                            `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.2 Resizable Windows`,
+                            `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.3 Taskbar`,
                             `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                             `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                             `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
@@ -1924,6 +1991,7 @@ Benvenuto in L.A.O.S. v9.2 (Resizable Windows)
             monitorBezel.style.display = 'none';
             await new Promise(resolve => setTimeout(resolve, 500));
             desktop.innerHTML = '';
+            taskbar.innerHTML = '';
 
             biosOverlay.style.display = 'flex';
             const biosLines = [ { text: 'LorelAxun BIOS v1.2', delay: 500 }, { text: 'Copyright (c) 2025 AleXsjsju Corp.', delay: 200 }, { text: '', delay: 500 }, { text: 'Initializing Core Memory.................... ', delay: 300 }, { text: '65536 KB OK', delay: 100, append: true, action: playBiosBeep }, { text: '\nDetecting Primary Master.................. LAX-HD-01', delay: 800 }, { text: 'Detecting Primary Slave................. None', delay: 800 }, { text: 'Detecting Secondary Master................ None', delay: 800 }, { text: 'Detecting Secondary Slave................. None', delay: 800 }, { text: '', delay: 500 }, { text: 'Checking NVRAM............................ OK', delay: 400 }, { text: 'Initializing Web-Access Layer........... OK', delay: 600 }, { text: '', delay: 1000 }, { text: 'Booting from Primary Master (LAX-HD-01)...', delay: 500 }, ];
@@ -1949,10 +2017,10 @@ Benvenuto in L.A.O.S. v9.2 (Resizable Windows)
 
                 if (!sentimentPipeline) {
                     await printSystemOutput('Loading sentiment analysis model (this may take a moment on first run)...');
-                    sentimentPipeline = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
+                    sentimentPipeline = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finuned-sst-2-english');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Analyzing text: \"${text}\"`)
+                await printSystemOutput(`Analyzing text: \"${text}\"`);
                 const result = await sentimentPipeline(text);
                 return `Analysis complete:\n` +
                     `  - LABEL: ${result[0].label}\n` +
@@ -1972,7 +2040,7 @@ Benvenuto in L.A.O.S. v9.2 (Resizable Windows)
                     textGenerationPipeline = await pipeline('text-generation', 'Xenova/distilgpt2');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`)
+                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`);
                 const result = await textGenerationPipeline(prompt, { max_new_tokens: 50 });
                 return `Generation complete:\n\n${result[0].generated_text}`;
             } catch (error) {
@@ -2005,7 +2073,6 @@ Benvenuto in L.A.O.S. v9.2 (Resizable Windows)
             const messages = [
                 '[SYSTEM] Initializing core memory... OK',
                 '[NETWORK] Testing connection... <span style=\"color:var(--term-green)\">SUCCESS</span>',
-                '[SYSTEM] Advanced command parser implemented. Now supports quoted arguments and flags.',
                 '[AI CORE] Transformers.js library integrated. New `sentiment` & `generate` commands available.',
                 '[DEVELOPMENT] Internal scripting engine loaded with sandboxed File System API.',
                 '[DEVELOPMENT] Internal text editor implemented. Use the `edit` command.',
@@ -2013,8 +2080,8 @@ Benvenuto in L.A.O.S. v9.2 (Resizable Windows)
                 '[SYSTEM] Live Process Monitor implemented. Use `top` for a real-time view of running processes.',
                 '[SYSTEM] Rudimentary Package Manager implemented. Use `lax` to install new commands like `cowsay`.',
                 '[SYSTEM] Persistence layer active. File system and packages now stored in IndexedDB.',
-                '[SYSTEM] Window Manager active. Terminal, editor, and `top` are now draggable windows.',
-                '[SYSTEM] NEW: Windows are now resizable for complete workspace control.'
+                '[SYSTEM] Window Manager active. Windows are draggable and resizable.',
+                '[SYSTEM] NEW: Taskbar implemented for centralized window management.'
             ];
             let content = '';
             messages.forEach(msg => {
