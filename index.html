@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-w_idth, initial-scale=1.0">
-    <title>LOREL AXUN V9.1 // WINDOW MANAGER</title>
+    <title>LOREL AXUN V9.2 // RESIZABLE WINDOWS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -134,8 +134,10 @@
             display: flex;
             flex-direction: column;
             z-index: 100;
-            resize: both; /* Future feature placeholder */
-            overflow: hidden; /* Future feature placeholder */
+            resize: both;
+            overflow: auto;
+            min-width: 200px; /* Prevent shrinking too much */
+            min-height: 100px; /* Prevent shrinking too much */
         }
         
         .window-header {
@@ -150,6 +152,7 @@
             align-items: center;
             height: 25px;
             box-sizing: border-box;
+            flex-shrink: 0; /* Prevent header from shrinking */
         }
         
         .window-title { white-space: pre; }
@@ -585,6 +588,9 @@
             let offsetX, offsetY;
 
             const onMouseDown = (e) => {
+                // Prevent dragging when clicking on the resize handle
+                if (e.target !== header && !e.target.classList.contains('window-title')) return;
+                
                 isDragging = true;
                 offsetX = e.clientX - win.offsetLeft;
                 offsetY = e.clientY - win.offsetTop;
@@ -614,13 +620,10 @@
             // Close button (dummy for now)
             const closeBtn = win.querySelector('.wc-close');
             closeBtn.onclick = () => {
-                // This needs specific logic for each window type (e.g., save prompt for editor)
-                // For now, let's just implement it for 'top'
                 if (win.id === 'top-window') {
                     exitTopMode();
                 }
                  if (win.id === 'editor-window') {
-                    // A real implementation would ask to save
                     exitEditorWithoutSaving();
                 }
             };
@@ -712,7 +715,7 @@
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt', 'demo.js', 'fs_demo.js', 'notes.txt', 'logger.js'] },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.1!\nQuesto è un file system persistente grazie a IndexedDB.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` per esplorare.\nLe tue modifiche verranno salvate anche dopo un `reboot` o un refresh della pagina.' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.2!\nQuesto è un file system persistente grazie a IndexedDB.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` per esplorare.\nLe tue modifiche verranno salvate anche dopo un `reboot` o un refresh della pagina.' },
             '/home/admin/notes.txt': { type: 'file', content: 'Questa è una nota di prova.\nPuoi modificare questo file con il comando `edit`.' },
             '/home/admin/demo.js': { type: 'file', content: 'terminal.log("Ciao dal mio primo script!");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log("Script completato.");' },
             '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log("--- Esecuzione FS Demo Script ---");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\');\n    });\n});' },
@@ -720,7 +723,7 @@
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.1 - Window Manager\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.2 - Resizable Windows\nCreatore: AleXsjsju' },
         };
         let fileSystem = {};
         
@@ -759,9 +762,9 @@
         // --- Dynamic Title Engine ---
         function initTitleTypewriter(target) {
             const phrases = [
-                "Lorel Axun v9.1",
+                "Lorel Axun v9.2",
                 "Status: ONLINE",
-                "Window Manager Active",
+                "Resizable Windows Active",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -885,7 +888,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v9.1 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v9.2 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -1126,7 +1129,7 @@
             const { windowEl, contentEl } = createDraggableWindow('terminal-window', 'L.A.O.S. Shell', 800, 500, 20, 20);
             const terminalHTML = `
                 <div class="terminal-container" id="terminal-container">
-                    <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v9.1"><span id="typewriter-title"></span></h1>
+                    <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v9.2"><span id="typewriter-title"></span></h1>
                     <div id="initial-messages"></div>
                     <div id="chat-history" class="chat-history"></div>
                     <form class="input-line" id="input-form">
@@ -1136,7 +1139,7 @@
                     </form>
                 </div>
                 <div class="status-bar">
-                    <span>LOREL AXUN v9.1</span>
+                    <span>LOREL AXUN v9.2</span>
                     <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
                     <span id="clock"></span>
                 </div>
@@ -1165,9 +1168,9 @@
             (async () => {
                 document.isTyping = true;
                 document.getElementById('cursor').style.display = 'none';
-                if (!localStorage.getItem('motdShown_v9.1')) {
+                if (!localStorage.getItem('motdShown_v9.2')) {
                     await displayMOTD();
-                    localStorage.setItem('motdShown_v9.1', 'true');
+                    localStorage.setItem('motdShown_v9.2', 'true');
                 }
                 document.isTyping = false;
                 document.getElementById('cursor').style.display = 'inline-block';
@@ -1185,9 +1188,10 @@
   ███████╗██║  ██║ ╚██████╔╝███████║
   ╚══════╝╚═╝  ╚═╝  ╚═════╝ ╚══════╝
                                      
-Benvenuto in L.A.O.S. v9.1 (Window Manager)
-* L'interfaccia ora supporta finestre trascinabili!
-* `edit` e `top` ora aprono finestre separate invece di sovrapposizioni.
+Benvenuto in L.A.O.S. v9.2 (Resizable Windows)
+* NOVITÀ: Le finestre ora sono ridimensionabili!
+* L'interfaccia supporta finestre trascinabili e ridimensionabili.
+* `edit` e `top` aprono finestre separate invece di sovrapposizioni.
 * Digita 'help' per una lista completa dei comandi disponibili.
 `;
             await printSystemOutput(motdContent);
@@ -1435,12 +1439,12 @@ Benvenuto in L.A.O.S. v9.1 (Window Manager)
                                     `  (es. echo \"Ciao\" > note.txt)`;
                         break;
                     case 'status':
-                        outputBuffer = 'STATUS: ONLINE. Version: 9.1. All systems nominal. User: ' + currentUser;
+                        outputBuffer = 'STATUS: ONLINE. Version: 9.2. All systems nominal. User: ' + currentUser;
                         break;
                     case 'sysinfo':
                         const headers = ['Property', 'Value'];
                         const tableData = [
-                            ['Version', '9.1 - Window Manager'],
+                            ['Version', '9.2 - Resizable Windows'],
                             ['Creator', 'AleXsjsju'],
                             ['Created', '2025-11-22'],
                             ['Status', 'ONLINE'],
@@ -1458,7 +1462,7 @@ Benvenuto in L.A.O.S. v9.1 (Window Manager)
                         const infoLines = [
                             `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                             '------------------',
-                            `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.1 Window Manager`,
+                            `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.2 Resizable Windows`,
                             `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                             `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                             `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
@@ -1948,7 +1952,7 @@ Benvenuto in L.A.O.S. v9.1 (Window Manager)
                     sentimentPipeline = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Analyzing text: \"${text}\"`);
+                await printSystemOutput(`Analyzing text: \"${text}\"`)
                 const result = await sentimentPipeline(text);
                 return `Analysis complete:\n` +
                     `  - LABEL: ${result[0].label}\n` +
@@ -1968,7 +1972,7 @@ Benvenuto in L.A.O.S. v9.1 (Window Manager)
                     textGenerationPipeline = await pipeline('text-generation', 'Xenova/distilgpt2');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`);
+                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`)
                 const result = await textGenerationPipeline(prompt, { max_new_tokens: 50 });
                 return `Generation complete:\n\n${result[0].generated_text}`;
             } catch (error) {
@@ -2009,7 +2013,8 @@ Benvenuto in L.A.O.S. v9.1 (Window Manager)
                 '[SYSTEM] Live Process Monitor implemented. Use `top` for a real-time view of running processes.',
                 '[SYSTEM] Rudimentary Package Manager implemented. Use `lax` to install new commands like `cowsay`.',
                 '[SYSTEM] Persistence layer active. File system and packages now stored in IndexedDB.',
-                '[SYSTEM] Window Manager active. Terminal, editor, and `top` are now draggable windows.'
+                '[SYSTEM] Window Manager active. Terminal, editor, and `top` are now draggable windows.',
+                '[SYSTEM] NEW: Windows are now resizable for complete workspace control.'
             ];
             let content = '';
             messages.forEach(msg => {
