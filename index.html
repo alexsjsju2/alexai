@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOREL AXUN V8.6 // THE ENFORCER</title>
+    <title>LOREL AXUN V8.7 // THE CHRONICLER</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -17,129 +17,202 @@
             --cmd-highlight: #00ffff;
             --bios-text: #cccccc;
             --error-red: #ff3333;
-            --dir-blue: #87cefa; /* Light Sky Blue for directories */
+            --dir-blue: #87cefa;
         }
-        html {
+        html, body {
             height: 100%;
             margin: 0;
             padding: 0;
             background-color: #000;
-        }
-        body {
-            height: 100%;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
             color: var(--term-green);
             font-family: 'VT323', monospace;
             font-size: 1.2rem;
+            overflow: hidden;
+        }
+        body {
+            padding: 20px;
+            box-sizing: border-box;
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
         }
+        .monitor-bezel { background-color: #1a1a1a; border-radius: 25px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.8); width: 100%; height: 100%; max-width: 1280px; max-height: 800px; display: flex; flex-direction: column; }
+        .screen { flex: 1; background-color: var(--bg-color); border-radius: 10px; overflow: hidden; position: relative; display: flex; flex-direction: column; transition: opacity 0.5s ease-in-out; }
+        .crt::before { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.5) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); z-index: 2; background-size: 100% 2px, 3px 100%; pointer-events: none; }
+        .crt::after { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: rgba(18, 16, 16, 0.1); opacity: 0; z-index: 2; pointer-events: none; animation: flicker 0.15s infinite; }
+        @keyframes flicker { 0% { opacity: 0.02795; } 5% { opacity: 0.04853; } 10% { opacity: 0.01701; } 15% { opacity: 0.04272; } 20% { opacity: 0.01297; } 25% { opacity: 0.03961; } 30% { opacity: 0.01826; } 35% { opacity: 0.04932; } 40% { opacity: 0.01543; } 45% { opacity: 0.04348; } 50% { opacity: 0.02146; } 55% { opacity: 0.04884; } 60% { opacity: 0.01921; } 65% { opacity: 0.04176; } 70% { opacity: 0.01439; } 75% { opacity: 0.04695; } 80% { opacity: 0.02363; } 85% { opacity: 0.04141; } 90% { opacity: 0.01717; } 95% { opacity: 0.04719; } 100% { opacity: 0.02322; } }
+        .moving-scanline { position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: rgba(51, 255, 0, 0.1); box-shadow: 0 0 10px rgba(51, 255, 0, 0.3); z-index: 3; pointer-events: none; animation: scanline-scroll 5s linear infinite; }
+        .terminal-container { padding: 20px; flex: 1; overflow-y: auto; width: 100%; box-sizing: border-box; text-shadow: 0 0 5px var(--term-glow); display: flex; flex-direction: column-reverse; }
+        #terminal-output { white-space: pre-wrap; word-wrap: break-word; }
+        .input-line { display: flex; }
+        .prompt { white-space: pre; }
+        #command-input { background: transparent; border: none; color: var(--term-green); font-family: inherit; font-size: inherit; flex-grow: 1; outline: none; text-shadow: 0 0 5px var(--term-glow); }
+        .executable-file { color: var(--cmd-highlight); }
+        .dir-blue { color: var(--dir-blue); }
+        .error { color: var(--error-red); }
+    </style>
+</head>
+<body>
+    <div class="monitor-bezel">
+        <div class="screen crt">
+            <div class="moving-scanline"></div>
+            <div class="terminal-container" id="terminal-container">
+                <div>
+                    <div class="input-line">
+                        <span class="prompt" id="prompt"></span>
+                        <input type="text" id="command-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" autofocus />
+                    </div>
+                    <div id="terminal-output"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        .monitor-bezel {
-            background-color: #1a1a1a; /* Dark gray for plastic */
-            border-radius: 25px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.8);
-            width: 100%;
-            height: 100%;
-            max-width: 1280px;
-            max-height: 800px;
-            display: flex;
-            flex-direction: column;
-        }
+    <script>
+        const terminalOutput = document.getElementById('terminal-output');
+        const commandInput = document.getElementById('command-input');
+        const promptElement = document.getElementById('prompt');
+        const terminalContainer = document.getElementById('terminal-container');
 
-        .screen {
-            flex: 1;
-            background-color: var(--bg-color);
-            border-radius: 10px; /* Inner screen roundness */
-            overflow: hidden; /* Contains the screen content and effects */
-            position: relative; /* For the ::before/::after pseudo-elements */
-            display: flex;
-            flex-direction: column;
-            transition: opacity 0.5s ease-in-out;
-        }
+        let currentUser = 'guest';
+        let currentPath = '/home/guest';
+        let envVars = { 'PS1': `[${currentUser}@laos ${currentPath}]$ ` };
 
-        /* CRT Effect Overlay */
-        .crt::before {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.5) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 2;
-            background-size: 100% 2px, 3px 100%;
-            pointer-events: none;
-        }
-        .crt::after {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: rgba(18, 16, 16, 0.1);
-            opacity: 0;
-            z-index: 2;
-            pointer-events: none;
-            animation: flicker 0.15s infinite;
-        }
-        @keyframes flicker {
-            0% { opacity: 0.02795; } 5% { opacity: 0.04853; } 10% { opacity: 0.01701; } 15% { opacity: 0.04272; } 20% { opacity: 0.01297; } 25% { opacity: 0.03961; } 30% { opacity: 0.01826; } 35% { opacity: 0.04932; } 40% { opacity: 0.01543; } 45% { opacity: 0.04348; } 50% { opacity: 0.02146; } 55% { opacity: 0.04884; } 60% { opacity: 0.01921; } 65% { opacity: 0.04176; } 70% { opacity: 0.01439; } 75% { opacity: 0.04695; } 80% { opacity: 0.02363; } 85% { opacity: 0.04141; } 90% { opacity: 0.01717; } 95% { opacity: 0.04719; } 100% { opacity: 0.02322; }
-        }
-        
-        .moving-scanline {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: rgba(51, 255, 0, 0.1);
-            box-shadow: 0 0 10px rgba(51, 255, 0, 0.3);
-            z-index: 3;
-            pointer-events: none;
-            animation: scanline-scroll 5s linear infinite;
-        }
-        @keyframes scanline-scroll {
-            0% {
-                transform: translateY(0vh);
+        const fileSystem = {
+            '/': {
+                type: 'directory',
+                owner: 'root',
+                permissions: 'rwxr-xr-x',
+                lastModified: new Date('2025-11-22T00:00:00Z'),
+                content: {
+                    'home': {
+                        type: 'directory', owner: 'root', permissions: 'rwxr-xr-x', lastModified: new Date(), content: {
+                            'guest': { type: 'directory', owner: 'guest', permissions: 'rwxr-x---', lastModified: new Date(), content: {
+                                'welcome.txt': { type: 'file', owner: 'guest', permissions: 'rw-r--r--', lastModified: new Date(), size: 45, content: 'Welcome to L.A.O.S., the Lorel Axun OS.' }
+                            }}
+                        }
+                    },
+                    'bin': {
+                        type: 'directory', owner: 'root', permissions: 'rwxr-xr-x', lastModified: new Date(), content: {
+                            'about': { type: 'file', owner: 'root', permissions: 'rwxr-xr-x', lastModified: new Date(), size: 52, content: 'echo "L.A.O.S. v8.7 - The Chronicler"' }
+                        }
+                    }
+                }
             }
-            100% {
-                transform: translateY(100vh);
+        };
+
+        function updatePrompt() {
+            let promptPath = currentPath.startsWith('/home/guest') ? '~' + currentPath.substring('/home/guest'.length) : currentPath;
+            envVars.PS1 = `[${currentUser}@laos ${promptPath}]$ `;
+            promptElement.textContent = envVars.PS1;
+        }
+
+        function resolvePath(path) {
+            let components = (path.startsWith('/') ? path : currentPath + '/' + path).split('/').filter(p => p);
+            let resolved = [];
+            for (const component of components) {
+                if (component === '..') {
+                    resolved.pop();
+                } else if (component !== '.') {
+                    resolved.push(component);
+                }
+            }
+            return '/' + resolved.join('/');
+        }
+
+        function getPathObject(path) {
+            let current = fileSystem['/'];
+            const components = path.split('/').filter(p => p);
+            for (const component of components) {
+                if (current && current.type === 'directory' && current.content[component]) {
+                    current = current.content[component];
+                } else {
+                    return null;
+                }
+            }
+            return current;
+        }
+
+        function printToTerminal(text, isError = false) {
+            const line = document.createElement('div');
+            line.innerHTML = text; // Use innerHTML to render spans for colors
+            if (isError) line.classList.add('error');
+            terminalOutput.prepend(line);
+        }
+
+        function formatTimestamp(date) {
+            return date.toISOString().substring(0, 16).replace('T', ' ');
+        }
+
+        commandInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const command = commandInput.value;
+                printToTerminal(envVars.PS1 + command);
+                handleCommand(command);
+                commandInput.value = '';
+                terminalContainer.scrollTop = terminalContainer.scrollHeight;
+            }
+        });
+
+        function handleCommand(command) {
+            const [cmd, ...args] = command.trim().split(/\s+/);
+
+            switch (cmd) {
+                case 'ls':
+                    const path = args.find(a => !a.startsWith('-')) || '.';
+                    const targetPath = resolvePath(path);
+                    const dir = getPathObject(targetPath);
+                    if (!dir || dir.type !== 'directory') {
+                        printToTerminal(`ls: cannot access '${path}': No such file or directory`, true);
+                        return;
+                    }
+                    if (args.includes('-l')) {
+                        let output = '';
+                        Object.keys(dir.content).sort().forEach(itemName => {
+                            const item = dir.content[itemName];
+                            const perms = item.permissions;
+                            const owner = item.owner.padEnd(8);
+                            const size = String(item.size !== undefined ? item.size : '').padStart(6);
+                            const modified = formatTimestamp(item.lastModified);
+                            const name = item.type === 'directory' ? `<span class=\"dir-blue\">${itemName}/</span>` : (item.permissions.includes('x') ? `<span class=\"executable-file\">${itemName}</span>` : itemName);
+                            output += `${perms} ${owner} ${size} ${modified} ${name}\n`;
+                        });
+                        printToTerminal(output.trim());
+                    } else {
+                        const output = Object.keys(dir.content).sort().map(itemName => {
+                            const item = dir.content[itemName];
+                            return item.type === 'directory' ? `<span class=\"dir-blue\">${itemName}/</span>` : (item.permissions.includes('x') ? `<span class=\"executable-file\">${itemName}</span>` : itemName);
+                        }).join('  ');
+                        printToTerminal(output);
+                    }
+                    break;
+                case 'echo':
+                    const textToEcho = args.join(' ');
+                    printToTerminal(textToEcho);
+                    break;
+                case 'clear':
+                    terminalOutput.innerHTML = '';
+                    break;
+                case 'cd':
+                    const newPath = args[0] || '/home/guest';
+                    const resolvedNewPath = resolvePath(newPath);
+                    const targetDir = getPathObject(resolvedNewPath);
+                    if (targetDir && targetDir.type === 'directory') {
+                        currentPath = resolvedNewPath;
+                    } else {
+                        printToTerminal(`cd: no such file or directory: ${newPath}`, true);
+                    }
+                    updatePrompt();
+                    break;
+                default:
+                     printToTerminal(`-laos: ${cmd}: command not found`, true);
+                     break;
             }
         }
 
-        .terminal-container {
-            padding: 20px;
-            flex: 1;
-            overflow-y: auto;
-            width: 100%;
-            box-sizing: border-box;
-            text-shadow: 0 0 5px var(--term-glow);
-            display: flex;
-            flex-direction: column;
-        }
+        updatePrompt();
+        printToTerminal('Welcome to L.A.O.S. v8.7 [The Chronicler]');
 
-        .executable-file {
-            color: var(--cmd-highlight);
-        }
-
-        h1 {
-            border-bottom: 2px solid var(--term-green);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            height: 1.5rem; /* Reserve space for typewriter */
-        }
-
-        #typewriter-title .title-cursor {
-            display: inline-block;
-            background-co...
+    </script>
+</body>
+</html>
