@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-w_idth, initial-scale=1.0">
-    <title>LOREL AXUN V9.3 // TASKBAR</title>
+    <title>LOREL AXUN V9.4 // START MENU</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -456,10 +456,41 @@
             border-top: 2px solid var(--term-green);
             display: flex;
             align-items: center;
-            padding: 0 5px;
+            padding: 0;
             z-index: 9000;
-            overflow-x: auto;
         }
+        #start-button {
+            background: var(--term-green);
+            color: var(--bg-color);
+            font-weight: bold;
+            padding: 0 15px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            border-right: 2px solid var(--term-green);
+        }
+        #start-button:hover { background: #8eff7f; }
+
+        #taskbar-apps {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            overflow-x: auto;
+            padding: 0 5px;
+        }
+
+        #system-tray {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            border-left: 2px solid var(--term-dim);
+        }
+        #taskbar-clock { font-size: 1.1rem; }
+
         .taskbar-item {
             background: var(--term-dim);
             color: var(--term-green);
@@ -478,6 +509,37 @@
         .taskbar-item.active { background: var(--term-green); color: var(--bg-color); font-weight: bold; }
         .taskbar-item.minimized { background: var(--window-bg); color: var(--term-dim); border-style: dashed; }
 
+        #start-menu {
+            position: absolute;
+            bottom: 30px; /* Height of the taskbar */
+            left: 0;
+            background: var(--window-bg);
+            border: 2px solid var(--term-green);
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            z-index: 9999;
+            padding: 10px;
+            min-width: 250px;
+        }
+        .start-menu-section {
+            margin-bottom: 10px;
+        }
+        .start-menu-header {
+            color: var(--cmd-highlight);
+            border-bottom: 1px solid var(--term-dim);
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .start-menu-item {
+            padding: 4px 8px;
+            cursor: pointer;
+            display: block;
+        }
+        .start-menu-item:hover {
+            background: var(--term-green);
+            color: var(--bg-color);
+        }
+
     </style>
 </head>
 <body>
@@ -492,7 +554,16 @@
                 <!-- Windows will be injected here by JS -->
             </div>
             <div id="taskbar">
-                <!-- Taskbar items will be injected here by JS -->
+                <div id="start-button">L.A.O.S.</div>
+                <div id="taskbar-apps">
+                    <!-- Taskbar items will be injected here -->
+                </div>
+                <div id="system-tray">
+                    <span id="taskbar-clock"></span>
+                </div>
+            </div>
+             <div id="start-menu" style="display: none;">
+                <!-- Start menu content injected by JS -->
             </div>
         </div>
     </div>
@@ -573,6 +644,10 @@
         // DOM Elements
         const desktop = document.getElementById('desktop');
         const taskbar = document.getElementById('taskbar');
+        const taskbarApps = document.getElementById('taskbar-apps');
+        const startButton = document.getElementById('start-button');
+        const startMenu = document.getElementById('start-menu');
+        const taskbarClock = document.getElementById('taskbar-clock');
         const biosOverlay = document.getElementById('bios-overlay');
         const bootLogoOverlay = document.getElementById('boot-logo-overlay');
         const loginOverlay = document.getElementById('login-overlay');
@@ -623,7 +698,7 @@
             taskbarItem.className = 'taskbar-item';
             taskbarItem.textContent = title;
             taskbarItem.dataset.windowId = id;
-            taskbar.appendChild(taskbarItem);
+            taskbarApps.appendChild(taskbarItem);
 
             win.dataset.taskbarId = id; // Link window to taskbar item
 
@@ -664,7 +739,10 @@
             };
             
             header.addEventListener('mousedown', onMouseDown);
-            win.addEventListener('mousedown', focusWindow); 
+            win.addEventListener('mousedown', () => {
+                focusWindow();
+                hideStartMenu();
+            });
 
             // Window Controls
             win.querySelector('.wc-close').onclick = () => {
@@ -687,8 +765,15 @@
                     win.style.display = 'flex';
                     focusWindow();
                 } else { // Is visible
-                    focusWindow();
+                    if (taskbarItem.classList.contains('active')) {
+                        win.style.display = 'none';
+                        taskbarItem.classList.add('minimized');
+                        taskbarItem.classList.remove('active');
+                    } else {
+                        focusWindow();
+                    }
                 }
+                hideStartMenu();
             };
 
             return { windowEl: win, contentEl: content };
@@ -778,7 +863,7 @@
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt', 'demo.js', 'fs_demo.js', 'notes.txt', 'logger.js'] },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.3!\nQuesto è un file system persistente grazie a IndexedDB.\nProva i comandi `ls`, `cd`, `cat`, `mkdir`, `touch`, `rm` per esplorare.\nLe tue modifiche verranno salvate anche dopo un `reboot` o un refresh della pagina.' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.4!\nQuesto è un file system persistente grazie a IndexedDB.\nUsa il menu Start per scoprire i comandi o digitali direttamente.' },
             '/home/admin/notes.txt': { type: 'file', content: 'Questa è una nota di prova.\nPuoi modificare questo file con il comando `edit`.' },
             '/home/admin/demo.js': { type: 'file', content: 'terminal.log("Ciao dal mio primo script!");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log("Script completato.");' },
             '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log("--- Esecuzione FS Demo Script ---");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\');\n    });\n});' },
@@ -786,7 +871,7 @@
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.3 - Taskbar\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.4 - Start Menu\nCreatore: AleXsjsju' },
         };
         let fileSystem = {};
         
@@ -825,9 +910,9 @@
         // --- Dynamic Title Engine ---
         function initTitleTypewriter(target) {
             const phrases = [
-                "Lorel Axun v9.3",
+                "Lorel Axun v9.4",
                 "Status: ONLINE",
-                "Taskbar Active",
+                "Start Menu Ready",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -920,9 +1005,16 @@
         // --- Event Listeners ---
         function initializeGlobalListeners() {
             document.addEventListener('keydown', handleGlobalKeyPress, true);
+            document.addEventListener('click', (e) => {
+                if (!startButton.contains(e.target) && !startMenu.contains(e.target)) {
+                    hideStartMenu();
+                }
+            });
         }
 
         function handleGlobalKeyPress(e) {
+            if (e.key === 'Escape') hideStartMenu();
+
             if (editorState.active) {
                 handleEditorKeys(e);
                 return; // Stop propagation to terminal listeners
@@ -951,7 +1043,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v9.3 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v9.4 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -1196,7 +1288,7 @@
             const { windowEl, contentEl } = createDraggableWindow('terminal-window', 'L.A.O.S. Shell', 800, 500, 20, 20);
             const terminalHTML = `
                 <div class="terminal-container" id="terminal-container">
-                    <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v9.3"><span id="typewriter-title"></span></h1>
+                    <h1 class="glitch chromatic-aberration" data-text="Lorel Axun v9.4"><span id="typewriter-title"></span></h1>
                     <div id="initial-messages"></div>
                     <div id="chat-history" class="chat-history"></div>
                     <form class="input-line" id="input-form">
@@ -1206,9 +1298,8 @@
                     </form>
                 </div>
                 <div class="status-bar">
-                    <span>LOREL AXUN v9.3</span>
+                    <span>LOREL AXUN v9.4</span>
                     <span>STATUS: <span class="pulse-glow">ONLINE</span></span>
-                    <span id="clock"></span>
                 </div>
             `;
             contentEl.innerHTML = terminalHTML;
@@ -1219,9 +1310,10 @@
             loadHistory();
             loadInstalledPackages();
             displayInitialMessages();
-            updateClock();
-            setInterval(updateClock, 1000);
+            updateTaskbarClock();
+            setInterval(updateTaskbarClock, 1000);
             setupTerminalInputListeners();
+            populateStartMenu();
 
             // Initialize base system processes
             nextPid = 1;
@@ -1235,9 +1327,9 @@
             (async () => {
                 document.isTyping = true;
                 document.getElementById('cursor').style.display = 'none';
-                if (!localStorage.getItem('motdShown_v9.3')) {
+                if (!localStorage.getItem('motdShown_v9.4')) {
                     await displayMOTD();
-                    localStorage.setItem('motdShown_v9.3', 'true');
+                    localStorage.setItem('motdShown_v9.4', 'true');
                 }
                 document.isTyping = false;
                 document.getElementById('cursor').style.display = 'inline-block';
@@ -1255,11 +1347,10 @@
   ███████╗██║  ██║ ╚██████╔╝███████║
   ╚══════╝╚═╝  ╚═╝  ╚═════╝ ╚══════╝
                                      
-Benvenuto in L.A.O.S. v9.3 (Taskbar)
-* NOVITÀ: Aggiunta una taskbar per gestire le finestre!
-* Clicca su un'applicazione nella taskbar per portarla in primo piano.
-* Usa il pulsante '_' per minimizzare le finestre.
-* Digita 'help' per una lista completa dei comandi disponibili.
+Benvenuto in L.A.O.S. v9.4 (Start Menu)
+* NOVITÀ: Aggiunto un menu 'Start' e un orologio alla taskbar!
+* Clicca su L.A.O.S. per vedere i comandi disponibili.
+* Digita 'help' per una lista completa dei comandi nel terminale.
 `;
             await printSystemOutput(motdContent);
         }
@@ -1367,6 +1458,45 @@ Benvenuto in L.A.O.S. v9.3 (Taskbar)
                      playKeySound();
                 }
             });
+
+            startButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleStartMenu();
+            });
+        }
+        
+        function hideStartMenu() { startMenu.style.display = 'none'; }
+        function toggleStartMenu() { startMenu.style.display = startMenu.style.display === 'none' ? 'block' : 'none'; }
+        
+        function populateStartMenu() {
+            const menuCategories = {
+                'System': ['help', 'status', 'sysinfo', 'neofetch', 'date', 'whoami', 'reboot', 'clear'],
+                'File System': ['ls', 'cd', 'cat', 'pwd', 'mkdir', 'touch', 'rm'],
+                'Development': ['edit', 'run', 'bg'],
+                'AI & Web': ['news', 'weather', 'wiki', 'sentiment', 'generate'],
+                'Process Management': ['ps', 'top', 'kill'],
+                'Packages': ['lax']
+            };
+            let menuHTML = '';
+            for (const category in menuCategories) {
+                menuHTML += `<div class="start-menu-section"><div class="start-menu-header">${category}</div>`;
+                menuCategories[category].forEach(command => {
+                    menuHTML += `<span class="start-menu-item" data-command="${command}">${command}</span>`;
+                });
+                menuHTML += `</div>`;
+            }
+            startMenu.innerHTML = menuHTML;
+
+            document.querySelectorAll('.start-menu-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const command = item.dataset.command;
+                    const hiddenInput = document.getElementById('hidden-input');
+                    hiddenInput.value = command + ' ';
+                    hiddenInput.focus();
+                    updateCommandLine();
+                    hideStartMenu();
+                });
+            });
         }
 
         function updateCommandLine() {
@@ -1465,7 +1595,7 @@ Benvenuto in L.A.O.S. v9.3 (Taskbar)
                 // Handle built-in commands
                 switch (parsed.command) {
                     case 'help':
-                        outputBuffer = `Comandi disponibili:\n` +
+                        outputBuffer = `Comandi disponibili (visibili anche nel menu Start):\n` +
                                     `  help              - Mostra questa lista di comandi.\n` +
                                     `  status            - Mostra lo stato attuale del sistema.\n` +
                                     `  sysinfo           - Mostra informazioni di sistema in una tabella.\n` +
@@ -1506,12 +1636,12 @@ Benvenuto in L.A.O.S. v9.3 (Taskbar)
                                     `  (es. echo \"Ciao\" > note.txt)`;
                         break;
                     case 'status':
-                        outputBuffer = 'STATUS: ONLINE. Version: 9.3. All systems nominal. User: ' + currentUser;
+                        outputBuffer = 'STATUS: ONLINE. Version: 9.4. All systems nominal. User: ' + currentUser;
                         break;
                     case 'sysinfo':
                         const headers = ['Property', 'Value'];
                         const tableData = [
-                            ['Version', '9.3 - Taskbar'],
+                            ['Version', '9.4 - Start Menu'],
                             ['Creator', 'AleXsjsju'],
                             ['Created', '2025-11-22'],
                             ['Status', 'ONLINE'],
@@ -1529,7 +1659,7 @@ Benvenuto in L.A.O.S. v9.3 (Taskbar)
                         const infoLines = [
                             `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                             '------------------',
-                            `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.3 Taskbar`,
+                            `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.4 Start Menu`,
                             `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                             `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                             `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
@@ -1890,6 +2020,7 @@ Benvenuto in L.A.O.S. v9.3 (Taskbar)
                             installedPackages[pkgName] = packageRepository[pkgName];
                             availableCommands.push(pkgName);
                             availableCommands.sort();
+                            populateStartMenu(); // Update menu with new command
                             await dbManager.savePackages(installedPackages); // PERSIST
                             outputBuffer = `Successfully installed '${pkgName}'. You can now use the '${pkgName}' command.`;
                         } else if (subCommand === 'list') {
@@ -1917,6 +2048,7 @@ Benvenuto in L.A.O.S. v9.3 (Taskbar)
                             if (index > -1) {
                                 availableCommands.splice(index, 1);
                             }
+                            populateStartMenu(); // Update menu
                             await dbManager.savePackages(installedPackages); // PERSIST
                             outputBuffer = `Successfully removed package '${pkgName}'.`;
                         } else {
@@ -1991,7 +2123,7 @@ Benvenuto in L.A.O.S. v9.3 (Taskbar)
             monitorBezel.style.display = 'none';
             await new Promise(resolve => setTimeout(resolve, 500));
             desktop.innerHTML = '';
-            taskbar.innerHTML = '';
+            taskbarApps.innerHTML = '';
 
             biosOverlay.style.display = 'flex';
             const biosLines = [ { text: 'LorelAxun BIOS v1.2', delay: 500 }, { text: 'Copyright (c) 2025 AleXsjsju Corp.', delay: 200 }, { text: '', delay: 500 }, { text: 'Initializing Core Memory.................... ', delay: 300 }, { text: '65536 KB OK', delay: 100, append: true, action: playBiosBeep }, { text: '\nDetecting Primary Master.................. LAX-HD-01', delay: 800 }, { text: 'Detecting Primary Slave................. None', delay: 800 }, { text: 'Detecting Secondary Master................ None', delay: 800 }, { text: 'Detecting Secondary Slave................. None', delay: 800 }, { text: '', delay: 500 }, { text: 'Checking NVRAM............................ OK', delay: 400 }, { text: 'Initializing Web-Access Layer........... OK', delay: 600 }, { text: '', delay: 1000 }, { text: 'Booting from Primary Master (LAX-HD-01)...', delay: 500 }, ];
@@ -2081,7 +2213,8 @@ Benvenuto in L.A.O.S. v9.3 (Taskbar)
                 '[SYSTEM] Rudimentary Package Manager implemented. Use `lax` to install new commands like `cowsay`.',
                 '[SYSTEM] Persistence layer active. File system and packages now stored in IndexedDB.',
                 '[SYSTEM] Window Manager active. Windows are draggable and resizable.',
-                '[SYSTEM] NEW: Taskbar implemented for centralized window management.'
+                '[SYSTEM] Taskbar active for centralized window management.',
+                '[SYSTEM] NEW: Start Menu and System Clock added to taskbar.'
             ];
             let content = '';
             messages.forEach(msg => {
@@ -2091,7 +2224,11 @@ Benvenuto in L.A.O.S. v9.3 (Taskbar)
         }
 
         function scrollToBottom() { const term = document.getElementById('terminal-container'); if(term) term.scrollTop = term.scrollHeight; }
-        function updateClock() { const clock = document.getElementById('clock'); if(clock) { const now = new Date(); const timeString = now.toLocaleTimeString('it-IT'); clock.textContent = timeString; } }
+        function updateTaskbarClock() { 
+             const now = new Date(); 
+             const timeString = now.toLocaleTimeString('it-IT'); 
+             taskbarClock.textContent = timeString; 
+        }
         
         window.onload = () => {
             initializeGlobalListeners();
