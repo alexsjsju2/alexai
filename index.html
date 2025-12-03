@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-w_idth, initial-scale=1.0">
-    <title>LOREL AXUN V9.7 // CONTEXT-SENSITIVE MENUS</title>
+    <title>LOREL AXUN V9.8 // DESKTOP SELECTION BOX</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -140,9 +140,12 @@
             user-select: none;
             padding: 5px;
         }
-        .desktop-icon:hover .icon-label {
+        .desktop-icon.selected .icon-label, .desktop-icon:hover .icon-label {
             background-color: var(--term-green);
             color: var(--bg-color);
+        }
+        .desktop-icon.selected {
+            outline: 1px dotted var(--cmd-highlight);
         }
         .desktop-icon pre {
             font-size: 2.5rem;
@@ -154,6 +157,14 @@
             font-size: 0.9rem;
             word-wrap: break-word;
             margin-top: 5px;
+        }
+
+        #selection-box {
+            position: absolute;
+            border: 1px dashed var(--term-green);
+            background-color: rgba(51, 255, 0, 0.2);
+            z-index: 5000;
+            display: none;
         }
 
         .window {
@@ -586,6 +597,7 @@
             <div class="moving-scanline"></div>
             <div id="desktop">
                 <div id="desktop-icons"></div>
+                <div id="selection-box"></div>
                 <!-- Windows will be injected here by JS -->
             </div>
             <div id="taskbar">
@@ -900,7 +912,7 @@
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt', 'demo.js', 'fs_demo.js', 'notes.txt', 'logger.js'] },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.7!\nQuesto è un file system persistente grazie a IndexedDB.\nFai doppio click su un\'icona del desktop per aprire un file.' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.8!\nQuesto è un file system persistente grazie a IndexedDB.\nFai doppio click su un\'icona del desktop per aprire un file.' },
             '/home/admin/notes.txt': { type: 'file', content: 'Questa è una nota di prova.\nPuoi modificare questo file con il comando `edit`.' },
             '/home/admin/demo.js': { type: 'file', content: 'terminal.log("Ciao dal mio primo script!");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log("Script completato.");' },
             '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log("--- Esecuzione FS Demo Script ---");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\');\n    });\n});' },
@@ -908,7 +920,7 @@
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.7 - Context-Sensitive Menus\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.8 - Desktop Selection Box\nCreatore: AleXsjsju' },
         };
         let fileSystem = {};
         
@@ -947,9 +959,9 @@
         // --- Dynamic Title Engine ---
         function initTitleTypewriter(target) {
             const phrases = [
-                "Lorel Axun v9.7",
+                "Lorel Axun v9.8",
                 "Status: ONLINE",
-                "Context Menus Active",
+                "Selection Box Active",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -1042,14 +1054,16 @@
         // --- Event Listeners ---
         function initializeGlobalListeners() {
             document.addEventListener('keydown', handleGlobalKeyPress, true);
+            
             desktop.addEventListener('contextmenu', (e) => {
-                // Only show desktop context menu if clicking on the desktop itself, not an icon
                 if (e.target.id === 'desktop' || e.target.id === 'desktop-icons') {
                     showContextMenu(e);
                 }
             });
+
             desktop.addEventListener('dragover', (e) => e.preventDefault());
             desktop.addEventListener('drop', handleDesktopDrop);
+
             document.addEventListener('click', (e) => {
                 if (!startButton.contains(e.target) && !startMenu.contains(e.target)) {
                     hideStartMenu();
@@ -1058,6 +1072,83 @@
                     hideContextMenu();
                 }
             });
+            
+            setupDesktopSelection();
+        }
+        
+        function setupDesktopSelection() {
+            let isSelecting = false;
+            let selectionStartX, selectionStartY;
+
+            desktop.addEventListener('mousedown', (e) => {
+                if (e.target !== desktop && e.target !== document.getElementById('desktop-icons')) {
+                    return;
+                }
+                
+                document.querySelectorAll('.desktop-icon.selected').forEach(icon => icon.classList.remove('selected'));
+
+                isSelecting = true;
+                const desktopRect = desktop.getBoundingClientRect();
+                selectionStartX = e.clientX - desktopRect.left;
+                selectionStartY = e.clientY - desktopRect.top;
+
+                const selectionBox = document.getElementById('selection-box');
+                selectionBox.style.left = `${selectionStartX}px`;
+                selectionBox.style.top = `${selectionStartY}px`;
+                selectionBox.style.width = '0px';
+                selectionBox.style.height = '0px';
+                selectionBox.style.display = 'block';
+
+                document.addEventListener('mousemove', handleSelectionMove);
+                document.addEventListener('mouseup', handleSelectionEnd);
+            });
+
+            function handleSelectionMove(e) {
+                if (!isSelecting) return;
+
+                const desktopRect = desktop.getBoundingClientRect();
+                const currentX = e.clientX - desktopRect.left;
+                const currentY = e.clientY - desktopRect.top;
+                
+                const selectionBox = document.getElementById('selection-box');
+                const x = Math.min(selectionStartX, currentX);
+                const y = Math.min(selectionStartY, currentY);
+                const width = Math.abs(currentX - selectionStartX);
+                const height = Math.abs(currentY - selectionStartY);
+
+                selectionBox.style.left = `${x}px`;
+                selectionBox.style.top = `${y}px`;
+                selectionBox.style.width = `${width}px`;
+                selectionBox.style.height = `${height}px`;
+
+                const selectionRect = selectionBox.getBoundingClientRect();
+                const icons = document.querySelectorAll('.desktop-icon');
+
+                icons.forEach(icon => {
+                    const iconRect = icon.getBoundingClientRect();
+                    const isIntersecting = !(
+                        selectionRect.right < iconRect.left ||
+                        selectionRect.left > iconRect.right ||
+                        selectionRect.bottom < iconRect.top ||
+                        selectionRect.top > iconRect.bottom
+                    );
+
+                    if (isIntersecting) {
+                        icon.classList.add('selected');
+                    } else {
+                        icon.classList.remove('selected');
+                    }
+                });
+            }
+
+            function handleSelectionEnd(e) {
+                isSelecting = false;
+                const selectionBox = document.getElementById('selection-box');
+                selectionBox.style.display = 'none';
+
+                document.removeEventListener('mousemove', handleSelectionMove);
+                document.removeEventListener('mouseup', handleSelectionEnd);
+            }
         }
 
         function handleGlobalKeyPress(e) {
@@ -1094,7 +1185,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v9.7 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v9.8 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -1343,7 +1434,7 @@
             const { windowEl, contentEl } = createDraggableWindow('terminal-window', 'L.A.O.S. Shell', 800, 500, 20, 20);
             const terminalHTML = `
                 <div class=\"terminal-container\" id=\"terminal-container\">
-                    <h1 class=\"glitch chromatic-aberration\" data-text=\"Lorel Axun v9.7\"><span id=\"typewriter-title\"></span></h1>
+                    <h1 class=\"glitch chromatic-aberration\" data-text=\"Lorel Axun v9.8\"><span id=\"typewriter-title\"></span></h1>
                     <div id=\"initial-messages\"></div>
                     <div id=\"chat-history\" class=\"chat-history\"></div>
                     <form class=\"input-line\" id=\"input-form\">
@@ -1353,7 +1444,7 @@
                     </form>
                 </div>
                 <div class=\"status-bar\">
-                    <span>LOREL AXUN v9.7</span>
+                    <span>LOREL AXUN v9.8</span>
                     <span>STATUS: <span class=\"pulse-glow\">ONLINE</span></span>
                 </div>
             `;
@@ -1383,9 +1474,9 @@
             (async () => {
                 document.isTyping = true;
                 document.getElementById('cursor').style.display = 'none';
-                if (!localStorage.getItem('motdShown_v9.7')) {
+                if (!localStorage.getItem('motdShown_v9.8')) {
                     await displayMOTD();
-                    localStorage.setItem('motdShown_v9.7', 'true');
+                    localStorage.setItem('motdShown_v9.8', 'true');
                 }
                 document.isTyping = false;
                 document.getElementById('cursor').style.display = 'inline-block';
@@ -1403,9 +1494,9 @@
   ███████╗██║  ██║ ╚██████╔╝███████║
   ╚══════╝╚═╝  ╚═╝  ╚═════╝ ╚══════╝
                                      
-Benvenuto in L.A.O.S. v9.7 (Context-Sensitive Menus)
-* NOVITÀ: Il menu contestuale (tasto destro) ora è intelligente!
-* Mostra opzioni diverse per le icone (Apri, Esegui, Elimina) e per il desktop (Nuovo File, Aggiorna).
+Benvenuto in L.A.O.S. v9.8 (Desktop Selection Box)
+* NOVITÀ: Puoi selezionare più icone sul desktop trascinando il mouse!
+* Questa funzione migliora la manipolazione diretta degli elementi del file system.
 * Digita 'help' per una lista completa dei comandi nel terminale.
 `;
             await printSystemOutput(motdContent);
@@ -1784,7 +1875,7 @@ Benvenuto in L.A.O.S. v9.7 (Context-Sensitive Menus)
             const infoLines = [
                 `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                 '------------------',
-                `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.7 Context-Sensitive Menus`,
+                `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.8 Desktop Selection Box`,
                 `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                 `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                 `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
@@ -1860,12 +1951,12 @@ Benvenuto in L.A.O.S. v9.7 (Context-Sensitive Menus)
                                     `  (es. echo \"Ciao\" > note.txt)`;
                         break;
                     case 'status':
-                        outputBuffer = 'STATUS: ONLINE. Version: 9.7. All systems nominal. User: ' + currentUser;
+                        outputBuffer = 'STATUS: ONLINE. Version: 9.8. All systems nominal. User: ' + currentUser;
                         break;
                     case 'sysinfo':
                         const headers = ['Property', 'Value'];
                         const tableData = [
-                            ['Version', '9.7 - Context-Sensitive Menus'],
+                            ['Version', '9.8 - Desktop Selection Box'],
                             ['Creator', 'AleXsjsju'],
                             ['Created', '2025-11-22'],
                             ['Status', 'ONLINE'],
@@ -2328,7 +2419,7 @@ Benvenuto in L.A.O.S. v9.7 (Context-Sensitive Menus)
             mainScreen.style.opacity = '0';
             monitorBezel.style.display = 'none';
             await new Promise(resolve => setTimeout(resolve, 500));
-            desktop.innerHTML = '<div id=\"desktop-icons\"></div>'; // Reset desktop but keep icon container
+            desktop.innerHTML = '<div id=\"desktop-icons\"></div><div id=\"selection-box\"></div>'; // Reset desktop but keep containers
             taskbarApps.innerHTML = '';
 
             biosOverlay.style.display = 'flex';
@@ -2423,7 +2514,8 @@ Benvenuto in L.A.O.S. v9.7 (Context-Sensitive Menus)
                 '[SYSTEM] Start Menu and System Clock added to taskbar.',
                 '[SYSTEM] Desktop Context Menu (right-click) active.',
                 '[SYSTEM] Draggable Desktop Icons active. Double-click to open files.',
-                '[SYSTEM] NEW: Context Menus are now context-sensitive for icons and the desktop.'
+                '[SYSTEM] Context Menus are now context-sensitive for icons and the desktop.',
+                '[SYSTEM] NEW: Desktop Selection Box active. Drag on the desktop to select multiple icons.'
             ];
             let content = '';
             messages.forEach(msg => {
