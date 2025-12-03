@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-w_idth, initial-scale=1.0">
-    <title>LOREL AXUN V9.6 // DESKTOP ICONS</title>
+    <title>LOREL AXUN V9.7 // CONTEXT-SENSITIVE MENUS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -900,7 +900,7 @@
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt', 'demo.js', 'fs_demo.js', 'notes.txt', 'logger.js'] },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.6!\nQuesto è un file system persistente grazie a IndexedDB.\nFai doppio click su un\'icona del desktop per aprire un file.' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.7!\nQuesto è un file system persistente grazie a IndexedDB.\nFai doppio click su un\'icona del desktop per aprire un file.' },
             '/home/admin/notes.txt': { type: 'file', content: 'Questa è una nota di prova.\nPuoi modificare questo file con il comando `edit`.' },
             '/home/admin/demo.js': { type: 'file', content: 'terminal.log("Ciao dal mio primo script!");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log("Script completato.");' },
             '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log("--- Esecuzione FS Demo Script ---");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\');\n    });\n});' },
@@ -908,7 +908,7 @@
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.6 - Desktop Icons\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.7 - Context-Sensitive Menus\nCreatore: AleXsjsju' },
         };
         let fileSystem = {};
         
@@ -947,9 +947,9 @@
         // --- Dynamic Title Engine ---
         function initTitleTypewriter(target) {
             const phrases = [
-                "Lorel Axun v9.6",
+                "Lorel Axun v9.7",
                 "Status: ONLINE",
-                "Desktop Icons Active",
+                "Context Menus Active",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -1042,7 +1042,12 @@
         // --- Event Listeners ---
         function initializeGlobalListeners() {
             document.addEventListener('keydown', handleGlobalKeyPress, true);
-            desktop.addEventListener('contextmenu', showContextMenu);
+            desktop.addEventListener('contextmenu', (e) => {
+                // Only show desktop context menu if clicking on the desktop itself, not an icon
+                if (e.target.id === 'desktop' || e.target.id === 'desktop-icons') {
+                    showContextMenu(e);
+                }
+            });
             desktop.addEventListener('dragover', (e) => e.preventDefault());
             desktop.addEventListener('drop', handleDesktopDrop);
             document.addEventListener('click', (e) => {
@@ -1089,7 +1094,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v9.6 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v9.7 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -1244,7 +1249,9 @@
 
         async function exitEditorMode() {
             if (!editorState.active) return;
-            const taskbarItem = document.querySelector(`.taskbar-item[data-window-id=\"${editorState.windowEl.id}\"]`);
+            const taskbarItem = document.querySelector(`.taskbar-item[data-window-id=\"${
+                editorState.windowEl.id
+            }\"]`);
             if (taskbarItem) taskbarItem.remove();
             editorState.windowEl.remove();
             editorState.active = false;
@@ -1272,7 +1279,9 @@
             if (!topState.active) return;
             clearInterval(topState.intervalId);
             topState.intervalId = null;
-            const taskbarItem = document.querySelector(`.taskbar-item[data-window-id=\"${topState.windowEl.id}\"]`);
+            const taskbarItem = document.querySelector(`.taskbar-item[data-window-id=\"${
+                topState.windowEl.id
+            }\"]`);
             if (taskbarItem) taskbarItem.remove();
             topState.windowEl.remove();
             topState.active = false;
@@ -1334,7 +1343,7 @@
             const { windowEl, contentEl } = createDraggableWindow('terminal-window', 'L.A.O.S. Shell', 800, 500, 20, 20);
             const terminalHTML = `
                 <div class=\"terminal-container\" id=\"terminal-container\">
-                    <h1 class=\"glitch chromatic-aberration\" data-text=\"Lorel Axun v9.6\"><span id=\"typewriter-title\"></span></h1>
+                    <h1 class=\"glitch chromatic-aberration\" data-text=\"Lorel Axun v9.7\"><span id=\"typewriter-title\"></span></h1>
                     <div id=\"initial-messages\"></div>
                     <div id=\"chat-history\" class=\"chat-history\"></div>
                     <form class=\"input-line\" id=\"input-form\">
@@ -1344,7 +1353,7 @@
                     </form>
                 </div>
                 <div class=\"status-bar\">
-                    <span>LOREL AXUN v9.6</span>
+                    <span>LOREL AXUN v9.7</span>
                     <span>STATUS: <span class=\"pulse-glow\">ONLINE</span></span>
                 </div>
             `;
@@ -1374,9 +1383,9 @@
             (async () => {
                 document.isTyping = true;
                 document.getElementById('cursor').style.display = 'none';
-                if (!localStorage.getItem('motdShown_v9.6')) {
+                if (!localStorage.getItem('motdShown_v9.7')) {
                     await displayMOTD();
-                    localStorage.setItem('motdShown_v9.6', 'true');
+                    localStorage.setItem('motdShown_v9.7', 'true');
                 }
                 document.isTyping = false;
                 document.getElementById('cursor').style.display = 'inline-block';
@@ -1394,9 +1403,9 @@
   ███████╗██║  ██║ ╚██████╔╝███████║
   ╚══════╝╚═╝  ╚═╝  ╚═════╝ ╚══════╝
                                      
-Benvenuto in L.A.O.S. v9.6 (Desktop Icons)
-* NOVITÀ: Il desktop ora ha icone interattive e trascinabili!
-* Fai doppio click su un'icona per aprire il file corrispondente.
+Benvenuto in L.A.O.S. v9.7 (Context-Sensitive Menus)
+* NOVITÀ: Il menu contestuale (tasto destro) ora è intelligente!
+* Mostra opzioni diverse per le icone (Apri, Esegui, Elimina) e per il desktop (Nuovo File, Aggiorna).
 * Digita 'help' per una lista completa dei comandi nel terminale.
 `;
             await printSystemOutput(motdContent);
@@ -1521,19 +1530,40 @@ Benvenuto in L.A.O.S. v9.6 (Desktop Icons)
         function hideStartMenu() { startMenu.style.display = 'none'; }
         function toggleStartMenu() { startMenu.style.display = startMenu.style.display === 'none' ? 'block' : 'none'; }
         
-        function showContextMenu(e) {
+        function showContextMenu(e, context = { type: 'desktop' }) {
             e.preventDefault();
             hideStartMenu();
 
-            const menuItems = [
-                { label: 'Process Monitor', action: () => enterTopMode() },
-                { label: 'System Info', action: () => showNeofetchWindow() },
-                { label: 'Refresh Desktop', action: () => renderDesktopIcons() }
-            ];
+            let menuItems = [];
+
+            switch (context.type) {
+                case 'file':
+                    menuItems.push({ label: `Modifica '${context.path}'`, action: () => executeCommandInTerminal(`edit ${context.path}`) });
+                    if (context.path.endsWith('.js')) {
+                         menuItems.push({ label: `Esegui '${context.path}'`, action: () => executeCommandInTerminal(`run ${context.path}`) });
+                    }
+                     menuItems.push({ label: `Elimina`, action: () => executeCommandInTerminal(`rm ${context.path}`) });
+                    break;
+                case 'dir':
+                     menuItems.push({ label: `Elimina Cartella`, action: () => executeCommandInTerminal(`rm -r ${context.path}`) });
+                    break;
+                case 'desktop':
+                default:
+                    menuItems.push({ label: 'Process Monitor', action: () => enterTopMode() });
+                    menuItems.push({ label: 'System Info', action: () => showNeofetchWindow() });
+                    menuItems.push({ label: 'Refresh Desktop', action: () => renderDesktopIcons() });
+                    menuItems.push({ label: 'Nuovo File...', action: () => { 
+                        const name = prompt('Inserisci il nome del nuovo file:');
+                        if (name) executeCommandInTerminal(`touch ${name}`);
+                    }}); 
+                    break;
+            }
 
             let menuHTML = '';
             menuItems.forEach((item, index) => {
-                menuHTML += `<div class=\"context-menu-item\" data-index=\"${index}\">${item.label}</div>`;
+                menuHTML += `<div class=\"context-menu-item\" data-index=\"${
+                    index
+                }\">${item.label}</div>`;
             });
             contextMenu.innerHTML = menuHTML;
 
@@ -1611,7 +1641,11 @@ Benvenuto in L.A.O.S. v9.6 (Desktop Icons)
                         }
                         executeCommandInTerminal(command);
                     }
-                    // Future: Handle directory double-click (e.g., open file explorer window)
+                });
+
+                iconEl.addEventListener('contextmenu', (evt) => {
+                    evt.stopPropagation(); // Prevent desktop menu from showing
+                    showContextMenu(evt, { type: itemNode.type, path: itemName });
                 });
 
                 iconContainer.appendChild(iconEl);
@@ -1750,7 +1784,7 @@ Benvenuto in L.A.O.S. v9.6 (Desktop Icons)
             const infoLines = [
                 `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                 '------------------',
-                `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.6 Desktop Icons`,
+                `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.7 Context-Sensitive Menus`,
                 `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                 `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                 `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
@@ -1826,12 +1860,12 @@ Benvenuto in L.A.O.S. v9.6 (Desktop Icons)
                                     `  (es. echo \"Ciao\" > note.txt)`;
                         break;
                     case 'status':
-                        outputBuffer = 'STATUS: ONLINE. Version: 9.6. All systems nominal. User: ' + currentUser;
+                        outputBuffer = 'STATUS: ONLINE. Version: 9.7. All systems nominal. User: ' + currentUser;
                         break;
                     case 'sysinfo':
                         const headers = ['Property', 'Value'];
                         const tableData = [
-                            ['Version', '9.6 - Desktop Icons'],
+                            ['Version', '9.7 - Context-Sensitive Menus'],
                             ['Creator', 'AleXsjsju'],
                             ['Created', '2025-11-22'],
                             ['Status', 'ONLINE'],
@@ -2387,8 +2421,9 @@ Benvenuto in L.A.O.S. v9.6 (Desktop Icons)
                 '[SYSTEM] Window Manager active. Windows are draggable and resizable.',
                 '[SYSTEM] Taskbar active for centralized window management.',
                 '[SYSTEM] Start Menu and System Clock added to taskbar.',
-                '[SYSTEM] Context Menu (right-click) added to desktop.',
-                '[SYSTEM] NEW: Draggable Desktop Icons are now active. Double-click to open files.'
+                '[SYSTEM] Desktop Context Menu (right-click) active.',
+                '[SYSTEM] Draggable Desktop Icons active. Double-click to open files.',
+                '[SYSTEM] NEW: Context Menus are now context-sensitive for icons and the desktop.'
             ];
             let content = '';
             messages.forEach(msg => {
