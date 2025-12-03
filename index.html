@@ -934,7 +934,7 @@
                     const len = what.length;
                     const top = ' ' + '_'.repeat(len + 2);
                     const bottom = ' ' + '-'.repeat(len + 2);
-                    const cow = `\n ${top}\n< ${what} >\n ${bottom}\n        \\   ^__^\n         \\  (oo)\\_______\n            (__)\\       )\\/\\\n                ||----w |\n                ||     ||\n`;
+                    const cow = `\n ${top}\n< ${what} >\n ${bottom}\n        \\   ^__^\n         \\  (oo)\\_\_\_\_\_\_\_\_\n            (__)\\_       )\\/\\\n                ||----w |\n                ||     ||\n`;
                     return cow;
                 }
             },
@@ -2245,7 +2245,7 @@ Benvenuto in L.A.O.S. v9.8 (Desktop Selection Box)
                         }, 5000);
 
                         processList[pid] = { 
-                            command: `bg ${parsed.args[0]}`,
+                            command: `bg ${parsed.args[0]}`, 
                             intervalId: intervalId,
                             startTime: new Date(),
                             cpu: (Math.random() * 2.5 + 0.5).toFixed(2),
