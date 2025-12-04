@@ -2,8 +2,8 @@ name: Evoluzione di Lorel Axun
 
 on:
   schedule:
-    - cron: '0 0 31 2 *'  # Ogni ora, all'inizio dell'ora (UTC)
-  workflow_dispatch:  # Permette trigger manuale
+    - cron: '0 0 31 2 *' 
+  workflow_dispatch:  
 
 jobs:
   evolve:
@@ -15,8 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}  # Usa il token per push successivi
-
+          token: ${{ secrets.GITHUB_TOKEN }}  
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
