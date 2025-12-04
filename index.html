@@ -1,1 +1,42 @@
-<!DOCTYPE html>\n<html lang=\"it\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Lorel Axun OS v12.4 - File Explorer - Directory Navigation</title>\n    <link rel=\"stylesheet\" href=\"laos.css\">\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n    <link href=\"https://fonts.googleapis.com/css2?family=VT323&display=swap\" rel=\"stylesheet\">\n</head>\n<body>\n    <!-- Contenitore principale per l'ambiente TUI -->\n    <div id=\"desktop\"></div>\n\n    <!-- Taskbar -->\n    <div id=\"taskbar\">\n        <button id=\"start-button\">L.A.O.S.</button>\n        <div id=\"task-buttons\"></div>\n        <div id=\"clock\"></div>\n    </div>\n\n    <!-- Menu -->\n    <div id=\"start-menu\">\n        <ul>\n            <li data-command=\"help\">Help</li>\n            <li data-command=\"clear\">Clear Screen</li>\n            <li data-command=\"motd\">Message of the Day</li>\n            <li data-command=\"run editor\">Text Editor</li>\n            <li data-command=\"run explorer\">File Explorer</li>\n            <li data-command=\"run taskmgr\">Task Manager</li>\n        </ul>\n    </div>\n    <div id=\"context-menu\"></div>\n\n    <!--\n    Lorel Axun OS v12.4 - File Explorer - Directory Navigation\n    The File Explorer now supports interactive directory traversal. Users can navigate\n    the file system hierarchy, making it a truly interactive application.\n    -->\n    <script type=\"module\" src=\"js/main.js\" defer></script>\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Lorel Axun OS v12.5 - File Explorer - File Execution</title>
+    <link rel="stylesheet" href="laos.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Contenitore principale per l'ambiente TUI -->
+    <div id="desktop"></div>
+
+    <!-- Taskbar -->
+    <div id="taskbar">
+        <button id="start-button">L.A.O.S.</button>
+        <div id="task-buttons"></div>
+        <div id="clock"></div>
+    </div>
+
+    <!-- Menu -->
+    <div id="start-menu">
+        <ul>
+            <li data-command="help">Help</li>
+            <li data-command="clear">Clear Screen</li>
+            <li data-command="motd">Message of the Day</li>
+            <li data-command="run editor">Text Editor</li>
+            <li data-command="run explorer">File Explorer</li>
+            <li data-command="run taskmgr">Task Manager</li>
+        </ul>
+    </div>
+    <div id="context-menu"></div>
+
+    <!--
+    Lorel Axun OS v12.5 - File Explorer - File Execution
+    The File Explorer now supports file execution. Double-clicking a file with a known
+    association (e.g., .txt) will launch the corresponding application (e.g., Text Editor).
+    -->
+    <script type="module" src="js/main.js" defer></script>
+</body>
+</html>
