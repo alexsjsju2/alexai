@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-w_idth, initial-scale=1.0">
-    <title>LOREL AXUN V9.9 // MULTIPLE ICON DRAGGING</title>
+    <title>LOREL AXUN V10.0 // PERSISTENT ICON POSITIONS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -831,7 +831,7 @@
 
         // --- Persistence Layer (IndexedDB) ---
         const dbManager = (() => {
-            const DB_NAME = 'LorelAxunOS_V9';
+            const DB_NAME = 'LorelAxunOS_V10';
             const DB_VERSION = 1;
             const FS_STORE = 'fileSystem';
             const PKG_STORE = 'packages';
@@ -911,17 +911,17 @@
             '/': { type: 'dir', children: ['home', 'var', 'README'] },
             '/home': { type: 'dir', children: ['admin'] },
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt', 'demo.js', 'fs_demo.js', 'notes.txt', 'logger.js'] },
-            '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
+            '/home/admin/docs': { type: 'dir', children: ['project.txt'], x: 20, y: 120 },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.9!\nQuesto è un file system persistente grazie a IndexedDB.\nFai doppio click su un\'icona del desktop per aprire un file.' },
-            '/home/admin/notes.txt': { type: 'file', content: 'Questa è una nota di prova.\nPuoi modificare questo file con il comando `edit`.' },
-            '/home/admin/demo.js': { type: 'file', content: 'terminal.log("Ciao dal mio primo script!");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log("Script completato.");' },
-            '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log("--- Esecuzione FS Demo Script ---");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\'');\n    });\n});' },
-            '/home/admin/logger.js': { type: 'file', content: '// Background Process Demo\n// This script logs a message every 5 seconds.\nterminal.log(`[BG SCRIPT] Logger started at ${new Date().toLocaleTimeString()}. Will log every 5s.`);' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v10.0!\nLe posizioni delle icone sono ora persistenti!\nFai doppio click su un\'icona del desktop per aprire un file.', x: 20, y: 20 },
+            '/home/admin/notes.txt': { type: 'file', content: 'Questa è una nota di prova.\nPuoi modificare questo file con il comando `edit`.', x: 120, y: 20 },
+            '/home/admin/demo.js': { type: 'file', content: 'terminal.log("Ciao dal mio primo script!");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log("Script completato.");', x: 220, y: 20 },
+            '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log("--- Esecuzione FS Demo Script ---");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\'');\n    });\n});', x: 120, y: 120 },
+            '/home/admin/logger.js': { type: 'file', content: '// Background Process Demo\n// This script logs a message every 5 seconds.\nterminal.log(`[BG SCRIPT] Logger started at ${new Date().toLocaleTimeString()}. Will log every 5s.`);', x: 220, y: 120 },
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.9 - Multiple Icon Dragging\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 10.0 - Persistent Icon Positions\nCreatore: AleXsjsju' },
         };
         let fileSystem = {};
         
@@ -960,9 +960,9 @@
         // --- Dynamic Title Engine ---
         function initTitleTypewriter(target) {
             const phrases = [
-                "Lorel Axun v9.9",
+                "Lorel Axun v10.0",
                 "Status: ONLINE",
-                "Multiple Drag Active",
+                "Icon Positions Persist",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -1186,7 +1186,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v9.9 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v10.0 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -1435,7 +1435,7 @@
             const { windowEl, contentEl } = createDraggableWindow('terminal-window', 'L.A.O.S. Shell', 800, 500, 20, 20);
             const terminalHTML = `
                 <div class=\"terminal-container\" id=\"terminal-container\">
-                    <h1 class=\"glitch chromatic-aberration\" data-text=\"Lorel Axun v9.9\"><span id=\"typewriter-title\"></span></h1>
+                    <h1 class=\"glitch chromatic-aberration\" data-text=\"Lorel Axun v10.0\"><span id=\"typewriter-title\"></span></h1>
                     <div id=\"initial-messages\"></div>
                     <div id=\"chat-history\" class=\"chat-history\"></div>
                     <form class=\"input-line\" id=\"input-form\">
@@ -1445,7 +1445,7 @@
                     </form>
                 </div>
                 <div class=\"status-bar\">
-                    <span>LOREL AXUN v9.9</span>
+                    <span>LOREL AXUN v10.0</span>
                     <span>STATUS: <span class=\"pulse-glow\">ONLINE</span></span>
                 </div>
             `;
@@ -1475,9 +1475,9 @@
             (async () => {
                 document.isTyping = true;
                 document.getElementById('cursor').style.display = 'none';
-                if (!localStorage.getItem('motdShown_v9.9')) {
+                if (!localStorage.getItem('motdShown_v10.0')) {
                     await displayMOTD();
-                    localStorage.setItem('motdShown_v9.9', 'true');
+                    localStorage.setItem('motdShown_v10.0', 'true');
                 }
                 document.isTyping = false;
                 document.getElementById('cursor').style.display = 'inline-block';
@@ -1495,9 +1495,9 @@
   ███████╗██║  ██║ ╚██████╔╝███████║
   ╚══════╝╚═╝  ╚═╝  ╚═════╝ ╚══════╝
                                      
-Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
-* NOVITÀ: Puoi trascinare più icone selezionate come un unico gruppo!
-* Questa funzione rende la manipolazione di gruppo un'azione concreta.
+Benvenuto in L.A.O.S. v10.0 (Persistent Icon Positions)
+* NOVITÀ: Le posizioni delle icone sul desktop ora vengono salvate!
+* Il tuo spazio di lavoro è ora veramente personale e persistente.
 * Digita 'help' per una lista completa dei comandi nel terminale.
 `;
             await printSystemOutput(motdContent);
@@ -1683,7 +1683,7 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
             contentEl.innerHTML = output;
         }
         
-        function renderDesktopIcons() {
+        async function renderDesktopIcons() {
             const iconContainer = document.getElementById('desktop-icons');
             iconContainer.innerHTML = ''; // Clear existing icons
             const userHome = fileSystem[`/home/${currentUser}`];
@@ -1696,12 +1696,14 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
                 'default': `❔`
             };
 
+            let positionsUpdated = false;
             userHome.children.forEach((itemName, index) => {
                 const itemPath = `/home/${currentUser}/${itemName}`;
                 const itemNode = fileSystem[itemPath];
                 const iconEl = document.createElement('div');
                 iconEl.className = 'desktop-icon';
                 iconEl.id = `icon-${itemName.replace(/\./g, '-')}`;
+                iconEl.dataset.itemName = itemName;
                 iconEl.draggable = true;
 
                 let iconArt = icons['default'];
@@ -1714,8 +1716,20 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
                 }
 
                 iconEl.innerHTML = `<pre>${iconArt}</pre><div class=\"icon-label\">${itemName}</div>`;
-                iconEl.style.left = `${(index % 10) * 90 + 10}px`;
-                iconEl.style.top = `${Math.floor(index / 10) * 100 + 10}px`;
+                
+                if (itemNode.x !== undefined && itemNode.y !== undefined) {
+                    iconEl.style.left = `${itemNode.x}px`;
+                    iconEl.style.top = `${itemNode.y}px`;
+                } else {
+                    // Assign a default grid position and save it back to the FS object
+                    const defaultX = (index % 10) * 90 + 20;
+                    const defaultY = Math.floor(index / 10) * 110 + 20;
+                    iconEl.style.left = `${defaultX}px`;
+                    iconEl.style.top = `${defaultY}px`;
+                    itemNode.x = defaultX;
+                    itemNode.y = defaultY;
+                    positionsUpdated = true; // Mark that we need to save the FS
+                }
 
                 iconEl.addEventListener('dragstart', (e) => {
                     if (!iconEl.classList.contains('selected')) {
@@ -1736,7 +1750,6 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
                         });
                     });
                     
-                    // Use a dummy data transfer to make drag work in firefox
                     e.dataTransfer.setData('text/plain', iconEl.id);
                 });
 
@@ -1759,9 +1772,13 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
 
                 iconContainer.appendChild(iconEl);
             });
+
+            if (positionsUpdated) {
+                await dbManager.saveFileSystem(fileSystem); // Save any new default positions
+            }
         }
 
-        function handleDesktopDrop(e) {
+        async function handleDesktopDrop(e) {
             e.preventDefault();
             if (!multiDragState.active) return;
 
@@ -1779,7 +1796,19 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
 
                 item.element.style.left = `${newLeft}px`;
                 item.element.style.top = `${newTop}px`;
+
+                // Update the position in the file system object
+                const itemName = item.element.dataset.itemName;
+                if(itemName) {
+                    const itemPath = `/home/${currentUser}/${itemName}`;
+                    if (fileSystem[itemPath]) {
+                        fileSystem[itemPath].x = newLeft;
+                        fileSystem[itemPath].y = newTop;
+                    }
+                }
             });
+            
+            await dbManager.saveFileSystem(fileSystem); // PERSIST changes
 
             multiDragState.active = false;
             multiDragState.items = [];
@@ -1903,7 +1932,7 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
             const infoLines = [
                 `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                 '------------------',
-                `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.9 Multiple Icon Dragging`,
+                `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v10.0 Persistent Icon Positions`,
                 `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                 `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                 `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
@@ -1979,12 +2008,12 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
                                     `  (es. echo \"Ciao\" > note.txt)`;
                         break;
                     case 'status':
-                        outputBuffer = 'STATUS: ONLINE. Version: 9.9. All systems nominal. User: ' + currentUser;
+                        outputBuffer = 'STATUS: ONLINE. Version: 10.0. All systems nominal. User: ' + currentUser;
                         break;
                     case 'sysinfo':
                         const headers = ['Property', 'Value'];
                         const tableData = [
-                            ['Version', '9.9 - Multiple Icon Dragging'],
+                            ['Version', '10.0 - Persistent Icon Positions'],
                             ['Creator', 'AleXsjsju'],
                             ['Created', '2025-11-22'],
                             ['Status', 'ONLINE'],
@@ -2095,7 +2124,7 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
                             parentNode.children.sort();
                             fileSystem[newDirPath] = { type: 'dir', children: [] };
                             await dbManager.saveFileSystem(fileSystem); // PERSIST
-                            renderDesktopIcons(); // Refresh desktop
+                            await renderDesktopIcons(); // Refresh desktop
                         } else {
                             outputBuffer = `mkdir: fatal error in path resolution`;
                         }
@@ -2122,7 +2151,7 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
                             parentNode.children.sort();
                             fileSystem[newFilePath] = { type: 'file', content: '' };
                             await dbManager.saveFileSystem(fileSystem); // PERSIST
-                            renderDesktopIcons(); // Refresh desktop
+                            await renderDesktopIcons(); // Refresh desktop
                         } else {
                             outputBuffer = `touch: fatal error in path resolution`;
                         }
@@ -2169,7 +2198,7 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
                             if (index > -1) { parentNode.children.splice(index, 1); }
                         }
                         await dbManager.saveFileSystem(fileSystem); // PERSIST
-                        renderDesktopIcons(); // Refresh desktop
+                        await renderDesktopIcons(); // Refresh desktop
                         break;
                     }
                     case 'edit': {
@@ -2221,7 +2250,7 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
                                     }, 100);
                                 },
                                 writeFile: (path, data, callback) => {
-                                    setTimeout(() => { // Simulate async I/O
+                                    setTimeout(async () => { // Simulate async I/O
                                         const resolvedPath = resolvePath(path);
                                         const parentPath = resolvePath(resolvedPath + '/..');
                                         const parentNode = fileSystem[parentPath];
@@ -2243,8 +2272,8 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
                                         }
 
                                         fileSystem[resolvedPath] = { type: 'file', content: String(data) };
-                                        dbManager.saveFileSystem(fileSystem); // PERSIST
-                                        renderDesktopIcons(); // Refresh desktop
+                                        await dbManager.saveFileSystem(fileSystem); // PERSIST
+                                        await renderDesktopIcons(); // Refresh desktop
                                         callback(null);
                                     }, 100);
                                 }
@@ -2425,7 +2454,7 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
                     }
                 }
                 await dbManager.saveFileSystem(fileSystem); // PERSIST
-                renderDesktopIcons(); // Refresh desktop
+                await renderDesktopIcons(); // Refresh desktop
             } else if (outputBuffer !== null) {
                  if (['sysinfo', 'stats', 'help', 'sentiment', 'generate', 'ps', 'lax'].includes(parsed.command) || Object.keys(installedPackages).includes(parsed.command)) {
                     await printSystemOutput(outputBuffer);
@@ -2477,7 +2506,7 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
                     sentimentPipeline = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finuned-sst-2-english');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Analyzing text: \"${text}\"`)
+                await printSystemOutput(`Analyzing text: \"${text}\"`);
                 const result = await sentimentPipeline(text);
                 return `Analysis complete:\n` +
                     `  - LABEL: ${result[0].label}\n` +
@@ -2497,7 +2526,7 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
                     textGenerationPipeline = await pipeline('text-generation', 'Xenova/distilgpt2');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`)
+                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`);
                 const result = await textGenerationPipeline(prompt, { max_new_tokens: 50 });
                 return `Generation complete:\n\n${result[0].generated_text}`;
             } catch (error) {
@@ -2544,7 +2573,8 @@ Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
                 '[SYSTEM] Draggable Desktop Icons active. Double-click to open files.',
                 '[SYSTEM] Context Menus are now context-sensitive for icons and the desktop.',
                 '[SYSTEM] Desktop Selection Box active. Drag on the desktop to select multiple icons.',
-                '[SYSTEM] NEW: Multiple Icon Dragging active. Selected icons can be moved as a group.'
+                '[SYSTEM] Multiple Icon Dragging active. Selected icons can be moved as a group.',
+                '[SYSTEM] NEW: Icon positions are now persistent. The layout is saved automatically.'
             ];
             let content = '';
             messages.forEach(msg => {
