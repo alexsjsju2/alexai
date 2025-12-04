@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-w_idth, initial-scale=1.0">
-    <title>LOREL AXUN V9.8 // DESKTOP SELECTION BOX</title>
+    <title>LOREL AXUN V9.9 // MULTIPLE ICON DRAGGING</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
@@ -717,6 +717,7 @@
         let textGenerationPipeline = null;
         let installedPackages = {};
         let highestZ = 100;
+        let multiDragState = { active: false, items: [], startX: 0, startY: 0 };
 
         // --- Window Manager --- 
         function createDraggableWindow(id, title, width, height, top, left) {
@@ -912,7 +913,7 @@
             '/home/admin': { type: 'dir', children: ['docs', 'welcome.txt', 'demo.js', 'fs_demo.js', 'notes.txt', 'logger.js'] },
             '/home/admin/docs': { type: 'dir', children: ['project.txt'] },
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
-            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.8!\nQuesto è un file system persistente grazie a IndexedDB.\nFai doppio click su un\'icona del desktop per aprire un file.' },
+            '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v9.9!\nQuesto è un file system persistente grazie a IndexedDB.\nFai doppio click su un\'icona del desktop per aprire un file.' },
             '/home/admin/notes.txt': { type: 'file', content: 'Questa è una nota di prova.\nPuoi modificare questo file con il comando `edit`.' },
             '/home/admin/demo.js': { type: 'file', content: 'terminal.log("Ciao dal mio primo script!");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log("Script completato.");' },
             '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log("--- Esecuzione FS Demo Script ---");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\'');\n    });\n});' },
@@ -920,7 +921,7 @@
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
             '/var/log/system.log': { type: 'file', content: 'LOG START\n2025-11-23 10:00:01 | System boot sequence initiated.\n2025-11-23 10:00:05 | Login protocol engaged.\n2025-11-23 10:00:12 | User `admin` authenticated successfully.\n2025-11-23 10:00:13 | Session started.\nLOG END' },
-            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.8 - Desktop Selection Box\nCreatore: AleXsjsju' },
+            '/README': { type: 'file', content: 'Lorel Axun Operating System (L.A.O.S.)\nVersione: 9.9 - Multiple Icon Dragging\nCreatore: AleXsjsju' },
         };
         let fileSystem = {};
         
@@ -959,9 +960,9 @@
         // --- Dynamic Title Engine ---
         function initTitleTypewriter(target) {
             const phrases = [
-                "Lorel Axun v9.8",
+                "Lorel Axun v9.9",
                 "Status: ONLINE",
-                "Selection Box Active",
+                "Multiple Drag Active",
                 "Awaiting input..."
             ];
             let phraseIndex = 0;
@@ -1185,7 +1186,7 @@
 
             const loginHTML = `
                 <div class=\"login-box\">
-                    <pre>L.A.O.S. v9.8 (Lorel Axun Operating System)</pre>
+                    <pre>L.A.O.S. v9.9 (Lorel Axun Operating System)</pre>
                     <div class=\"login-prompt\">
                         <span>Username: </span>
                         <span id=\"login-user-input\"></span>
@@ -1434,7 +1435,7 @@
             const { windowEl, contentEl } = createDraggableWindow('terminal-window', 'L.A.O.S. Shell', 800, 500, 20, 20);
             const terminalHTML = `
                 <div class=\"terminal-container\" id=\"terminal-container\">
-                    <h1 class=\"glitch chromatic-aberration\" data-text=\"Lorel Axun v9.8\"><span id=\"typewriter-title\"></span></h1>
+                    <h1 class=\"glitch chromatic-aberration\" data-text=\"Lorel Axun v9.9\"><span id=\"typewriter-title\"></span></h1>
                     <div id=\"initial-messages\"></div>
                     <div id=\"chat-history\" class=\"chat-history\"></div>
                     <form class=\"input-line\" id=\"input-form\">
@@ -1444,7 +1445,7 @@
                     </form>
                 </div>
                 <div class=\"status-bar\">
-                    <span>LOREL AXUN v9.8</span>
+                    <span>LOREL AXUN v9.9</span>
                     <span>STATUS: <span class=\"pulse-glow\">ONLINE</span></span>
                 </div>
             `;
@@ -1474,9 +1475,9 @@
             (async () => {
                 document.isTyping = true;
                 document.getElementById('cursor').style.display = 'none';
-                if (!localStorage.getItem('motdShown_v9.8')) {
+                if (!localStorage.getItem('motdShown_v9.9')) {
                     await displayMOTD();
-                    localStorage.setItem('motdShown_v9.8', 'true');
+                    localStorage.setItem('motdShown_v9.9', 'true');
                 }
                 document.isTyping = false;
                 document.getElementById('cursor').style.display = 'inline-block';
@@ -1494,9 +1495,9 @@
   ███████╗██║  ██║ ╚██████╔╝███████║
   ╚══════╝╚═╝  ╚═╝  ╚═════╝ ╚══════╝
                                      
-Benvenuto in L.A.O.S. v9.8 (Desktop Selection Box)
-* NOVITÀ: Puoi selezionare più icone sul desktop trascinando il mouse!
-* Questa funzione migliora la manipolazione diretta degli elementi del file system.
+Benvenuto in L.A.O.S. v9.9 (Multiple Icon Dragging)
+* NOVITÀ: Puoi trascinare più icone selezionate come un unico gruppo!
+* Questa funzione rende la manipolazione di gruppo un'azione concreta.
 * Digita 'help' per una lista completa dei comandi nel terminale.
 `;
             await printSystemOutput(motdContent);
@@ -1717,9 +1718,26 @@ Benvenuto in L.A.O.S. v9.8 (Desktop Selection Box)
                 iconEl.style.top = `${Math.floor(index / 10) * 100 + 10}px`;
 
                 iconEl.addEventListener('dragstart', (e) => {
+                    if (!iconEl.classList.contains('selected')) {
+                        document.querySelectorAll('.desktop-icon.selected').forEach(i => i.classList.remove('selected'));
+                        iconEl.classList.add('selected');
+                    }
+
+                    multiDragState.active = true;
+                    multiDragState.startX = e.clientX;
+                    multiDragState.startY = e.clientY;
+                    multiDragState.items = [];
+
+                    document.querySelectorAll('.desktop-icon.selected').forEach(selectedIcon => {
+                        multiDragState.items.push({
+                            element: selectedIcon,
+                            startLeft: selectedIcon.offsetLeft,
+                            startTop: selectedIcon.offsetTop
+                        });
+                    });
+                    
+                    // Use a dummy data transfer to make drag work in firefox
                     e.dataTransfer.setData('text/plain', iconEl.id);
-                    e.dataTransfer.setData('offset-x', e.clientX - iconEl.getBoundingClientRect().left);
-                    e.dataTransfer.setData('offset-y', e.clientY - iconEl.getBoundingClientRect().top);
                 });
 
                 iconEl.addEventListener('dblclick', () => {
@@ -1745,16 +1763,26 @@ Benvenuto in L.A.O.S. v9.8 (Desktop Selection Box)
 
         function handleDesktopDrop(e) {
             e.preventDefault();
-            const id = e.dataTransfer.getData('text/plain');
-            const offsetX = e.dataTransfer.getData('offset-x');
-            const offsetY = e.dataTransfer.getData('offset-y');
-            const iconEl = document.getElementById(id);
+            if (!multiDragState.active) return;
+
+            const dx = e.clientX - multiDragState.startX;
+            const dy = e.clientY - multiDragState.startY;
             const desktopRect = desktop.getBoundingClientRect();
 
-            if (iconEl) {
-                iconEl.style.left = `${e.clientX - desktopRect.left - offsetX}px`;
-                iconEl.style.top = `${e.clientY - desktopRect.top - offsetY}px`;
-            }
+            multiDragState.items.forEach(item => {
+                let newLeft = item.startLeft + dx;
+                let newTop = item.startTop + dy;
+
+                // Clamp position within desktop bounds
+                newLeft = Math.max(0, Math.min(newLeft, desktopRect.width - item.element.offsetWidth));
+                newTop = Math.max(0, Math.min(newTop, desktopRect.height - item.element.offsetHeight));
+
+                item.element.style.left = `${newLeft}px`;
+                item.element.style.top = `${newTop}px`;
+            });
+
+            multiDragState.active = false;
+            multiDragState.items = [];
         }
 
         function populateStartMenu() {
@@ -1875,7 +1903,7 @@ Benvenuto in L.A.O.S. v9.8 (Desktop Selection Box)
             const infoLines = [
                 `<span style=\"color: ${valueColor};\">${currentUser}@lorel</span>`,
                 '------------------',
-                `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.8 Desktop Selection Box`,
+                `<span style=\"color: ${labelColor};\">OS</span>: L.A.O.S. v9.9 Multiple Icon Dragging`,
                 `<span style=\"color: ${labelColor};\">Host</span>: Simulated Web Environment`,
                 `<span style=\"color: ${labelColor};\">Kernel</span>: JS-DOM v11.25`,
                 `<span style=\"color: ${labelColor};\">Uptime</span>: ${uptimeString}`,
@@ -1951,12 +1979,12 @@ Benvenuto in L.A.O.S. v9.8 (Desktop Selection Box)
                                     `  (es. echo \"Ciao\" > note.txt)`;
                         break;
                     case 'status':
-                        outputBuffer = 'STATUS: ONLINE. Version: 9.8. All systems nominal. User: ' + currentUser;
+                        outputBuffer = 'STATUS: ONLINE. Version: 9.9. All systems nominal. User: ' + currentUser;
                         break;
                     case 'sysinfo':
                         const headers = ['Property', 'Value'];
                         const tableData = [
-                            ['Version', '9.8 - Desktop Selection Box'],
+                            ['Version', '9.9 - Multiple Icon Dragging'],
                             ['Creator', 'AleXsjsju'],
                             ['Created', '2025-11-22'],
                             ['Status', 'ONLINE'],
@@ -2245,7 +2273,7 @@ Benvenuto in L.A.O.S. v9.8 (Desktop Selection Box)
                         }, 5000);
 
                         processList[pid] = { 
-                            command: `bg ${parsed.args[0]}`, 
+                            command: `bg ${parsed.args[0]}`,
                             intervalId: intervalId,
                             startTime: new Date(),
                             cpu: (Math.random() * 2.5 + 0.5).toFixed(2),
@@ -2449,7 +2477,7 @@ Benvenuto in L.A.O.S. v9.8 (Desktop Selection Box)
                     sentimentPipeline = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finuned-sst-2-english');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Analyzing text: \"${text}\"`);
+                await printSystemOutput(`Analyzing text: \"${text}\"`)
                 const result = await sentimentPipeline(text);
                 return `Analysis complete:\n` +
                     `  - LABEL: ${result[0].label}\n` +
@@ -2469,7 +2497,7 @@ Benvenuto in L.A.O.S. v9.8 (Desktop Selection Box)
                     textGenerationPipeline = await pipeline('text-generation', 'Xenova/distilgpt2');
                     await printSystemOutput('Model loaded successfully.');
                 }
-                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`);
+                await printSystemOutput(`Generating text from prompt: \"${prompt}\"`)
                 const result = await textGenerationPipeline(prompt, { max_new_tokens: 50 });
                 return `Generation complete:\n\n${result[0].generated_text}`;
             } catch (error) {
@@ -2515,7 +2543,8 @@ Benvenuto in L.A.O.S. v9.8 (Desktop Selection Box)
                 '[SYSTEM] Desktop Context Menu (right-click) active.',
                 '[SYSTEM] Draggable Desktop Icons active. Double-click to open files.',
                 '[SYSTEM] Context Menus are now context-sensitive for icons and the desktop.',
-                '[SYSTEM] NEW: Desktop Selection Box active. Drag on the desktop to select multiple icons.'
+                '[SYSTEM] Desktop Selection Box active. Drag on the desktop to select multiple icons.',
+                '[SYSTEM] NEW: Multiple Icon Dragging active. Selected icons can be moved as a group.'
             ];
             let content = '';
             messages.forEach(msg => {
