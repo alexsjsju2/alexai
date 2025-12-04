@@ -255,8 +255,8 @@
         #initial-messages { display: flex; flex-direction: column; gap: 0px; margin-bottom:10px; }
 
         .msg { line-height: 1.4; word-wrap: break-word; white-space: pre-wrap; }
-        .msg.lorel::before { content: "LOREL_SYS>> "; color: var(--term-green); }
-        .msg.user::before { content: "USER_INPUT>> "; color: #00ffff; }
+        .msg.lorel::before { content: \"LOREL_SYS>> \"; color: var(--term-green); }
+        .msg.user::before { content: \"USER_INPUT>> \"; color: #00ffff; }
         .msg.user { color: #ccffff; }
 
         .msg pre {
@@ -916,8 +916,8 @@
             '/home/admin/docs/project.txt': { type: 'file', content: 'Project Phoenix: An initiative to expand conversational AI capabilities using in-browser transformers.' },
             '/home/admin/welcome.txt': { type: 'file', content: 'Benvenuto nel sistema L.A.O.S. v10.0!\nLe posizione delle icone sono ora persistenti!\nFai doppio click su un\'icona del desktop per aprire un file.', x: 20, y: 20 },
             '/home/admin/notes.txt': { type: 'file', content: 'Questa è una nota di prova.\nPuoi modificare questo file con il comando `edit`.', x: 120, y: 20 },
-            '/home/admin/demo.js': { type: 'file', content: 'terminal.log("Ciao dal mio primo script!");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log("Script completato.");', x: 220, y: 20 },
-            '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log("--- Esecuzione FS Demo Script ---");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\'');\n    });\n});', x: 120, y: 120 },
+            '/home/admin/demo.js': { type: 'file', content: 'terminal.log(\"Ciao dal mio primo script!\");\nfor (let i = 1; i <= 3; i++) {\n  terminal.log(`Esecuzione ciclo: ${i}`);\n}\nterminal.log(\"Script completato.\");', x: 220, y: 20 },
+            '/home/admin/fs_demo.js': { type: 'file', content: '// Demo script for the new File System API\nterminal.log(\"--- Esecuzione FS Demo Script ---\");\nconst filePath = \'welcome.txt\';\nconst newFilePath = \'welcome_copy.txt\';\nterminal.log(`Lettura del file: ${filePath}...`);\nfs.readFile(filePath, (err, data) => {\n    if (err) {\n        terminal.log(`ERRORE: ${err}`);\n        return;\n    }\n    terminal.log(\'Contenuto letto con successo.\');\n    const newData = data + \'\\n\\n(Copia generata dallo script fs_demo.js)\';\n    terminal.log(`Scrittura del nuovo file: ${newFilePath}...`);\n    fs.writeFile(newFilePath, newData, (err) => {\n        if (err) {\n            terminal.log(`ERRORE: ${err}`);\n            return;\n        }\n        terminal.log(\'Nuovo file scritto con successo! Prova a usare `cat welcome_copy.txt`\');\n        terminal.log(\'--- Script completato ---\'');\n    });\n});', x: 120, y: 120 },
             '/home/admin/logger.js': { type: 'file', content: '// Background Process Demo\n// This script logs a message every 5 seconds.\nterminal.log(`[BG SCRIPT] Logger started at ${new Date().toLocaleTimeString()}. Will log every 5s.`);', x: 220, y: 120 },
             '/var': { type: 'dir', children: ['log'] },
             '/var/log': { type: 'dir', children: ['system.log'] },
@@ -945,13 +945,13 @@
                 version: '1.0.1',
                 execute: () => {
                     const fortunes = [
-                        "A beautiful, smart, and loving person will be coming into your life.",
-                        "A dubious friend may be an enemy in camouflage.",
-                        "Your success will astonish everyone.",
-                        "You will travel to many exotic places in your lifetime.",
-                        "The greatest risk is not taking one.",
-                        "An alien of some sort will be appearing to you shortly.",
-                        "Do not mistake temptation for opportunity."
+                        \"A beautiful, smart, and loving person will be coming into your life.\",
+                        \"A dubious friend may be an enemy in camouflage.\",
+                        \"Your success will astonish everyone.\",
+                        \"You will travel to many exotic places in your lifetime.\",
+                        \"The greatest risk is not taking one.\",
+                        \"An alien of some sort will be appearing to you shortly.\",
+                        \"Do not mistake temptation for opportunity.\"
                     ];
                     return fortunes[Math.floor(Math.random() * fortunes.length)];
                 }
@@ -961,10 +961,10 @@
         // --- Dynamic Title Engine ---
         function initTitleTypewriter(target) {
             const phrases = [
-                "Lorel Axun v10.0",
-                "Status: ONLINE",
-                "Icon Positions Persist",
-                "Awaiting input..."
+                \"Lorel Axun v10.0\",
+                \"Status: ONLINE\",
+                \"Icon Positions Persist\",
+                \"Awaiting input...\"
             ];
             let phraseIndex = 0;
             let charIndex = 0;
@@ -1186,19 +1186,19 @@
             currentUser = 'user'; // Reset on logout/reboot
 
             const loginHTML = `
-                <div class="login-box">
+                <div class=\"login-box\">
                     <pre>L.A.O.S. v10.0 (Lorel Axun Operating System)</pre>
-                    <div class="login-prompt">
+                    <div class=\"login-prompt\">
                         <span>Username: </span>
-                        <span id="login-user-input"></span>
-                        <span id="login-user-cursor" class="login-cursor"></span>
+                        <span id=\"login-user-input\"></span>
+                        <span id=\"login-user-cursor\" class=\"login-cursor\"></span>
                     </div>
-                    <div class="login-prompt">
+                    <div class=\"login-prompt\">
                         <span>Password: </span>
-                        <span id="login-pass-input"></span>
-                        <span id="login-pass-cursor" class="login-cursor" style="display:none;"></span>
+                        <span id=\"login-pass-input\"></span>
+                        <span id=\"login-pass-cursor\" class=\"login-cursor\" style=\"display:none;\"></span>
                     </div>
-                    <div id="login-error-message"></div>
+                    <div id=\"login-error-message\"></div>
                 </div>
             `;
             loginOverlay.innerHTML = loginHTML;
@@ -1416,7 +1416,7 @@
             return '/' + newPathParts.join('/');
         }
 
-        function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+        function escapeHtml(text) { return text.replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\").replace(/'/g, \"&#039;\"); }
         function analyzeInput(input) { const intent = classifier.classify(input); if (intent !== 'unknown') { const entity = nerManager.extractEntities(input, intent); if (entity) { const highlightedInput = input.replace(entity.text, `<mark>${entity.text}</mark>`); const command = `${intent} ${entity.value}`; return { command, highlightedInput }; } return { command: intent, highlightedInput: input }; } return { command: input, highlightedInput: input }; }
         async function handleLegacyAutocomplete() { const hiddenInput = document.getElementById('hidden-input'); const currentInput = hiddenInput.value; const parts = currentInput.split(' '); const lastPart = parts[parts.length - 1]; if (parts.length === 1 && lastPart.length > 0) { const matches = availableCommands.filter(cmd => cmd.startsWith(lastPart)); if (matches.length > 1) { await typeLorelMessage(`Possibili comandi: ${matches.join('  ')}`); } return; } }
         
@@ -1988,7 +1988,7 @@
             Object.values(processList).forEach(p => clearInterval(p.intervalId));
             processList = {};
             nextPid = 1;
-            await typeLorelMessage("[SYSTEM] Reboot sequence initiated... Terminating all processes and shutting down.");
+            await typeLorelMessage(\"[SYSTEM] Reboot sequence initiated... Terminating all processes and shutting down.\");
             await new Promise(resolve => setTimeout(resolve, 1000));
 
             mainScreen.style.opacity = '0';
@@ -2073,24 +2073,24 @@
         function displayInitialMessages() {
             const initialMessagesContainer = document.getElementById('initial-messages');
             const messages = [
-                "[SYSTEM] Initializing core memory... OK",
-                "[NETWORK] Testing connection... <span style=\"color:var(--term-green)\">SUCCESS</span>",
-                "[AI CORE] Transformers.js library integrated. New `sentiment` & `generate` commands available.",
-                "[DEVELOPMENT] Internal scripting engine loaded with sandboxed File System API.",
-                "[DEVELOPMENT] Internal text editor implemented. Use the `edit` command.",
-                "[SYSTEM] Rudimentary Process Manager loaded. Use `bg`, `ps`, and `kill` to manage background tasks.",
-                "[SYSTEM] Live Process Monitor implemented. Use `top` for a real-time view of running processes.",
-                "[SYSTEM] Rudimentary Package Manager implemented. Use `lax` to install new commands like `cowsay`.",
-                "[SYSTEM] Persistence layer active. File system and packages now stored in IndexedDB.",
-                "[SYSTEM] Window Manager active. Windows are draggable and resizable.",
-                "[SYSTEM] Taskbar active for centralized window management.",
-                "[SYSTEM] Start Menu and System Clock added to taskbar.",
-                "[SYSTEM] Desktop Context Menu (right-click) active.",
-                "[SYSTEM] Draggable Desktop Icons active. Double-click to open files.",
-                "[SYSTEM] Context Menus are now context-sensitive for icons and the desktop.",
-                "[SYSTEM] Desktop Selection Box active. Drag on the desktop to select multiple icons.",
-                "[SYSTEM] Multiple Icon Dragging active. Selected icons can be moved as a group.",
-                "[SYSTEM] NEW: Icon positions are now persistent. The layout is saved automatically."
+                \"[SYSTEM] Initializing core memory... OK\",
+                \"[NETWORK] Testing connection... <span style=\\\"color:var(--term-green)\\\">SUCCESS</span>\",
+                \"[AI CORE] Transformers.js library integrated. New `sentiment` & `generate` commands available.\",
+                \"[DEVELOPMENT] Internal scripting engine loaded with sandboxed File System API.\",
+                \"[DEVELOPMENT] Internal text editor implemented. Use the `edit` command.\",
+                \"[SYSTEM] Rudimentary Process Manager loaded. Use `bg`, `ps`, and `kill` to manage background tasks.\",
+                \"[SYSTEM] Live Process Monitor implemented. Use `top` for a real-time view of running processes.\",
+                \"[SYSTEM] Rudimentary Package Manager implemented. Use `lax` to install new commands like `cowsay`.\",
+                \"[SYSTEM] Persistence layer active. File system and packages now stored in IndexedDB.\",
+                \"[SYSTEM] Window Manager active. Windows are draggable and resizable.\",
+                \"[SYSTEM] Taskbar active for centralized window management.\",
+                \"[SYSTEM] Start Menu and System Clock added to taskbar.\",
+                \"[SYSTEM] Desktop Context Menu (right-click) active.\",
+                \"[SYSTEM] Draggable Desktop Icons active. Double-click to open files.\",
+                \"[SYSTEM] Context Menus are now context-sensitive for icons and the desktop.\",
+                \"[SYSTEM] Desktop Selection Box active. Drag on the desktop to select multiple icons.\",
+                \"[SYSTEM] Multiple Icon Dragging active. Selected icons can be moved as a group.\",
+                \"[SYSTEM] NEW: Icon positions are now persistent. The layout is saved automatically.\"
             ];
             let content = '';
             messages.forEach(msg => {
