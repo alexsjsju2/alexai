@@ -2,7 +2,7 @@ name: Evoluzione di Lorel Axun
 
 on:
   schedule:
-    - cron: '0 0 31 2 *' 
+    - cron: '*' 
   workflow_dispatch:  
 
 jobs:
